@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sagefinan — UI draft</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#111827; --teal:#0F766E;
+  --n50:#F9FAFB; --n100:#F3F4F6; --n200:#E5E7EB; --n400:#9CA3AF; --n600:#4B5563;
+  --red:#B42318; --green:#067647; --amber:#B54708;
+  --r:6px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:Inter,system-ui,sans-serif;font-size:14px;font-weight:400;color:var(--ink);background:var(--n100);line-height:1.5;font-feature-settings:"tnum" 0}
+.num{font-variant-numeric:tabular-nums}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;background:none;border:none}
+a{color:var(--teal);text-decoration:none}
+
+/* frame */
+.wrap{display:flex;min-height:100vh}
+.side{width:212px;flex:none;background:var(--ink);color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.brand{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:9px}
+.mark{width:26px;height:26px;border-radius:var(--r);background:var(--teal);display:grid;place-items:center;font-size:13px;font-weight:500;flex:none}
+.brand b{font-size:15px;font-weight:500;letter-spacing:-.01em}
+.brand span{display:block;font-size:11px;color:var(--n400);margin-top:1px}
+.navgrp{padding:14px 10px 4px}
+.navgrp p{font-size:11px;color:var(--n400);padding:0 8px 6px;letter-spacing:.04em;text-transform:uppercase}
+.nav{display:block;width:100%;text-align:left;padding:8px 10px;border-radius:var(--r);color:#D1D5DB;font-size:13.5px;margin-bottom:1px}
+.nav:hover{background:rgba(255,255,255,.07);color:#fff}
+.nav.on{background:var(--teal);color:#fff}
+.who{margin-top:auto;padding:12px 14px;border-top:1px solid rgba(255,255,255,.1);font-size:12px;color:var(--n400)}
+.who b{display:block;color:#fff;font-size:13px;font-weight:500}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.top{background:#fff;border-bottom:1px solid var(--n200);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;position:sticky;top:0;z-index:5}
+.top h1{font-size:20px;font-weight:500;letter-spacing:-.01em}
+.top p{font-size:12.5px;color:var(--n600);margin-top:2px}
+.toprt{display:flex;align-items:center;gap:8px}
+.body{padding:22px 24px 40px;max-width:1180px;width:100%}
+
+/* atoms */
+.btn{padding:7px 13px;border-radius:var(--r);border:1px solid var(--n200);background:#fff;font-size:13px;font-weight:400}
+.btn:hover{background:var(--n50);border-color:var(--n400)}
+.btn.pri{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.pri:hover{background:#000}
+.btn.acc{background:var(--teal);color:#fff;border-color:var(--teal)}
+.btn.acc:hover{filter:brightness(.93)}
+.card{background:#fff;border:1px solid var(--n200);border-radius:var(--r)}
+.card h2{font-size:14px;font-weight:500;padding:12px 16px;border-bottom:1px solid var(--n200);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.card h2 em{font-style:normal;font-size:12px;color:var(--n600);font-weight:400}
+.pad{padding:16px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat{background:#fff;border:1px solid var(--n200);border-radius:var(--r);padding:13px 15px}
+.stat span{font-size:11.5px;color:var(--n600);letter-spacing:.02em;text-transform:uppercase}
+.stat b{display:block;font-size:24px;font-weight:500;margin-top:5px;letter-spacing:-.02em}
+.stat i{font-style:normal;font-size:12px;color:var(--n600)}
+
+table{width:100%;border-collapse:collapse}
+th{font-size:11.5px;font-weight:500;color:var(--n600);text-align:left;padding:8px 16px;border-bottom:1px solid var(--n200);background:var(--n50);letter-spacing:.02em;text-transform:uppercase;white-space:nowrap}
+td{padding:0 16px;height:36px;border-bottom:1px solid var(--n200);font-size:13.5px;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--n50)}
+.r{text-align:right}
+.mut{color:var(--n600)}
+
+.tag{display:inline-block;font-size:11.5px;padding:2px 7px;border-radius:4px;border:1px solid;line-height:1.5}
+.t-ok{color:var(--green);border-color:#A7E0BE;background:#F0FDF4}
+.t-bad{color:var(--red);border-color:#F3B9B4;background:#FEF3F2}
+.t-warn{color:var(--amber);border-color:#F5CFA0;background:#FFFAEB}
+.t-mut{color:var(--n600);border-color:var(--n200);background:var(--n50)}
+.t-acc{color:var(--teal);border-color:#8FCFC7;background:#F0FAF8}
+.short{color:var(--red);font-weight:500}
+.exc{color:var(--green);font-weight:500}
+
+.bar{height:5px;background:var(--n200);border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--teal)}
+.sel{padding:7px 11px;border:1px solid var(--n200);border-radius:var(--r);background:#fff;font-size:13px}
+.inp{padding:7px 11px;border:1px solid var(--n200);border-radius:var(--r);width:100%;font-size:13.5px}
+.inp:focus{outline:2px solid var(--teal);outline-offset:-1px;border-color:var(--teal)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.note{font-size:12.5px;color:var(--n600);background:var(--n50);border:1px solid var(--n200);border-radius:var(--r);padding:10px 13px;margin-bottom:16px}
+.view{display:none}
+.view.on{display:block}
+
+/* count screen (touch) */
+.phone{max-width:392px;margin:0 auto;border:1px solid var(--n200);border-radius:14px;background:#fff;overflow:hidden}
+.ph-top{background:var(--ink);color:#fff;padding:13px 16px}
+.ph-top b{font-size:15px;font-weight:500}
+.ph-top p{font-size:12px;color:var(--n400);margin-top:2px}
+.ph-prog{padding:10px 16px;border-bottom:1px solid var(--n200);background:var(--n50)}
+.ph-prog .row{justify-content:space-between;margin-bottom:7px;font-size:12.5px}
+.item{padding:9px 16px;border-bottom:1px solid var(--n200);display:flex;align-items:center;gap:12px}
+.item .nm{flex:1;min-width:0}
+.item .nm b{display:block;font-size:14px;font-weight:400;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .nm span{font-size:11.5px;color:var(--n400)}
+.qty{width:78px;height:48px;text-align:center;font-size:17px;border:1px solid var(--n200);border-radius:var(--r);font-variant-numeric:tabular-nums}
+.qty:focus{outline:2px solid var(--teal);outline-offset:-1px;border-color:var(--teal)}
+.qty.done{border-color:var(--teal);background:#F0FAF8;color:var(--teal);font-weight:500}
+.ph-foot{padding:12px 16px;border-top:1px solid var(--n200);display:flex;gap:9px;background:#fff}
+.ph-foot .btn{flex:1;height:46px}
+
+.split{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+.rec{border-bottom:1px solid var(--n200);padding:13px 16px}
+.rec:last-child{border-bottom:none}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.chip{font-size:12px;padding:5px 10px;border:1px solid var(--n200);border-radius:99px;background:#fff}
+.chip:hover{border-color:var(--n400)}
+.chip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+@media(max-width:900px){.grid4{grid-template-columns:repeat(2,1fr)}.split{grid-template-columns:1fr}.side{display:none}.body{padding:16px}.top{padding:12px 16px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="side">
+    <div class="brand"><div class="mark">S</div><div><b>Sagefinan</b><span>Grand Hotel</span></div></div>
+    <div class="navgrp">
+      <p>Audit</p>
+      <button class="nav on" data-v="dash">Dashboard</button>
+      <button class="nav" data-v="count">Take stock</button>
+      <button class="nav" data-v="var">Compare stock</button>
+      <button class="nav" data-v="rec">Reconcile</button>
+      <button class="nav" data-v="hist">History</button>
+    </div>
+    <div class="navgrp">
+      <p>Stock control</p>
+      <button class="nav" data-v="ledger">Stock ledger</button>
+      <button class="nav" data-v="req">Requisitions</button>
+      <button class="nav" data-v="sales">Sales entry</button>
+      <button class="nav" data-v="prod">Products</button>
+    </div>
+    <div class="who"><b>Daniel A.</b>Auditor · All departments</div>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <div><h1 id="ttl">Dashboard</h1><p id="sub">Tuesday, 21 July 2026 · as at close of Monday, 20 July</p></div>
+      <div class="toprt">
+        <select class="sel"><option>All departments</option><option>Central store</option><option>Bar</option><option>Kitchen</option><option>Pool bar</option></select>
+        <button class="btn acc" data-v="count">Start count</button>
+      </div>
+    </header>
+    <div class="body">
+
+    <!-- DASHBOARD -->
+    <section class="view on" id="v-dash">
+      <div class="grid4">
+        <div class="stat"><span>Counted today</span><b class="num">3<i> / 8</i></b></div>
+        <div class="stat"><span>Items with variance</span><b class="num" style="color:var(--red)">17</b></div>
+        <div class="stat"><span>Variance value</span><b class="num" style="color:var(--red)">₦48,250</b></div>
+        <div class="stat"><span>Awaiting reconciliation</span><b class="num">2<i> sessions</i></b></div>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h2>Today's counts <em>as at close of 20 July</em></h2>
+        <table>
+          <thead><tr><th>Department</th><th>Products</th><th class="r">Counted</th><th class="r">Variances</th><th class="r">Value</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Central store</td><td class="mut num">312</td><td class="r num">312</td><td class="r num short">6</td><td class="r num short">₦21,400</td><td><span class="tag t-warn">Needs reconciling</span></td><td class="r"><a href="#" data-v="var">Open</a></td></tr>
+            <tr><td>Bar</td><td class="mut num">86</td><td class="r num">86</td><td class="r num short">9</td><td class="r num short">₦18,900</td><td><span class="tag t-warn">Needs reconciling</span></td><td class="r"><a href="#" data-v="var">Open</a></td></tr>
+            <tr><td>Kitchen</td><td class="mut num">124</td><td class="r num">124</td><td class="r num short">2</td><td class="r num short">₦7,950</td><td><span class="tag t-mut">Locked</span></td><td class="r"><a href="#" data-v="hist">View</a></td></tr>
+            <tr><td>Pool bar</td><td class="mut num">54</td><td class="r num">—</td><td class="r mut">—</td><td class="r mut">—</td><td><span class="tag t-mut">Not started</span></td><td class="r"><a href="#" data-v="count">Count</a></td></tr>
+            <tr><td>Restaurant</td><td class="mut num">98</td><td class="r num">—</td><td class="r mut">—</td><td class="r mut">—</td><td><span class="tag t-mut">Not started</span></td><td class="r"><a href="#" data-v="count">Count</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <h2>Stock ledger <em>All departments · as at 21 July 2026</em></h2>
+        <table>
+          <thead><tr><th>Department</th><th class="r">Opening</th><th class="r">Received</th><th class="r">Issued</th><th class="r">Closing</th><th class="r">Products</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Central store</td><td class="r num">₦14,820,400</td><td class="r num exc">+₦2,140,000</td><td class="r num short">−₦1,986,300</td><td class="r num" style="font-weight:500">₦14,974,100</td><td class="r num mut">312</td><td class="r"><a href="#" data-v="ledger">Open</a></td></tr>
+            <tr><td>Bar</td><td class="r num">₦1,942,800</td><td class="r num exc">+₦486,000</td><td class="r num short">−₦512,400</td><td class="r num" style="font-weight:500">₦1,916,400</td><td class="r num mut">86</td><td class="r"><a href="#" data-v="ledger">Open</a></td></tr>
+            <tr><td>Kitchen</td><td class="r num">₦2,760,500</td><td class="r num exc">+₦640,200</td><td class="r num short">−₦598,900</td><td class="r num" style="font-weight:500">₦2,801,800</td><td class="r num mut">124</td><td class="r"><a href="#" data-v="ledger">Open</a></td></tr>
+            <tr><td>Pool bar</td><td class="r num">₦684,000</td><td class="r num exc">+₦158,400</td><td class="r num short">−₦171,600</td><td class="r num" style="font-weight:500">₦670,800</td><td class="r num mut">54</td><td class="r"><a href="#" data-v="ledger">Open</a></td></tr>
+            <tr><td>Restaurant</td><td class="r num">₦1,206,300</td><td class="r num exc">+₦312,800</td><td class="r num short">−₦289,400</td><td class="r num" style="font-weight:500">₦1,229,700</td><td class="r num mut">98</td><td class="r"><a href="#" data-v="ledger">Open</a></td></tr>
+            <tr style="background:var(--n50)"><td style="font-weight:500">Total</td><td class="r num" style="font-weight:500">₦21,414,000</td><td class="r num" style="font-weight:500">+₦3,737,400</td><td class="r num" style="font-weight:500">−₦3,558,600</td><td class="r num" style="font-weight:500">₦21,592,800</td><td class="r num mut">674</td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="split">
+        <div class="card">
+          <h2>Repeat variances <em>last 30 days</em></h2>
+          <table>
+            <thead><tr><th>Product</th><th>Department</th><th class="r">Days short</th><th class="r">Total</th><th class="r">Value</th></tr></thead>
+            <tbody>
+              <tr><td>Heineken 33cl</td><td class="mut">Bar</td><td class="r num">11</td><td class="r num short">−34</td><td class="r num">₦51,000</td></tr>
+              <tr><td>Star Radler 33cl</td><td class="mut">Pool bar</td><td class="r num">8</td><td class="r num short">−19</td><td class="r num">₦22,800</td></tr>
+              <tr><td>Chivas Regal 75cl</td><td class="mut">Bar</td><td class="r num">5</td><td class="r num short">−3</td><td class="r num">₦126,000</td></tr>
+              <tr><td>Eva Water 75cl</td><td class="mut">Restaurant</td><td class="r num">4</td><td class="r num exc">+12</td><td class="r num">₦4,800</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>Movements today</h2>
+          <div class="pad" style="padding:0">
+            <div class="rec"><div class="row" style="justify-content:space-between"><b style="font-weight:500">Requisition</b><span class="mut num" style="font-size:12px">07:42</span></div><div class="mut" style="font-size:12.5px;margin-top:3px">Central store → Bar · 24 Heineken</div><div class="mut" style="font-size:12px;margin-top:2px">by Musa I.</div></div>
+            <div class="rec"><div class="row" style="justify-content:space-between"><b style="font-weight:500">Purchase</b><span class="mut num" style="font-size:12px">06:15</span></div><div class="mut" style="font-size:12.5px;margin-top:3px">Nigerian Breweries · 12 lines</div><div class="mut" style="font-size:12px;margin-top:2px">by Musa I.</div></div>
+            <div class="rec"><div class="row" style="justify-content:space-between"><b style="font-weight:500">Sales posted</b><span class="mut num" style="font-size:12px">Yesterday</span></div><div class="mut" style="font-size:12.5px;margin-top:3px">Kitchen · 124 products</div><div class="mut" style="font-size:12px;margin-top:2px">by Grace O.</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COUNT -->
+    <section class="view" id="v-count">
+      <div class="note">The expected figure is hidden while you count. You enter what you physically see, then compare — this is what stops the book figure nudging your count. Shown at phone width, which is how you'll use it.</div>
+      <div class="phone">
+        <div class="ph-top"><b>Bar</b><p>Physical count · as at close of Mon 20 July</p></div>
+        <div class="ph-prog">
+          <div class="row"><span>Counted <b class="num" style="font-weight:500">34</b> of <b class="num" style="font-weight:500">86</b></span><span class="mut">Draft saved 07:58</span></div>
+          <div class="bar"><i style="width:39.5%"></i></div>
+          <input class="inp" style="margin-top:9px" placeholder="Search product or code">
+        </div>
+        <div>
+          <div class="item"><div class="nm"><b>Heineken 33cl</b><span>BEV-0104 · Shelf 1</span></div><input class="qty done num" value="20"></div>
+          <div class="item"><div class="nm"><b>Star Lager 60cl</b><span>BEV-0107 · Shelf 1</span></div><input class="qty done num" value="48"></div>
+          <div class="item"><div class="nm"><b>Star Radler 33cl</b><span>BEV-0111 · Shelf 1</span></div><input class="qty num" placeholder="—"></div>
+          <div class="item"><div class="nm"><b>Trophy Lager 60cl</b><span>BEV-0115 · Shelf 2</span></div><input class="qty num" placeholder="—"></div>
+          <div class="item"><div class="nm"><b>Chivas Regal 75cl</b><span>SPR-0032 · Shelf 4</span></div><input class="qty num" placeholder="—"></div>
+          <div class="item"><div class="nm"><b>Jameson 75cl</b><span>SPR-0035 · Shelf 4</span></div><input class="qty num" placeholder="—"></div>
+        </div>
+        <div class="ph-foot"><button class="btn">Save draft</button><button class="btn pri" data-v="var">Finish count</button></div>
+      </div>
+    </section>
+
+    <!-- VARIANCE -->
+    <section class="view" id="v-var">
+      <div class="grid4">
+        <div class="stat"><span>Products counted</span><b class="num">86</b></div>
+        <div class="stat"><span>Tally</span><b class="num" style="color:var(--green)">77</b></div>
+        <div class="stat"><span>Variances</span><b class="num" style="color:var(--red)">9</b></div>
+        <div class="stat"><span>Net value</span><b class="num" style="color:var(--red)">−₦18,900</b></div>
+      </div>
+      <div class="card">
+        <h2>Variances — Bar <em>Only products that don't tally are listed</em></h2>
+        <table>
+          <thead><tr><th>Product</th><th class="r">Expected</th><th class="r">Counted</th><th class="r">Ledger</th><th class="r">Variance</th><th class="r">Value</th><th>Flag</th></tr></thead>
+          <tbody>
+            <tr><td>Heineken 33cl</td><td class="r num">21</td><td class="r num">20</td><td class="r num">21</td><td class="r num short">−1</td><td class="r num short">₦1,500</td><td><span class="tag t-bad">Short</span></td></tr>
+            <tr><td>Chivas Regal 75cl</td><td class="r num">8</td><td class="r num">7</td><td class="r num">8</td><td class="r num short">−1</td><td class="r num short">₦42,000</td><td><span class="tag t-bad">Short</span></td></tr>
+            <tr><td>Star Radler 33cl</td><td class="r num">36</td><td class="r num">32</td><td class="r num">36</td><td class="r num short">−4</td><td class="r num short">₦4,800</td><td><span class="tag t-bad">Short</span></td></tr>
+            <tr><td>Trophy Lager 60cl</td><td class="r num">44</td><td class="r num">46</td><td class="r num">44</td><td class="r num exc">+2</td><td class="r num exc">₦2,400</td><td><span class="tag t-ok">Excess</span></td></tr>
+            <tr><td>Eva Water 75cl</td><td class="r num">60</td><td class="r num">60</td><td class="r num" style="color:var(--amber)">58</td><td class="r num">0</td><td class="r mut">—</td><td><span class="tag t-warn">Book differs</span></td></tr>
+            <tr><td>Coke 50cl</td><td class="r num">72</td><td class="r num">69</td><td class="r num">72</td><td class="r num short">−3</td><td class="r num short">₦1,650</td><td><span class="tag t-bad">Short</span></td></tr>
+          </tbody>
+        </table>
+        <div class="pad row" style="justify-content:space-between;border-top:1px solid var(--n200)">
+          <span class="mut">Nothing is locked until you reconcile.</span>
+          <div class="row"><button class="btn">Export CSV</button><button class="btn acc" data-v="rec">Reconcile 9 items</button></div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:16px"><b style="font-weight:500">Eva Water</b> is the case worth noticing — your count matches what the system expects, but the department's own book says something different. That's a posting error on their side, not a physical loss. Different problem, different fix.</div>
+    </section>
+
+    <!-- RECONCILE -->
+    <section class="view" id="v-rec">
+      <div class="split">
+        <div class="card">
+          <h2>Reconcile — Bar <em>3 of 9 done</em></h2>
+          <div>
+            <div class="rec">
+              <div class="row" style="justify-content:space-between"><div><b style="font-weight:500">Heineken 33cl</b> <span class="mut" style="font-size:12.5px">BEV-0104</span></div><div class="num"><span class="mut" style="font-size:12.5px">21 expected · 20 counted</span> <span class="short">−1</span></div></div>
+              <div class="chips"><button class="chip on">Breakage</button><button class="chip">Spillage</button><button class="chip">Unrecorded sale</button><button class="chip">Transfer not posted</button><button class="chip">Posting error</button><button class="chip">Under investigation</button></div>
+              <input class="inp" style="margin-top:9px" value="Bottle broken during service, reported by bar supervisor">
+            </div>
+            <div class="rec">
+              <div class="row" style="justify-content:space-between"><div><b style="font-weight:500">Chivas Regal 75cl</b> <span class="mut" style="font-size:12.5px">SPR-0032</span></div><div class="num"><span class="mut" style="font-size:12.5px">8 expected · 7 counted</span> <span class="short">−1</span></div></div>
+              <div class="chips"><button class="chip">Breakage</button><button class="chip">Spillage</button><button class="chip">Unrecorded sale</button><button class="chip">Transfer not posted</button><button class="chip">Posting error</button><button class="chip on">Under investigation</button></div>
+              <input class="inp" style="margin-top:9px" placeholder="Add a note (optional)">
+            </div>
+            <div class="rec">
+              <div class="row" style="justify-content:space-between"><div><b style="font-weight:500">Star Radler 33cl</b> <span class="mut" style="font-size:12.5px">BEV-0111</span></div><div class="num"><span class="mut" style="font-size:12.5px">36 expected · 32 counted</span> <span class="short">−4</span></div></div>
+              <div class="chips"><button class="chip">Breakage</button><button class="chip">Spillage</button><button class="chip">Unrecorded sale</button><button class="chip on">Transfer not posted</button><button class="chip">Posting error</button><button class="chip">Under investigation</button></div>
+              <input class="inp" style="margin-top:9px" value="4 moved to pool bar Sunday evening, requisition never entered">
+            </div>
+          </div>
+          <div class="pad row" style="justify-content:space-between;border-top:1px solid var(--n200)">
+            <button class="btn">Correct a count entry</button>
+            <button class="btn pri">Lock session</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>What locking does</h2>
+          <div class="pad" style="font-size:13px;color:var(--n600);line-height:1.65">
+            <p style="margin-bottom:10px">Once locked, figures can't be overwritten. A correction is added as a separate adjustment record showing the old value, the new value, who changed it and when.</p>
+            <p style="margin-bottom:14px">If anyone questions your numbers later, you can show both the original entry and every change made to it.</p>
+            <div class="row" style="gap:6px"><span class="tag t-mut">Draft</span><span class="mut">→</span><span class="tag t-warn">Needs reconciling</span><span class="mut">→</span><span class="tag t-acc">Locked</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="view" id="v-hist">
+      <div class="card">
+        <h2>Count history <em>Every session, every department</em></h2>
+        <div class="pad row" style="border-bottom:1px solid var(--n200);padding:11px 16px">
+          <select class="sel"><option>All departments</option><option>Bar</option></select>
+          <select class="sel"><option>Last 30 days</option><option>This month</option></select>
+          <input class="inp" style="width:auto;flex:1;min-width:160px" placeholder="Search product">
+          <button class="btn">Export</button>
+        </div>
+        <table>
+          <thead><tr><th>As at</th><th>Department</th><th>Counted by</th><th class="r">Items</th><th class="r">Variances</th><th class="r">Value</th><th>Status</th><th>Locked</th></tr></thead>
+          <tbody>
+            <tr><td class="num">20 Jul 2026</td><td>Bar</td><td class="mut">Daniel A.</td><td class="r num">86</td><td class="r num short">9</td><td class="r num short">−₦18,900</td><td><span class="tag t-warn">Reconciling</span></td><td class="mut">—</td></tr>
+            <tr><td class="num">20 Jul 2026</td><td>Kitchen</td><td class="mut">Daniel A.</td><td class="r num">124</td><td class="r num short">2</td><td class="r num short">−₦7,950</td><td><span class="tag t-acc">Locked</span></td><td class="mut num">08:41</td></tr>
+            <tr><td class="num">19 Jul 2026</td><td>Bar</td><td class="mut">Daniel A.</td><td class="r num">86</td><td class="r num short">4</td><td class="r num short">−₦6,300</td><td><span class="tag t-acc">Locked</span></td><td class="mut num">07:55</td></tr>
+            <tr><td class="num">19 Jul 2026</td><td>Central store</td><td class="mut">Daniel A.</td><td class="r num">312</td><td class="r num exc">1</td><td class="r num exc">+₦1,200</td><td><span class="tag t-acc">Locked</span></td><td class="mut num">09:12</td></tr>
+            <tr><td class="num">18 Jul 2026</td><td>Bar</td><td class="mut">Daniel A.</td><td class="r num">86</td><td class="r num">0</td><td class="r mut">—</td><td><span class="tag t-acc">Locked</span></td><td class="mut num">08:02</td></tr>
+            <tr><td class="num">18 Jul 2026</td><td>Pool bar</td><td class="mut">Daniel A.</td><td class="r num">54</td><td class="r num short">3</td><td class="r num short">−₦3,600</td><td><span class="tag t-acc">Locked</span></td><td class="mut num">08:33</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- REQUISITIONS -->
+    <section class="view" id="v-req">
+      <div class="note">Storekeeper's screen. One entry moves stock out of central store and into the receiving department at the same time — the two sides can never disagree because they're the same record.</div>
+      <div class="split">
+        <div class="card">
+          <h2>Requisitions <em>Business day: 21 July 2026</em></h2>
+          <table>
+            <thead><tr><th>Time</th><th>To department</th><th>Product</th><th class="r">Bottles</th><th>Entered by</th><th>Received by</th></tr></thead>
+            <tbody>
+              <tr><td class="num mut">07:42</td><td>Bar</td><td>Heineken 33cl</td><td class="r num">24</td><td class="mut">Musa I.</td><td class="mut">Tunde B.</td></tr>
+              <tr><td class="num mut">07:42</td><td>Bar</td><td>Star Lager 60cl</td><td class="r num">36</td><td class="mut">Musa I.</td><td class="mut">Tunde B.</td></tr>
+              <tr><td class="num mut">07:40</td><td>Kitchen</td><td>Eva Water 75cl</td><td class="r num">60</td><td class="mut">Musa I.</td><td class="mut">Grace O.</td></tr>
+              <tr><td class="num mut">06:58</td><td>Pool bar</td><td>Coke 50cl</td><td class="r num">48</td><td class="mut">Musa I.</td><td class="mut">Femi K.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card">
+          <h2>New requisition</h2>
+          <div class="pad">
+            <label style="font-size:12px;color:var(--n600)">Business day</label>
+            <input class="inp num" style="margin:5px 0 12px" value="2026-07-21">
+            <label style="font-size:12px;color:var(--n600)">To department</label>
+            <select class="sel" style="width:100%;margin:5px 0 12px"><option>Bar</option><option>Kitchen</option><option>Pool bar</option><option>Restaurant</option></select>
+            <label style="font-size:12px;color:var(--n600)">Product</label>
+            <input class="inp" style="margin:5px 0 12px" placeholder="Search code or name">
+            <label style="font-size:12px;color:var(--n600)">Bottles</label>
+            <input class="inp num" style="margin:5px 0 8px" placeholder="0">
+            <div class="note" style="margin:0 0 12px;font-size:12px">Central store holds <b class="num" style="font-weight:500">312</b> bottles of this product.</div>
+            <button class="btn acc" style="width:100%;height:40px">Record requisition</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LEDGER DETAIL -->
+    <section class="view" id="v-ledger">
+      <div class="grid4">
+        <div class="stat"><span>Opening value</span><b class="num">₦1,942,800</b></div>
+        <div class="stat"><span>Received</span><b class="num" style="color:var(--green)">+₦486,000</b></div>
+        <div class="stat"><span>Issued</span><b class="num" style="color:var(--red)">−₦512,400</b></div>
+        <div class="stat"><span>Closing value</span><b class="num">₦1,916,400</b></div>
+      </div>
+      <div class="card">
+        <h2>Stock ledger — Bar <em>as at 21 July 2026</em></h2>
+        <div class="pad row" style="border-bottom:1px solid var(--n200);padding:11px 16px">
+          <select class="sel"><option>Bar</option><option>Central store</option><option>Kitchen</option><option>Pool bar</option><option>Restaurant</option></select>
+          <input class="inp num" style="width:auto" value="2026-07-21">
+          <input class="inp" style="width:auto;flex:1;min-width:150px" placeholder="Search product">
+          <button class="btn">Export</button>
+        </div>
+        <table>
+          <thead><tr><th>Product</th><th class="r">Opening</th><th class="r">Received</th><th class="r">Sales</th><th class="r">Closing</th><th class="r">Unit cost</th><th class="r">Closing value</th></tr></thead>
+          <tbody>
+            <tr><td>Heineken 33cl</td><td class="r num mut">30</td><td class="r num exc">+24</td><td class="r num short">−33</td><td class="r num" style="font-weight:500">21</td><td class="r num mut">₦1,500</td><td class="r num">₦31,500</td></tr>
+            <tr><td>Star Lager 60cl</td><td class="r num mut">42</td><td class="r num exc">+36</td><td class="r num short">−30</td><td class="r num" style="font-weight:500">48</td><td class="r num mut">₦1,200</td><td class="r num">₦57,600</td></tr>
+            <tr><td>Star Radler 33cl</td><td class="r num mut">50</td><td class="r num mut">0</td><td class="r num short">−14</td><td class="r num" style="font-weight:500">36</td><td class="r num mut">₦1,200</td><td class="r num">₦43,200</td></tr>
+            <tr><td>Chivas Regal 75cl</td><td class="r num mut">9</td><td class="r num mut">0</td><td class="r num short">−1</td><td class="r num" style="font-weight:500">8</td><td class="r num mut">₦42,000</td><td class="r num">₦336,000</td></tr>
+            <tr><td>Trophy Lager 60cl</td><td class="r num mut">60</td><td class="r num mut">0</td><td class="r num short">−16</td><td class="r num" style="font-weight:500">44</td><td class="r num mut">₦1,200</td><td class="r num">₦52,800</td></tr>
+            <tr><td>Coke 50cl</td><td class="r num mut">96</td><td class="r num exc">+48</td><td class="r num short">−72</td><td class="r num" style="font-weight:500">72</td><td class="r num mut">₦550</td><td class="r num">₦39,600</td></tr>
+            <tr><td>Eva Water 75cl</td><td class="r num mut">120</td><td class="r num exc">+60</td><td class="r num short">−58</td><td class="r num" style="font-weight:500">122</td><td class="r num mut">₦400</td><td class="r num">₦48,800</td></tr>
+          </tbody>
+        </table>
+        <div class="pad row" style="justify-content:space-between;border-top:1px solid var(--n200)">
+          <span class="mut">Showing 7 of 86 products</span>
+          <span class="mut">Tap any row to see every movement behind these figures.</span>
+        </div>
+      </div>
+      <div class="note" style="margin-top:16px">For the central store this same table reads <b style="font-weight:500">Purchases</b> and <b style="font-weight:500">Requisitions out</b> instead of Received and Sales — same structure, different movement types.</div>
+    </section>
+
+    <!-- SALES -->
+    <section class="view" id="v-sales">
+      <div class="note">Search a product, enter the day's sales, add it to the batch. Products you don't add are recorded as zero sales for the day — the batch summary spells that out before you post.</div>
+      <div class="split">
+        <div class="card">
+          <h2>Sales batch — Bar <em>Business day: 20 July 2026 · not yet posted</em></h2>
+          <table>
+            <thead><tr><th>Product</th><th class="r">Opening</th><th class="r">Received</th><th class="r">Sales</th><th class="r">Expected closing</th><th></th></tr></thead>
+            <tbody>
+              <tr><td>Heineken 33cl <span class="mut" style="font-size:12px">BEV-0104</span></td><td class="r num mut">30</td><td class="r num mut">24</td><td class="r num" style="font-weight:500">33</td><td class="r num" style="font-weight:500">21</td><td class="r"><a href="#">Remove</a></td></tr>
+              <tr><td>Star Lager 60cl <span class="mut" style="font-size:12px">BEV-0107</span></td><td class="r num mut">42</td><td class="r num mut">36</td><td class="r num" style="font-weight:500">30</td><td class="r num" style="font-weight:500">48</td><td class="r"><a href="#">Remove</a></td></tr>
+              <tr><td>Star Radler 33cl <span class="mut" style="font-size:12px">BEV-0111</span></td><td class="r num mut">50</td><td class="r num mut">0</td><td class="r num" style="font-weight:500">14</td><td class="r num" style="font-weight:500">36</td><td class="r"><a href="#">Remove</a></td></tr>
+              <tr><td>Chivas Regal 75cl <span class="mut" style="font-size:12px">SPR-0032</span></td><td class="r num mut">9</td><td class="r num mut">0</td><td class="r num" style="font-weight:500">1</td><td class="r num" style="font-weight:500">8</td><td class="r"><a href="#">Remove</a></td></tr>
+              <tr><td>Coke 50cl <span class="mut" style="font-size:12px">BEV-0140</span></td><td class="r num mut">96</td><td class="r num mut">48</td><td class="r num" style="font-weight:500">72</td><td class="r num" style="font-weight:500">72</td><td class="r"><a href="#">Remove</a></td></tr>
+            </tbody>
+          </table>
+          <div class="pad" style="border-top:1px solid var(--n200)">
+            <div class="note" style="margin:0 0 12px">5 products in this batch · the other <b style="font-weight:500">81</b> products in Bar will be posted as zero sales for 20 July.</div>
+            <div class="row" style="justify-content:space-between">
+              <button class="btn">Save draft</button>
+              <div class="row"><button class="btn">Clear batch</button><button class="btn pri">Post sales</button></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>Add sale</h2>
+          <div class="pad">
+            <label style="font-size:12px;color:var(--n600)">Business day</label>
+            <input class="inp num" style="margin:5px 0 12px" value="2026-07-20">
+            <label style="font-size:12px;color:var(--n600)">Department</label>
+            <select class="sel" style="width:100%;margin:5px 0 12px"><option>Bar</option><option>Kitchen</option><option>Pool bar</option><option>Restaurant</option></select>
+            <label style="font-size:12px;color:var(--n600)">Product</label>
+            <input class="inp" style="margin:5px 0 12px" placeholder="Search code or name" value="Trophy Lager 60cl">
+            <label style="font-size:12px;color:var(--n600)">Bottles sold</label>
+            <input class="inp num" style="margin:5px 0 8px" placeholder="0">
+            <div class="note" style="margin:0 0 12px;font-size:12px">Opening <b class="num" style="font-weight:500">60</b> · received <b class="num" style="font-weight:500">0</b>. Sales cannot exceed 60.</div>
+            <button class="btn acc" style="width:100%;height:40px">Add to batch</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PRODUCTS -->
+    <section class="view" id="v-prod">
+      <div class="card">
+        <h2>Products <em>1,014 active</em></h2>
+        <div class="pad row" style="border-bottom:1px solid var(--n200);padding:11px 16px">
+          <input class="inp" style="width:auto;flex:1;min-width:180px" placeholder="Search name or code">
+          <select class="sel"><option>All departments</option><option>Bar</option></select>
+          <button class="btn">Import CSV</button>
+          <button class="btn acc">Add product</button>
+        </div>
+        <table>
+          <thead><tr><th>Code</th><th>Name</th><th class="r">Unit cost</th><th>Departments</th><th class="r">Shelf order</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="num mut">BEV-0104</td><td>Heineken 33cl</td><td class="r num">₦1,500</td><td class="mut">Bar, Pool bar, Restaurant</td><td class="r num mut">1</td><td class="r"><a href="#">Edit</a></td></tr>
+            <tr><td class="num mut">BEV-0107</td><td>Star Lager 60cl</td><td class="r num">₦1,200</td><td class="mut">Bar, Pool bar</td><td class="r num mut">2</td><td class="r"><a href="#">Edit</a></td></tr>
+            <tr><td class="num mut">BEV-0111</td><td>Star Radler 33cl</td><td class="r num">₦1,200</td><td class="mut">Bar, Pool bar</td><td class="r num mut">3</td><td class="r"><a href="#">Edit</a></td></tr>
+            <tr><td class="num mut">SPR-0032</td><td>Chivas Regal 75cl</td><td class="r num">₦42,000</td><td class="mut">Bar</td><td class="r num mut">12</td><td class="r"><a href="#">Edit</a></td></tr>
+            <tr><td class="num mut">WTR-0008</td><td>Eva Water 75cl</td><td class="r num">₦400</td><td class="mut">All departments</td><td class="r num mut">4</td><td class="r"><a href="#">Edit</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="note" style="margin-top:16px">Shelf order is what makes counting fast — the list appears in the order you physically walk the store, so you never scroll backwards looking for the next item.</div>
+    </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const titles={dash:['Dashboard','Tuesday, 21 July 2026 · as at close of Monday, 20 July'],count:['Take stock','Bar · physical count · as at close of Monday, 20 July'],var:['Compare stock','Bar · 9 of 86 products do not tally'],rec:['Reconcile','Bar · assign a reason to each variance, then lock'],hist:['History','Every count session, searchable and exportable'],ledger:['Stock ledger','Bar · opening, movements and closing as at 21 July 2026'],req:['Requisitions','Central store · movements to departments'],sales:['Sales entry','Bar · build a batch, then post it in one action'],prod:['Products','Product master and department assignments']};
+function go(v){
+  document.querySelectorAll('.view').forEach(s=>s.classList.toggle('on',s.id==='v-'+v));
+  document.querySelectorAll('.nav').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  document.getElementById('ttl').textContent=titles[v][0];
+  document.getElementById('sub').textContent=titles[v][1];
+  window.scrollTo(0,0);
+}
+document.addEventListener('click',e=>{const t=e.target.closest('[data-v]');if(t){e.preventDefault();go(t.dataset.v);}});
+document.querySelectorAll('.chip').forEach(c=>c.addEventListener('click',()=>{c.parentElement.querySelectorAll('.chip').forEach(x=>x.classList.remove('on'));c.classList.add('on');}));
+document.querySelectorAll('.qty').forEach(q=>q.addEventListener('input',()=>q.classList.toggle('done',q.value.trim()!=='')));
+</script>
+</body>
+</html>

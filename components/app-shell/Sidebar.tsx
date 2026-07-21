@@ -21,9 +21,8 @@ export function Sidebar({
   return (
     <div className="flex flex-col h-full w-[212px] bg-ink text-white">
       <div className="flex items-center gap-2.5 px-4 pt-[18px] pb-3.5 border-b border-white/10">
-        <div className="w-[26px] h-[26px] rounded bg-teal grid place-items-center text-[13px] font-medium flex-none">
-          S
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-mark.png" alt="" className="w-[26px] h-auto flex-none invert" />
         <div>
           <b className="block text-[15px] font-medium tracking-tight">Sagefinan</b>
           <span className="block text-[11px] text-n400 mt-px">Grand Hotel</span>

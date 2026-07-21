@@ -150,9 +150,12 @@ the prototype's dashboard/ledger screens display it.
   sidebar), Teal `#0F766E` (single accent — active states, links, key actions,
   selected rows)
 - Neutrals: `#F9FAFB` `#F3F4F6` `#E5E7EB` `#9CA3AF` `#4B5563`
-- Semantic colours — **used only on variances**, never for general UI state
-  (e.g. form errors use a neutral note box, not red): red `#B42318` (short),
-  green `#067647` (excess), amber `#B54708` (warning)
+- Semantic colours — **used only on variances** within the authenticated app,
+  never for general UI state (e.g. form errors on authenticated screens use a
+  neutral note box, not red): red `#B42318` (short), green `#067647`
+  (excess), amber `#B54708` (warning). The login route is the one documented
+  exception — see "Login route visual treatment" below — where red is used
+  for a plain auth error message.
 - Font: Inter, weights 400 and 500 only — **never 600/700**. This is a review
   convention, not build-enforced (Tailwind's font-semibold/font-bold classes
   still exist; don't use them).
@@ -161,6 +164,65 @@ the prototype's dashboard/ledger screens display it.
 - Tabular numerals (`tabular-nums`) on every quantity and currency figure
 - Border radius 6px uniformly (`--radius-*` theme keys all point at one
   `--radius: 6px` var) — 1px hairline borders, no drop shadows, no gradients
+
+## Login route visual treatment (deliberate exception to the design system above)
+
+`/login` (`app/login/page.tsx`) does **not** use the ink/teal/6px-radius/
+hairline-border system described above. This was an explicit, one-off request
+to give the login screen a softer, more welcoming look; every authenticated
+screen keeps the dense system exactly as documented. Do not let any of the
+following leak past login — it's implemented entirely with inline Tailwind
+arbitrary values scoped to `app/login/page.tsx` and `app/login/SubmitButton.tsx`,
+with nothing added to `app/globals.css`'s shared theme tokens, specifically so
+it can't leak.
+
+- Plain white page (`bg-white`), no card, no border, no shadow — the form
+  floats centred (`min-h-screen flex items-center justify-center`)
+- Logo mark (`public/logo-mark.png`, cropped from the provided `logo.svg` —
+  see below) at 56px mobile / 72px from 480px up, wordmark "sagefinan" at
+  32px mobile / 40px desktop, weight 700 (bold — the only place in the app
+  that uses 700; the 400/500-only rule is for the authenticated app)
+- Subtitle "Stock Database for De-Moon Hotel" at 20px mobile / 24px desktop,
+  weight 700, colour `#5C7A5E` (a sage green used **only** on this route —
+  **visually estimated from the reference screenshot, not pixel-sampled**,
+  since the image arrived inline in chat with no accessible file path to
+  sample programmatically; if you have the original mockup/Figma file, give
+  Claude an exact hex and it'll swap this one constant)
+- Inputs: `bg-[#F2F2F2]`, no visible border, `h-16` (64px), `rounded-[28px]`,
+  `pl-7` (28px left padding), placeholder-only (labels are `sr-only` for
+  screen readers), focus state `ring-2 ring-[#5C7A5E]`
+- Primary button: same `h-16`/`rounded-[28px]`, `bg-[#2B2B2B]`, white bold
+  text, label "Continue" → "Signing in…" while pending (`useFormStatus` in
+  `SubmitButton.tsx`)
+- Auth error: `text-[#B42318]`, plain wording ("Incorrect email or
+  password."), shown above the button — the one place red appears outside a
+  variance, by explicit request
+- Footer line "This area is monitored by the Auditor." at 12px, near-black
+- Column: `max-w-[560px]`, centred, `px-6` outer padding so it fills the
+  width with margins on narrow screens
+
+**Logo asset pipeline**: the user supplied `public/logo.png` (flat, wordmark
+baked in) and `public/logo.svg` (vector lockup, mark + wordmark as separate
+paths, with the mark itself embedded as a raster inside a `<pattern>`). The
+mark was extracted from that embedded raster (highest-resolution source
+available), cropped to its true ink bounding box, and re-exported as
+`public/logo-mark.png` (mark only, transparent background, ~400px wide,
+optimized) — this is what's used everywhere in the app (login, sidebar, PWA
+icons), not the flat lockup files, which are left untouched as the user's
+originals. The mark itself renders as solid black on transparent — on the
+Ink (`#111827`) sidebar it's shown with a CSS `invert` filter (`className="invert"`
+in `components/app-shell/Sidebar.tsx`) rather than a dedicated dark-mode
+export, since the mark is a flat single colour and inverts to clean white
+with no artifacts. If a dedicated reversed/white logo export becomes
+available, swap it in directly and drop the filter.
+
+**PWA icons** (`public/icons/`) were regenerated from the same mark: white
+background, mark centred at ~62% of canvas width (56% for maskable, to sit
+safely inside the ~80% safe zone) — `icon-192.png`, `icon-512.png`,
+`icon-maskable-512.png`, `apple-touch-icon.png` (180×180), plus
+`app/favicon.ico` (16/32/48 multi-size, PNG-in-ICO). Generated via a one-off
+script using `sharp` (added as a devDependency for this — image decode/resize
+isn't something worth hand-rolling, see CLAUDE.md).
 
 ## Responsive rules
 

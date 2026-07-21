@@ -1,5 +1,11 @@
 import { signIn } from "./actions";
+import { SubmitButton } from "./SubmitButton";
 
+// This route intentionally uses its own visual treatment — a plain, white,
+// centred page — distinct from the app's dense ink/teal/6px-radius design
+// system used everywhere past login. See SPEC.md for why, and for the exact
+// colours/radii recorded there so a future phase doesn't "fix" this into
+// matching the rest of the app.
 export default async function LoginPage({
   searchParams,
 }: {
@@ -8,63 +14,62 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-n100 px-4">
-      <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2.5 mb-6 justify-center">
-          <div className="w-6.5 h-6.5 rounded bg-teal grid place-items-center text-white text-sm font-medium">
-            S
-          </div>
-          <div>
-            <b className="block text-base font-medium tracking-tight text-ink">Sagefinan</b>
-            <span className="block text-xs text-n400 -mt-0.5">Grand Hotel</span>
-          </div>
+    <div className="min-h-screen bg-white flex items-center justify-center px-6">
+      <div className="w-full max-w-[560px] py-12">
+        <div className="flex flex-col items-center text-center mb-9">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo-mark.png"
+            alt=""
+            className="w-14 h-14 min-[480px]:w-[72px] min-[480px]:h-[72px] mb-4"
+          />
+          <h1 className="text-[32px] min-[480px]:text-[40px] font-bold tracking-tight text-[#111827] leading-tight">
+            sagefinan
+          </h1>
+          <p className="text-xl min-[480px]:text-2xl font-bold text-[#5C7A5E] mt-1">
+            Stock Database for De-Moon Hotel
+          </p>
         </div>
 
-        <div className="bg-white border border-n200 rounded">
-          <div className="border-b border-n200 px-4 py-3">
-            <h1 className="text-base font-medium text-ink">Sign in</h1>
-            <p className="text-xs text-n600 mt-0.5">Daily stock audit</p>
-          </div>
+        <form action={signIn}>
+          <label htmlFor="email" className="sr-only">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="Email"
+            required
+            className="w-full h-16 rounded-[28px] bg-[#F2F2F2] pl-7 pr-5 text-base text-[#111827] placeholder:text-[#9CA3AF] mb-4 focus:outline-none focus:ring-2 focus:ring-[#5C7A5E]"
+          />
 
-          <form action={signIn} className="p-4">
-            {error ? (
-              <div className="text-xs text-n600 bg-n50 border border-n200 rounded px-3 py-2.5 mb-4">
-                {error}
-              </div>
-            ) : null}
+          <label htmlFor="password" className="sr-only">
+            Password
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="Password"
+            required
+            className="w-full h-16 rounded-[28px] bg-[#F2F2F2] pl-7 pr-5 text-base text-[#111827] placeholder:text-[#9CA3AF] mb-6 focus:outline-none focus:ring-2 focus:ring-[#5C7A5E]"
+          />
 
-            <label className="text-xs text-n600" htmlFor="email">
-              Email
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              required
-              className="w-full mt-1 mb-3 px-3 py-2 text-sm border border-n200 rounded focus:outline focus:outline-2 focus:outline-teal focus:-outline-offset-1 focus:border-teal"
-            />
+          {error ? (
+            <p className="text-sm text-[#B42318] text-center mb-4" role="alert">
+              {error}
+            </p>
+          ) : null}
 
-            <label className="text-xs text-n600" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              className="w-full mt-1 mb-4 px-3 py-2 text-sm border border-n200 rounded focus:outline focus:outline-2 focus:outline-teal focus:-outline-offset-1 focus:border-teal"
-            />
+          <SubmitButton />
 
-            <button
-              type="submit"
-              className="w-full h-12 rounded bg-teal text-white text-sm font-normal hover:brightness-95"
-            >
-              Sign in
-            </button>
-          </form>
-        </div>
+          <p className="text-center text-xs text-[#111827] mt-4">
+            This area is monitored by the Auditor.
+          </p>
+        </form>
       </div>
     </div>
   );

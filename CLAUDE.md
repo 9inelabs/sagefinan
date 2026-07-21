@@ -90,3 +90,21 @@ message for the exact query.
 Added `server-only` as a small dependency (guards `lib/supabase/admin.ts`
 against ever being imported into a Client Component — build-time failure
 instead of a leaked service-role key).
+
+**Login screen redesign + real logo (still phase 1, follow-up).** Rebuilt
+`/login` with its own distinct visual treatment per explicit request — see
+SPEC.md's "Login route visual treatment" section for the exact colours/radii
+and why they must not leak into the rest of the app. Replaced the hand-rolled
+placeholder PWA icons with real ones generated from the user-supplied
+`public/logo.svg`/`logo.png`: extracted just the mark from the SVG's embedded
+raster (see SPEC.md's "Logo asset pipeline"), producing `public/logo-mark.png`
+(used in the sidebar — with a CSS `invert` filter, since the mark is solid
+black and the sidebar is dark — and on the login page) and regenerated
+`public/icons/*` + `app/favicon.ico`. Added `sharp` as a devDependency for
+this (image decode/resize/composite — not worth hand-rolling); the pure-PNG-
+writer approach from the original phase-1 placeholder icons is gone. Verified
+both the login page (desktop 1440×900, mobile 380×800, focus state, no
+console errors) and the sidebar (logo renders white on Ink via invert, both
+desktop and mobile drawer) with a one-off Playwright screenshot script —
+Playwright was installed, used, and then **removed** again since it's not
+part of this project's stack, only how this change was verified.

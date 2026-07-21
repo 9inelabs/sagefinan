@@ -108,3 +108,38 @@ console errors) and the sidebar (logo renders white on Ink via invert, both
 desktop and mobile drawer) with a one-off Playwright screenshot script —
 Playwright was installed, used, and then **removed** again since it's not
 part of this project's stack, only how this change was verified.
+
+**Login screen "broken" — root cause was the service worker, not the CSS
+(still phase 1, follow-up).** User reported the login page rendering totally
+unstyled (huge logo, full-width inputs, visible labels) despite the source
+matching the previous redesign exactly, and despite a fresh Playwright
+context rendering it perfectly. Root cause: `components/RegisterServiceWorker.tsx`
+registered `public/sw.js` unconditionally, including in `next dev` — and
+`sw.js` caches `style`/`script`/`image`/`font` requests cache-first. In dev,
+where assets change on every save and aren't content-hashed the way a
+production build's are, that means the browser can get stuck serving whatever
+it cached on a session's first load indefinitely, regardless of what the dev
+server recompiles afterward — exactly the "looks broken, code looks right"
+symptom reported. **Fix**: `RegisterServiceWorker` now only calls `.register()`
+when `NODE_ENV === "production"`; in every other environment it actively
+unregisters any existing registration and clears all caches instead, so a
+browser that already had the old unconditional version installed self-heals
+on its next load rather than staying stuck. Confirmed via Playwright: 0 SW
+registrations after a fresh dev-mode load, and a simulated pre-existing
+registration (1) drops to 0 after one reload with the fixed component.
+
+Separately, verified the diagnostics the user asked for: no `tailwind.config.*`
+exists anywhere in the repo (Tailwind v4 is CSS-first — `@import "tailwindcss"`
+in `app/globals.css`, no content array to misconfigure), `.gitignore` excludes
+nothing under `app/`, and every class used in the login files is a real
+Tailwind utility or a valid arbitrary-value class. That pipeline was never the
+problem. While rebuilding to the user's exact pixel spec, also caught and
+fixed two real (independent) bugs in the previous version: the subtitle used
+named scale classes (`text-xl`/`text-2xl`) that resolve through this app's
+`@theme` override to the *app-wide* 20/24px scale rather than the 18/22px this
+route actually needs, and `leading-tight` (1.25) doesn't equal the requested
+`line-height: 1.1`. The rebuilt version uses arbitrary bracket values
+everywhere on this route (`text-[22px]`, `leading-[1.1]`, etc.) specifically
+to avoid a repeat of that class of mismatch. Verified every requested value
+via `getComputedStyle` in Playwright (exact px/color/weight matches at both
+1440px and 380px, zero horizontal overflow at 380px) — not just visually.

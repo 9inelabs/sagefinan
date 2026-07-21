@@ -14,19 +14,19 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center px-6">
-      <div className="w-full max-w-[560px] py-12">
-        <div className="flex flex-col items-center text-center mb-9">
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="w-full max-w-[480px] px-6">
+        <div className="flex flex-col items-center text-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/logo-mark.png"
             alt=""
-            className="w-14 h-14 min-[480px]:w-[72px] min-[480px]:h-[72px] mb-4"
+            className="w-[64px] h-[64px] min-[480px]:w-[72px] min-[480px]:h-[72px] object-contain shrink-0 mb-6"
           />
-          <h1 className="text-[32px] min-[480px]:text-[40px] font-bold tracking-tight text-[#111827] leading-tight">
+          <h1 className="text-[32px] min-[480px]:text-[40px] font-bold text-[#111827] leading-[1.1] mb-2">
             sagefinan
           </h1>
-          <p className="text-xl min-[480px]:text-2xl font-bold text-[#5C7A5E] mt-1">
+          <p className="text-[18px] min-[480px]:text-[22px] font-semibold text-[#5C7A5E] mb-10">
             Stock Database for De-Moon Hotel
           </p>
         </div>
@@ -42,7 +42,7 @@ export default async function LoginPage({
             autoComplete="email"
             placeholder="Email"
             required
-            className="w-full h-16 rounded-[28px] bg-[#F2F2F2] pl-7 pr-5 text-base text-[#111827] placeholder:text-[#9CA3AF] mb-4 focus:outline-none focus:ring-2 focus:ring-[#5C7A5E]"
+            className="block w-full h-[64px] rounded-[32px] bg-[#F2F2F2] border-0 px-[28px] text-[17px] text-[#111827] placeholder:text-[#9CA3AF] mb-4 focus:outline-none focus:ring-2 focus:ring-[#5C7A5E]"
           />
 
           <label htmlFor="password" className="sr-only">
@@ -55,18 +55,20 @@ export default async function LoginPage({
             autoComplete="current-password"
             placeholder="Password"
             required
-            className="w-full h-16 rounded-[28px] bg-[#F2F2F2] pl-7 pr-5 text-base text-[#111827] placeholder:text-[#9CA3AF] mb-6 focus:outline-none focus:ring-2 focus:ring-[#5C7A5E]"
+            className="block w-full h-[64px] rounded-[32px] bg-[#F2F2F2] border-0 px-[28px] text-[17px] text-[#111827] placeholder:text-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#5C7A5E]"
           />
 
           {error ? (
-            <p className="text-sm text-[#B42318] text-center mb-4" role="alert">
+            <p className="text-sm text-[#B42318] text-center mt-4 mb-0" role="alert">
               {error}
             </p>
           ) : null}
 
-          <SubmitButton />
+          <div className="mt-6">
+            <SubmitButton />
+          </div>
 
-          <p className="text-center text-xs text-[#111827] mt-4">
+          <p className="text-center text-[12px] text-[#111827] mt-3">
             This area is monitored by the Auditor.
           </p>
         </form>

@@ -177,29 +177,43 @@ with nothing added to `app/globals.css`'s shared theme tokens, specifically so
 it can't leak.
 
 - Plain white page (`bg-white`), no card, no border, no shadow — the form
-  floats centred (`min-h-screen flex items-center justify-center`)
+  floats centred both axes (`min-h-screen flex items-center justify-center`)
+- Form column: `max-w-[480px]`, `w-full`, `px-6` (24px) — this is the single
+  width constraint everything else sits inside; nothing in this tree has its
+  own competing max-width
 - Logo mark (`public/logo-mark.png`, cropped from the provided `logo.svg` —
-  see below) at 56px mobile / 72px from 480px up, wordmark "sagefinan" at
-  32px mobile / 40px desktop, weight 700 (bold — the only place in the app
-  that uses 700; the 400/500-only rule is for the authenticated app)
-- Subtitle "Stock Database for De-Moon Hotel" at 20px mobile / 24px desktop,
-  weight 700, colour `#5C7A5E` (a sage green used **only** on this route —
-  **visually estimated from the reference screenshot, not pixel-sampled**,
-  since the image arrived inline in chat with no accessible file path to
-  sample programmatically; if you have the original mockup/Figma file, give
-  Claude an exact hex and it'll swap this one constant)
-- Inputs: `bg-[#F2F2F2]`, no visible border, `h-16` (64px), `rounded-[28px]`,
-  `pl-7` (28px left padding), placeholder-only (labels are `sr-only` for
-  screen readers), focus state `ring-2 ring-[#5C7A5E]`
-- Primary button: same `h-16`/`rounded-[28px]`, `bg-[#2B2B2B]`, white bold
-  text, label "Continue" → "Signing in…" while pending (`useFormStatus` in
-  `SubmitButton.tsx`)
+  see below): fixed `64px`×`64px` below 480px, `72px`×`72px` from 480px up
+  (`object-contain`, `shrink-0` — explicit pixel sizes at both breakpoints,
+  never viewport-relative), `mb-6` (24px) below it
+- Wordmark "sagefinan": `32px`/`40px` (mobile/≥480px), weight 700, `#111827`,
+  `leading-[1.1]`, `mb-2` (8px) below it — the only place in the app that
+  uses weight 700; the 400/500-only rule is for the authenticated app
+- Subtitle "Stock Database for De-Moon Hotel": `18px`/`22px`, weight 600,
+  colour `#5C7A5E` (sage green, used **only** on this route — **visually
+  estimated from the reference screenshot, not pixel-sampled**, since the
+  image arrived inline in chat with no accessible file path to sample
+  programmatically; if you have the original mockup/Figma file, give Claude
+  an exact hex and it'll swap this one constant), `mb-10` (40px) below it —
+  this route now uses both 600 and 700, the two weights the rest of the app
+  never touches
+- Inputs: `bg-[#F2F2F2]`, `border-0`, `h-[64px]`, `rounded-[32px]` (exactly
+  half the height — a true stadium shape), `px-[28px]` (symmetric), text
+  `17px`, placeholder `#9CA3AF`, 16px gap between the two (`mb-4` on the
+  first), placeholder-only with visually-hidden real `<label>`s (`sr-only` —
+  clipped, not `display:none`, so screen readers still get them), focus
+  `ring-2 ring-[#5C7A5E]` with `outline-none` (box-shadow–based ring, so
+  focus causes no layout shift)
+- Primary button: same `h-[64px]`/`rounded-[32px]`, `bg-[#2B2B2B]`, white
+  text at `18px` weight 700, `mt-6` (24px) above it, label "Continue" →
+  "Signing in…" while pending (`useFormStatus` in `SubmitButton.tsx`)
 - Auth error: `text-[#B42318]`, plain wording ("Incorrect email or
-  password."), shown above the button — the one place red appears outside a
-  variance, by explicit request
-- Footer line "This area is monitored by the Auditor." at 12px, near-black
-- Column: `max-w-[560px]`, centred, `px-6` outer padding so it fills the
-  width with margins on narrow screens
+  password."), shown between the inputs and the button — the one place red
+  appears outside a variance, by explicit request
+- Footer line "This area is monitored by the Auditor.": `12px`, `#111827`,
+  `mt-3` (12px) above it
+- Responsive: only the two breakpoint jumps above (logo/wordmark/subtitle)
+  change size; the column's own width is the only viewport-relative thing —
+  test 380/768/1440px, no horizontal overflow at any of them
 
 **Logo asset pipeline**: the user supplied `public/logo.png` (flat, wordmark
 baked in) and `public/logo.svg` (vector lockup, mark + wordmark as separate

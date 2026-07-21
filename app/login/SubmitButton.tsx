@@ -12,7 +12,7 @@ export function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="w-full h-16 rounded-[28px] bg-[#2B2B2B] text-white text-base font-bold disabled:opacity-70 hover:brightness-110 transition"
+      className="w-full h-[64px] rounded-[32px] bg-[#2B2B2B] text-white text-[18px] font-bold disabled:opacity-70 hover:brightness-110 transition"
     >
       {pending ? "Signing in…" : "Continue"}
     </button>

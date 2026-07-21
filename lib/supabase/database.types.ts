@@ -376,6 +376,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_import_products: {
+        Args: { p_rows: Json }
+        Returns: {
+          action: string
+          code: string
+        }[]
+      }
+      admin_set_central_store: {
+        Args: { p_department_id: string }
+        Returns: undefined
+      }
       app_current_department_id: { Args: never; Returns: string }
       app_current_role: {
         Args: never

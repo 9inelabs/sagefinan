@@ -259,7 +259,12 @@ isn't something worth hand-rolling, see CLAUDE.md).
 | Stock ledger | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
 | Requisitions | ADMIN, STOREKEEPER |
 | Sales entry | ADMIN, DEPARTMENT_USER |
-| Products | ADMIN |
+| Departments, Products, Users ("Administration" group, phase 2) | ADMIN |
+
+Non-admins hitting an Administration route directly (not through the sidebar,
+which already hides these) see an explicit "you don't have access to this
+page" screen (`components/AccessDenied.tsx`), never a crash or a silent
+redirect — see CLAUDE.md's Conventions section.
 
 Storekeeper/department_user's home page ("/") is a minimal placeholder
 shortcutting to their one relevant action page, since the full audit
@@ -281,10 +286,38 @@ of "placeholder home page" given the dashboard build-out below.
 - **Seed data scale**: literal to the brief — central store + Bar + Kitchen,
   10 products, not the prototype's full 5-department/674-product numbers.
 
+## Phase 2 scope decisions (asked and answered before building)
+
+- **New user credentials**: a one-time temporary password shown in the UI,
+  not an invite email — no SMTP provider is configured for this project yet
+  (`supabase/config.toml`'s `[auth.email.smtp]` is commented out).
+- **Products list pagination**: plain page-based (50/page) over virtualised
+  scrolling — SPEC.md offered either; no virtualisation library was already a
+  dependency, and 1,000 rows at 50/page is not a performance problem for a
+  normal paginated query.
+- **Shelf-order drag-and-drop**: native HTML5 drag-and-drop, desktop only, no
+  new dependency — mobile always uses the plain number input instead, so
+  native DnD's touch-device weaknesses never matter here.
+- **CSV import**: `papaparse` added as a dependency (quoted commas/embedded
+  newlines aren't worth hand-rolling). Only valid rows are written; invalid
+  rows are skipped and reported with their row number and reason rather than
+  blocking the whole file. A row's `shelf_order` applies to every department
+  listed on that row — the format has no way to give the same product a
+  different shelf position per department in one row; use the per-department
+  screen for that instead. Export always leaves `shelf_order` blank so that
+  export → edit → re-import round-trips without disturbing existing shelf
+  positions (the import RPC only overwrites `shelf_order` when a row supplies
+  one).
+- **Departments needing confirmation**: SPEC.md asks for a confirmation
+  dialog with reference counts specifically for department deactivation; user
+  and product deactivation are single-click actions with no dialog, since
+  SPEC.md doesn't ask for one there and their consequences are already
+  reversible (reactivate) and low-blast-radius.
+
 ## The eight phases
 
-1. **Foundation** — schema, auth, PWA shell, design system *(this phase)*
-2. Admin — departments, products, CSV import, users
+1. **Foundation** — schema, auth, PWA shell, design system *(done)*
+2. **Admin** — departments, products, CSV import, users *(done)*
 3. Central store — purchases and requisitions
 4. Sales entry as a searchable batch, posted in one action
 5. Stock count and variance comparison

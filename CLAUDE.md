@@ -42,6 +42,19 @@ after every schema change. Deployed to Vercel (from phase 8).
   `count_sessions` must take an explicit `business_day` / `as_at_date` field
   from the caller (defaulting to today in the UI), never derive it from
   `now()`.
+- **Multi-row atomic writes**: a Server Action calling `admin.from(...)` twice
+  is two separate statements, not one transaction. When several rows must
+  change together or not at all (reassigning the central store, committing a
+  CSV import), write a plpgsql function and call it via `.rpc()` — a single
+  function call is one implicit transaction, so an unhandled exception partway
+  through rolls back everything the function already did. See
+  `admin_set_central_store()` / `admin_import_products()`
+  (`20260721140000_admin_phase2.sql`).
+- **Admin-only pages**: use `if (profile.role !== "ADMIN") return <AccessDenied />;`,
+  not `requireRole()` (which redirects to `/`) — a non-admin hitting the URL
+  directly must see an explicit "you don't have access" screen, not a silent
+  bounce. `requireRole()` (redirect-based) is still correct inside Server
+  Actions, since there's no page to render there.
 
 ## Phase log
 
@@ -143,3 +156,90 @@ everywhere on this route (`text-[22px]`, `leading-[1.1]`, etc.) specifically
 to avoid a repeat of that class of mismatch. Verified every requested value
 via `getComputedStyle` in Playwright (exact px/color/weight matches at both
 1440px and 380px, zero horizontal overflow at 380px) — not just visually.
+
+**Phase 2 — Admin: departments, products, CSV import, users.** Added
+`20260721140000_admin_phase2.sql`: no new tables (phase 1's schema already
+covered this phase), just a `validate_profile_department` trigger enforcing
+"STOREKEEPER must be assigned to the central store" (mirrors the phase-1
+`validate_movement` pattern — a plain CHECK can't look up another department's
+`is_central_store` flag), plus the two RPC functions described above. Sidebar
+gained a new "Administration" group (`lib/nav.ts`) — Departments, Products,
+Users, ADMIN-only — and Products moved out of "Stock control" into it.
+
+*Departments* (`/departments`, `/departments/new`, `/departments/[id]`):
+list with product/active-user counts, include-inactive toggle, create/edit
+form. Reassigning the central store flag shows an inline explanation rather
+than a confirm dialog (SPEC.md only asked for an explanation here); deactivate
+does require a confirm dialog with live reference counts (products, active
+users, movements, count sessions) since SPEC.md asks for that explicitly — the
+one place in this phase with a `ConfirmDialog`. Deactivating the department
+currently flagged central store is blocked (not in SPEC.md verbatim, but
+letting purchases/requisitions lose their destination department seemed worth
+guarding against explicitly, matching the phase's "make mistakes visible
+before they're saved" brief).
+
+*Products* (`/products`, `/products/new`, `/products/[id]`): server-side
+search/filter/pagination (50/page) over the admin client directly in the page
+component — chose plain page-based pagination over virtualised scrolling
+(SPEC.md offered either); no virtualisation library was already in the
+project and 1,000 rows / 50 per page is a non-issue for a normal query.
+Duplicate-code rejection looks up the conflicting product first so the error
+can name it, rather than parsing a raw unique-constraint error. Bulk "assign
+selected to department" lives in the products list's row-selection toolbar.
+Product/department assignment (`lib/product-assignments/actions.ts`) is
+shared code: the product edit screen ticks departments, the department screen
+manages shelf order — same `product_assignments` rows, sliced by a different
+foreign key. Shelf-order reordering uses the native HTML5 drag-and-drop API
+(desktop only, no new dependency) plus a plain number input that works on any
+device — SPEC.md asks for both, and dragging 100 rows on a phone was
+explicitly called out as miserable, so touch was never a target for the drag
+path.
+
+*CSV import* (`/products/import`, `lib/products/import.ts`): `papaparse`
+added as a dependency (RFC4180 edge cases — quoted commas, embedded
+newlines — aren't worth hand-rolling, same reasoning as adding `sharp` in
+phase 1). Dry run is pure validation, no writes; the commit step calls
+`admin_import_products()` via `.rpc()` so the whole import is one transaction.
+Only rows that pass validation are written — invalid rows are skipped and
+listed with their row number and reason, rather than blocking the entire
+file over one bad row. Duplicate codes *within* the file: first occurrence
+wins, later ones are flagged as errors. Department names are matched
+case-insensitively against departments that already exist; an unrecognised
+name is always a row error, never a department created on the fly. CSV export
+(`/products/export`, a Route Handler) always leaves `shelf_order` blank on
+purpose: a product can sit at a different shelf position in every department
+it's assigned to, so one CSV column can't represent all of them, and the
+import RPC only overwrites `shelf_order` when a row supplies one — so
+export-edit-reimport round-trips without disturbing shelf order. Template
+CSV is a static file at `public/templates/product-import-template.csv`.
+
+*Users* (`/users`, `/users/new`, `/users/[id]`): new accounts get a
+**temporary password**, generated server-side and shown exactly once in the
+UI, rather than an invite email — `supabase/config.toml`'s
+`[auth.email.smtp]` block is commented out, so no SMTP provider exists yet in
+this project; revisit this decision if/when one is configured. Creating the
+auth user and inserting the `profiles` row are two separate calls (Admin API,
+then a table insert), so a failed profile insert deletes the just-created auth
+user rather than leaving an orphaned login with no profile. Role/department
+pairing (ADMIN/AUDITOR: no department; DEPARTMENT_USER: any non-central
+department; STOREKEEPER: central store only, fixed in the UI) is validated in
+`lib/users/actions.ts` and backed by the new trigger. "Last active admin
+cannot be deactivated or demoted" and "an admin cannot change their own role"
+are both enforced in `updateUser`/`setUserActive`. Deactivation is enforced by
+`getCurrentProfile()` itself: it now signs out and redirects to `/login` with
+an error if the signed-in profile's `is_active` is false, which is what
+actually cuts off a session created before deactivation (RLS/`is_active`
+alone don't stop an already-issued Supabase Auth session from working).
+
+Non-admins hitting any of these routes directly see a dedicated "you don't
+have access" screen (`components/AccessDenied.tsx`) instead of a redirect —
+see the new Conventions entry above.
+
+Verified end-to-end with a one-off Playwright script (installed, used,
+removed — same pattern as phase 1): login, Administration nav placement,
+department create + product/shelf-order manager + add-product search,
+product search/filter/edit with pre-ticked departments, CSV dry-run preview
+(correct create/update counts, correct unknown-department error), CSV commit,
+user creation with one-time temp password, and 380px card-reflow layout for
+Products/Departments/department-detail all confirmed working; all synthetic
+test data (departments/products/users) was deleted afterward.

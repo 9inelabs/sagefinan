@@ -30,12 +30,21 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, role, department_id, departments(name)")
+    .select("id, full_name, role, department_id, is_active, departments(name)")
     .eq("id", user.id)
     .single();
 
   if (!profile) {
     redirect("/login");
+  }
+
+  // Deactivating a user must block sign-in immediately, not just hide nav
+  // items — a session created before deactivation is still valid to Supabase
+  // Auth, so this check (run on every protected page/action via
+  // getCurrentProfile) is what actually cuts them off.
+  if (!profile.is_active) {
+    await supabase.auth.signOut();
+    redirect("/login?error=" + encodeURIComponent("This account has been deactivated."));
   }
 
   return {

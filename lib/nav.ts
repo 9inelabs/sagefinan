@@ -36,7 +36,14 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { key: "req", label: "Requisitions", href: "/requisitions", roles: ["ADMIN", "STOREKEEPER"] },
       { key: "sales", label: "Sales entry", href: "/sales", roles: ["ADMIN", "DEPARTMENT_USER"] },
+    ],
+  },
+  {
+    title: "Administration",
+    items: [
+      { key: "departments", label: "Departments", href: "/departments", roles: ["ADMIN"] },
       { key: "prod", label: "Products", href: "/products", roles: ["ADMIN"] },
+      { key: "users", label: "Users", href: "/users", roles: ["ADMIN"] },
     ],
   },
 ];

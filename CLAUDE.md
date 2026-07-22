@@ -351,3 +351,99 @@ test movements were **reversed** (never deleted — see the reversal model
 above) and the one synthetic test user was deleted, restoring the seed data's
 balances to their original values, confirmed by re-reading
 `get_department_balance` before and after.
+
+**Phase 4 — Sales entry: searchable batch, zero-sales handling, draft
+batches, corrections, sales history.** Added
+`20260722150000_phase4_sales.sql`: one new table, `sale_drafts` (department_id,
+business_day, created_by, a `lines` jsonb array shaped exactly like the batch
+UI's in-memory state, unique on the three key columns) — deliberately not a
+`movements`-style immutable row, since a draft has no accounting effect and
+must be freely updatable/deletable. One new RPC, `post_sales_batch()`, the
+same "one call, one transaction" pattern as phase 3's batch functions: loops
+every line, and for a **correction** line (one carrying a
+`correction_of_movement_id`) reverses the existing sale first — inline,
+same shape as `post_movement_reversal` — then, only if the corrected quantity
+is greater than zero, inserts the new `SALE`. A line with no correction
+re-checks server-side that nothing's already been posted for that product/
+department/business-day (the client-side check at add-to-batch time is just
+the friendly early warning, same relationship as the requisition over-issue
+check in phase 3). See SPEC.md's new "Zero-sales convention" section for why
+a quantity-zero line — explicit or by omission — never becomes a movement
+row, and its "Draft batch behaviour" section for the persistence model.
+
+Confirmed before building, since they either touched existing project
+decisions or weren't specified in the prototype (SPEC.md's new "Phase 4 scope
+decisions" section has the full reasoning): granting STOREKEEPER access to
+Sales entry (phase 3's nav table had scoped it to ADMIN/DEPARTMENT_USER
+only); a new `/sales/history` route and nav item rather than a tab on
+`/sales` or folding into the existing `/movements` list; and making
+`post_sales_batch` handle a correction's reversal-and-replace as one atomic
+step per line, all inside the same transaction as the rest of the batch,
+rather than firing the reversal immediately when "Reverse & correct" is
+chosen.
+
+*Sales entry* (`/sales`, replacing the phase-1 placeholder): business day
+defaulting to **yesterday** (SPEC.md is explicit that defaulting to today
+invites off-by-one phantom variances the next morning), department fixed for
+DEPARTMENT_USER and a `Select` of active non-central departments for ADMIN/
+STOREKEEPER, product search restricted to the selected department's
+assignments (same restricted-search pattern as Purchases/Requisitions —
+`get_department_balance` only has context for assigned products). Add-sale
+shows opening/received for the business day; quantity accepts zero
+(`inputMode="numeric"`, integer, `>= 0`); a product already staged in the
+current batch can't be re-added (shown "already in this batch, remove it
+below" instead) since — unlike Purchases/Requisitions, where re-searching a
+product in the batch increases its quantity — a sale is one closing figure
+per product per day, not an additive movement. Picking a product with a
+live (non-reversed) sale already posted for that business day surfaces it
+immediately with **Skip** / **Reverse & correct**; the latter reveals a
+mandatory reason field alongside the quantity input, and the resulting line
+is flagged `Correction` in the batch table. Oversell (quantity greater than
+opening + received) is blocked with the exact maximum stated, same
+override-with-reason-required pattern as the phase-3 requisition over-issue,
+flagging the line `Override`. Before posting, a summary line states how many
+of the department's assigned products are in the batch versus how many will
+be posted as zero sales for the day, with the zero count clickable to expand
+the full list of untouched products (code + name) — never a silently
+assumed number.
+
+*Draft batches*: persisted via `getSalesDraft`/`saveSalesDraft`/
+`clearSalesDraft` in `lib/sales/actions.ts`, saved after every add/remove
+once the initial restore attempt for the current (department, business day)
+pair has resolved — guarded by a `draftLoaded` flag so the persist effect
+never fires with an empty array before the restore fetch completes, which
+would otherwise silently wipe a real draft on mount. Restoring shows "An
+unposted draft for X on Y was restored below"; "Clear batch" deletes the
+draft row outright, not just the in-memory lines; posting clears the draft
+as `postSalesBatch`'s last step.
+
+*Sales history* (`/sales/history`): a filtered read of the same
+`movements_detail` view phase 3 built (`type = 'SALE'`), not a new view —
+business day range, department (ADMIN/AUDITOR/STOREKEEPER only; DEPARTMENT_USER
+is scoped to their own department via `from_department_id`, same mechanism as
+`/movements`'s existing scoping, since a `SALE` only ever has a `from` side),
+product search, 50-row server-side pagination, CSV export (Route Handler,
+same 20,000-row cap as `/movements`'s export), override/reversal/reversed
+visually distinguished with the same `Tag` variants as `/movements`. AUDITOR
+can reach this page and see every department but has no posting action
+anywhere in `lib/sales/actions.ts` — auditors record counts, not stock
+movements, per SPEC.md's role table.
+
+Verified with a one-off Playwright script (installed, used, removed, same
+pattern as prior phases) plus direct RPC/table checks: a batch with a normal
+line, an explicit zero line, and the zero-sales summary/expand-list all
+behaved correctly; picking an already-posted product surfaced the Skip/
+Reverse & correct choice, and a correction posted as one reversal + one new
+`SALE` in a single transaction; an oversell was blocked with the stated
+maximum and posted successfully once overridden with a reason, flagged
+`Override` on `/sales/history`; a draft survived a full page reload once the
+department was reselected (draft restore is keyed on department + business
+day, neither of which persists across a reload for ADMIN/STOREKEEPER, by
+design — reselecting the same pair restores it); 380px and 768px layouts on
+both Sales entry and Sales history confirmed with no horizontal overflow,
+stacked-card reflow on mobile. All test movements were **reversed** (the
+Heineken correction's reversal was itself un-reversible per the phase-3
+model, so restoring its exact original figure took one further plain
+re-insert of the same quantity — documented inline in the cleanup script,
+not a new pattern) and all test drafts deleted, confirmed back to the
+pre-test balances via `get_department_balance` before and after.

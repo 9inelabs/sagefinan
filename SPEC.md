@@ -258,7 +258,8 @@ isn't something worth hand-rolling, see CLAUDE.md).
 | Dashboard, Take stock, Compare stock, Reconcile, History | ADMIN, AUDITOR |
 | Stock ledger, Movements (phase 3) | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
 | Purchases (phase 3), Requisitions | ADMIN, STOREKEEPER |
-| Sales entry | ADMIN, DEPARTMENT_USER |
+| Sales entry (phase 4) | ADMIN, STOREKEEPER, DEPARTMENT_USER |
+| Sales history (phase 4) | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
 | Departments, Products, Users ("Administration" group, phase 2) | ADMIN |
 
 STOREKEEPER/DEPARTMENT_USER's view of Movements is scoped to movements
@@ -353,6 +354,63 @@ of "placeholder home page" given the dashboard build-out below.
   SPEC.md doesn't ask for one there and their consequences are already
   reversible (reactivate) and low-blast-radius.
 
+## Zero-sales convention (phase 4)
+
+Sales entry is search-driven: a product never searched-and-added to a batch,
+and a product explicitly entered with a sale of zero, both mean "zero sales"
+to the balance function — but they must not be conflated in the UI, since
+which one happened determines whether anyone actually checked that product
+today.
+
+- **Absence** (never added to the batch): no movement is written. This is
+  the normal case for the majority of a department's products on any given
+  day — `get_department_balance` already treats a missing movement as zero,
+  so nothing needs to change there. Before posting, the batch screen states
+  plainly how many of the department's assigned products fall into this
+  bucket, and that count is clickable to reveal exactly which products.
+- **Explicit zero** (added to the batch with a typed `0`): also writes no
+  movement — a zero-quantity `SALE` would be indistinguishable in effect from
+  no row at all, and `movements.quantity`'s `check (quantity > 0)` constraint
+  (unchanged since phase 1) would reject it outright. The line is still
+  tracked as "touched" for the batch's own zero-sales summary, so explicitly
+  confirming "checked, nothing sold" correctly removes that product from the
+  "will be posted as zero" count — that bookkeeping lives entirely in the
+  batch/draft, not in the movements table. There is no way to later
+  distinguish "explicitly checked zero" from "never touched" once posted,
+  since neither leaves a row — an accepted consequence of "never write empty
+  movement rows for either case."
+- A correction line (see below) may also resolve to zero: reversing an
+  existing sale and entering `0` as the corrected figure reverses the old
+  movement and simply writes no replacement.
+
+`post_sales_batch` enforces this: it loops every line, and only inserts a
+`SALE` row when the line's quantity is greater than zero (see
+`20260722150000_phase4_sales.sql`).
+
+## Draft batch behaviour (phase 4)
+
+Sales batches are built incrementally and can run to 80+ products in one
+sitting, so the in-progress batch is persisted server-side (`sale_drafts`
+table) as each line is added or removed — not just held in browser state —
+tied to **(created_by, department, business_day)**. Two people building a
+batch for the same department/day get independent drafts; the same person
+switching between two different business days (or departments) for the same
+department automatically saves and restores each day's own draft, since
+changing either field is a real context switch to a different day's opening/
+received figures, not a continuation of the same batch.
+
+- A draft is not a movement — it has no accounting effect until
+  `post_sales_batch` runs, and unlike `movements` it is fully mutable: it can
+  be updated in place and deleted outright, since `sale_drafts` carries no
+  audit/immutability requirement.
+- Returning to the Sales entry screen with an unposted draft for the
+  currently-selected department and business day restores it automatically
+  and says so ("An unposted draft for X on Y was restored below").
+- "Clear batch" deletes the draft outright (`clearSalesDraft`), not just the
+  in-memory lines.
+- Posting a batch clears its draft as the final step of `postSalesBatch` —
+  a posted batch has no further use for its staging row.
+
 ## Phase 3 scope decisions (asked and answered before building)
 
 - **Batch UI pattern**: the prototype's Requisitions screen posts one line
@@ -380,12 +438,43 @@ of "placeholder home page" given the dashboard build-out below.
   references `profiles(id)` in the phase-1 schema, so it has to be an actual
   account.
 
+## Phase 4 scope decisions (asked and answered before building)
+
+- **STOREKEEPER on Sales entry**: phase 3's nav table (and `lib/nav.ts`)
+  originally scoped Sales entry to ADMIN + DEPARTMENT_USER only. Confirmed
+  before building that phase 4's brief granting STOREKEEPER posting access
+  too (for any non-central department) was intentional, not a slip — both
+  `lib/nav.ts` and the nav table above now list STOREKEEPER.
+- **Sales history location**: not in `design/ui-draft.html` at all (the
+  prototype's own "History" nav item is reserved for phase 7's count
+  sessions) — confirmed before building as a new `/sales/history` route and
+  nav item, rather than a tab bolted onto `/sales` or folded into the
+  existing `/movements` list (which already surfaces `SALE` movements, but
+  without sales-specific column framing or a dedicated place for
+  DEPARTMENT_USER/STOREKEEPER to land).
+- **Correction atomicity**: confirmed before building that a correction line
+  (reverse the existing sale, post the corrected figure) is staged in the
+  batch like any other line — nothing touches the database until "Post
+  sales" — and `post_sales_batch` performs the reversal and the new insert
+  together inside its own loop iteration, in the same transaction as every
+  other line in the batch. The alternative (reversing immediately when
+  "Reverse & correct" is chosen, batching only the corrected figure) was
+  rejected: it would leave a reversed-but-not-yet-replaced line as a real
+  possibility if the rest of the post failed, which the "all lines or none"
+  quality bar is specifically meant to prevent.
+- **Re-adding a product already in the current batch**: unlike Purchases/
+  Requisitions (where re-searching a product already in the batch increases
+  its quantity, since those are additive movements), Sales is a single
+  closing figure per product per day — re-picking a product already staged
+  shows "already in this batch, remove it below to change the figure"
+  instead of merging quantities.
+
 ## The eight phases
 
 1. **Foundation** — schema, auth, PWA shell, design system *(done)*
 2. **Admin** — departments, products, CSV import, users *(done)*
 3. **Central store** — purchases and requisitions *(done)*
-4. Sales entry as a searchable batch, posted in one action
+4. **Sales entry** as a searchable batch, posted in one action *(done)*
 5. Stock count and variance comparison
 6. Reconciliation, reason codes and session locking
 7. Stock ledger, history, reports, exports

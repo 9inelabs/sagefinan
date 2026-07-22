@@ -42,7 +42,13 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { key: "purchases", label: "Purchases", href: "/purchases", roles: ["ADMIN", "STOREKEEPER"] },
       { key: "req", label: "Requisitions", href: "/requisitions", roles: ["ADMIN", "STOREKEEPER"] },
-      { key: "sales", label: "Sales entry", href: "/sales", roles: ["ADMIN", "DEPARTMENT_USER"] },
+      { key: "sales", label: "Sales entry", href: "/sales", roles: ["ADMIN", "STOREKEEPER", "DEPARTMENT_USER"] },
+      {
+        key: "sales-history",
+        label: "Sales history",
+        href: "/sales/history",
+        roles: ["ADMIN", "AUDITOR", "STOREKEEPER", "DEPARTMENT_USER"],
+      },
     ],
   },
   {

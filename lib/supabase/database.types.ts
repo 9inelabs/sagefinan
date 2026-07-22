@@ -407,6 +407,48 @@ export type Database = {
           },
         ]
       }
+      sale_drafts: {
+        Row: {
+          business_day: string
+          created_by: string
+          department_id: string
+          id: string
+          lines: Json
+          updated_at: string
+        }
+        Insert: {
+          business_day: string
+          created_by: string
+          department_id: string
+          id?: string
+          lines?: Json
+          updated_at?: string
+        }
+        Update: {
+          business_day?: string
+          created_by?: string
+          department_id?: string
+          id?: string
+          lines?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_drafts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_drafts_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       movements_detail: {
@@ -550,6 +592,15 @@ export type Database = {
           p_lines: Json
           p_received_by: string
           p_to_department_id: string
+        }
+        Returns: string[]
+      }
+      post_sales_batch: {
+        Args: {
+          p_business_day: string
+          p_created_by: string
+          p_department_id: string
+          p_lines: Json
         }
         Returns: string[]
       }

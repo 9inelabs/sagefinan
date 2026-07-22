@@ -447,3 +447,137 @@ model, so restoring its exact original figure took one further plain
 re-insert of the same quantity — documented inline in the cleanup script,
 not a new pattern) and all test drafts deleted, confirmed back to the
 pre-test balances via `get_department_balance` before and after.
+
+**Phase 5 — Stock count and variance comparison.** Added
+`20260723090000_phase5_counts.sql`: no new tables (`count_sessions`/
+`count_lines`/`adjustments` already existed from phase 1), one new column
+(`count_sessions.updated_at`, bumped by autosave and by finishing — a
+reload-proof "draft saved HH:MM" badge) and three RPCs, each a multi-row
+atomic write per the Conventions above:
+
+- `start_or_open_count_session(department_id, as_at_date, counted_by)` —
+  creates the session row and snapshots every active assigned product as a
+  `count_line` (in one transaction, so a session can never end up with a
+  partial product snapshot), or returns the existing session untouched if
+  one already exists for that (department, date) pair, per the unique
+  constraint. Products assigned after this call never retroactively appear.
+- `finish_count_session(session_id, zero_fill_blanks)` — optionally
+  zero-fills remaining blanks (re-checked server-side, never trusting that
+  the client's blank-list prompt actually happened), then computes and
+  freezes `expected_qty` for every line from `get_department_balance`, then
+  flips status to `COMPLETED`. `expected_qty = closing_qty` — no branching
+  on `is_central_store` needed, since that function's inbound/outbound
+  convention already generalizes both department shapes into one closing
+  figure (see SPEC.md).
+- `record_count_adjustment(count_line_id, new_qty, reason, created_by)` — the
+  "correcting a miscount" path: inserts an `adjustments` row and updates
+  `count_lines.physical_qty` together (an adjustment recorded with no
+  matching change, or vice versa, breaks the "demonstrable, not asserted"
+  guarantee this exists for). Blocked once a session is `LOCKED`; blocked
+  before a session is `COMPLETED` (nothing to correct yet). `expected_qty` is
+  never touched by this function.
+
+Also added a read-model view, `count_sessions_summary` (joins
+department/counted-by names, aggregates product/counted/variance counts and
+variance value), with `variance_count`/`variance_value` forced to `null`
+while a session is `DRAFT` — before `finish_count_session` runs,
+`expected_qty` is still every line's `0` placeholder default, so a
+"variance" computed against it would be meaningless noise, not a real
+figure, even off the counting screen itself.
+
+**Blind counting** (SPEC.md) is enforced structurally, not by convention: the
+take-stock screen's server actions
+(`getCountLinesForCounting`/`saveCountEntries` in `lib/counts/actions.ts`)
+select an explicit column list that omits `expected_qty` entirely — it is
+never fetched by that code path, so there's nothing to accidentally render
+or leak into the page source, a network response, or client-side state.
+`getCompareData` is the *only* function in the codebase that ever selects
+`expected_qty`, and it refuses to run until a session is `COMPLETED`/
+`LOCKED`. Verified with a temporary Playwright script that captured every
+network response body during an active DRAFT count and asserted neither
+`expected_qty` nor `expectedQty` ever appeared in any of them.
+
+Three routes, one nav addition (`lib/nav.ts` — new "Sessions" item, ADMIN/
+AUDITOR, confirmed before building rather than folding this into the
+existing phase-7-reserved `/history` placeholder):
+
+- **Take stock** (`/count` picker → `/count/[id]`): the picker chooses a
+  department (every active department, **including the central store** —
+  unlike Purchases/Requisitions/Sales, the central store is itself counted,
+  per SPEC.md's central-store expected-quantity formula) and an as-at date
+  (defaulting to yesterday, `lib/dates.ts`'s shared `yesterdayIso()`, now
+  also used by Sales entry), then calls `start_or_open_count_session` and
+  routes into the session — to `/count/[id]` if `DRAFT`, straight to
+  `/compare/[id]` if already finished. `/count/[id]` is a phone-first,
+  shelf-ordered list (`CountRow` — 48px `inputmode="numeric"` inputs, filled
+  vs. empty visually distinct, blank strictly `null` not `0`) with a search
+  box, a live "N of M counted" progress bar, and debounced autosave
+  (`useLineEntries` hook, shared with Ledger record below) that tracks only
+  the products dirtied since the last successful save, so a slow response
+  never drops a keystroke and a save-in-flight never blocks further typing.
+  Finishing checks for blanks client-side first (the same data already held
+  for autosave) and, if any remain, opens a dialog listing them with a
+  choice — go back and count them, or record them all as zero — never
+  assuming either way; the server-side RPC re-checks regardless.
+- **Ledger record**: built as a second tab on the same take-stock screen
+  (confirmed before building, rather than a link off the Compare screen),
+  gated disabled until the session is `COMPLETED` and read-only once
+  `LOCKED`. Same shelf-ordered list and input pattern, recording
+  `ledger_qty` instead of `physical_qty` via the same autosave hook. Both
+  tabs stay mounted once visited (hidden via CSS, not unmounted) specifically
+  so switching tabs never discards an in-progress edit or forces a re-fetch
+  that could show a stale figure.
+- **Compare stock** (`/compare` landing → `/compare/[id]`): the landing page
+  lists sessions with status `COMPLETED`/`LOCKED` (query on
+  `count_sessions_summary`); a `DRAFT` session visited directly redirects to
+  `/count/[id]` instead, since there's nothing to compare yet. The variance
+  table hides fully-tallying rows by default (toggle to show all), sortable
+  by shelf order/value/quantity, and computes two **independent** flags per
+  line rather than one collapsed "variance" concept, per SPEC.md's
+  three-figure case: a primary flag (`short`/`excess`/none) from counted vs.
+  expected, and a separate `bookDiffers` flag whenever a recorded ledger
+  figure disagrees with expected — shown *alongside* a primary flag on the
+  rarer three-way mismatch, not merged into it. Correcting a count from this
+  screen (`correctCountEntry` → `record_count_adjustment`) recalculates the
+  variance immediately client-side and never touches the frozen
+  `expected_qty`. CSV export (`/compare/[id]/export`, same Route Handler
+  pattern as every other export in the app) respects the same show-all
+  toggle via a query param.
+- **Sessions** (`/sessions`, new nav item): the full filterable index
+  (department, as-at date range, status) over `count_sessions_summary` that
+  phase 5's brief calls for — confirmed before building as its own new route
+  rather than pulled forward into the existing `/history` placeholder, which
+  stays reserved for phase 7's richer reports/exports. Each row's date links
+  to `/count/[id]` (`DRAFT`) or `/compare/[id]` (otherwise).
+
+**Frozen expected** (SPEC.md): `expected_qty` is written exactly once, inside
+`finish_count_session`, and nothing else in the codebase ever updates it —
+verified end-to-end with a script that posted a new requisition on a count's
+already-counted business day *after* finishing, confirmed
+`get_department_balance` recomputed to reflect it (a real, live change), and
+confirmed both the session's stored `expected_qty` and the Compare screen
+(after a reload) still showed the old, frozen figure.
+
+No virtualisation library was added for the 150-item count list (a
+phase-2-style decision, confirmed by measurement rather than assumed): each
+`CountRow` is `React.memo`'d and receives only primitive props plus one
+`onChange` reference that never changes (`useCallback` with an empty
+dependency array, functional `setState` inside), so a keystroke on one row
+only re-renders that row regardless of list length.
+
+Verified with two temporary Playwright scripts (installed, used, removed,
+same pattern as prior phases) against the seeded Bar and Kitchen departments,
+plus direct RPC/table checks: blind counting (no `expected_qty` in any
+network response during an active count); autosave surviving a full page
+reload; the blank-entries dialog appearing and correctly blocking finish on
+Cancel, then zero-filling and finishing on confirm; a deliberate one-bottle
+undercount showing a `Short` tag and a deliberate ledger mismatch showing a
+`Book differs` tag on the Compare screen; the frozen-expected guarantee
+above; a correction writing an `adjustments` row with the right previous/new
+quantities and reason while leaving `expected_qty` untouched; and the new
+session appearing correctly in `/sessions`. All test movements were
+**reversed** and all test count sessions **deleted outright** (unlike
+movements, count sessions carry no immutability requirement, so hard-deleting
+throwaway test sessions was the correct cleanup rather than leaving audit
+clutter in a real department's session history), confirmed back to
+pre-test balances via `get_department_balance` before and after.

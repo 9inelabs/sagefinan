@@ -4,13 +4,8 @@ import { AccessDenied } from "@/components/AccessDenied";
 import { Card } from "@/components/ui/Card";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { listSalesDepartments } from "@/lib/sales/actions";
+import { yesterdayIso } from "@/lib/dates";
 import { SalesBatchForm } from "./SalesBatchForm";
-
-function yesterdayIso() {
-  const d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
-}
 
 export default async function SalesPage() {
   const profile = await getCurrentProfile();

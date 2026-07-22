@@ -103,8 +103,9 @@ for auth/session only.
   additionally enforces which side must be the central store (a CHECK
   constraint can't look up another table's `is_central_store` flag).
 - `count_sessions` — id, department_id, as_at_date, counted_by, status
-  (`DRAFT`/`COMPLETED`/`LOCKED`), created_at, locked_at, unique on
-  (department_id, as_at_date)
+  (`DRAFT`/`COMPLETED`/`LOCKED`), created_at, updated_at (phase 5 — bumped by
+  autosave and by finishing, a reload-proof "draft saved" timestamp),
+  locked_at, unique on (department_id, as_at_date)
 - `count_lines` — id, count_session_id, product_id, expected_qty,
   physical_qty (nullable), ledger_qty (nullable), variance (generated column
   = physical_qty − expected_qty, **not** vs. ledger_qty — see below), reason_code
@@ -255,7 +256,7 @@ isn't something worth hand-rolling, see CLAUDE.md).
 
 | Nav item | Roles |
 |---|---|
-| Dashboard, Take stock, Compare stock, Reconcile, History | ADMIN, AUDITOR |
+| Dashboard, Take stock, Compare stock, Sessions (phase 5), Reconcile, History | ADMIN, AUDITOR |
 | Stock ledger, Movements (phase 3) | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
 | Purchases (phase 3), Requisitions | ADMIN, STOREKEEPER |
 | Sales entry (phase 4) | ADMIN, STOREKEEPER, DEPARTMENT_USER |
@@ -310,6 +311,80 @@ Storekeeper/department_user's home page ("/") is a minimal placeholder
 shortcutting to their one relevant action page, since the full audit
 dashboard doesn't apply to them — decided in phase 1 as a reasonable reading
 of "placeholder home page" given the dashboard build-out below.
+
+## Blind counting (phase 5)
+
+While a count session is `DRAFT`, the expected quantity must not be visible
+anywhere — not on screen, not in the page source, not in any network
+response, not in client-side state. This is a hard requirement, not a
+preference: a counter who can see the expected figure will unconsciously
+drift towards it, and counting blind is the entire reason the physical
+figure is worth anything.
+
+Enforced structurally, not by convention: `getCountLinesForCounting` and
+`saveCountEntries` (`lib/counts/actions.ts`) — the only two functions the
+take-stock screen ever calls — select an explicit column list that omits
+`expected_qty` entirely, so it is never fetched by that code path in the
+first place. `expected_qty` is computed and frozen only inside
+`finish_count_session` (see below), and the only function anywhere in the
+codebase that ever reads it back out is `getCompareData`, which refuses to
+run until a session is `COMPLETED` or `LOCKED`. There is no "hide it in the
+UI" step to forget, because the value is structurally absent from the
+DRAFT-time response.
+
+## Frozen expected quantity (phase 5)
+
+`expected_qty` is computed once, at the moment a count is finished
+(`finish_count_session`), from `get_department_balance(department_id,
+as_at_date)` — `expected_qty = closing_qty`, with no branching on
+`is_central_store` needed, since that function's inbound/outbound convention
+already generalizes "opening + purchases − requisitions out" (central store)
+and "opening + requisitions in − sales" (everyone else) into one closing
+figure. It is written exactly once and never recomputed: if a movement is
+posted later against that department on that business day (a late purchase,
+a backdated requisition), the balance function's *live* answer for that date
+changes, but the count session's stored `expected_qty` — and therefore its
+variance report — does not. A count taken this morning must keep meaning
+what it meant this morning, even if the books catch up later in the day.
+
+## Three-figure comparison (phase 5)
+
+A count line can carry up to three independent figures: `expected_qty`
+(frozen at finish), `physical_qty` (what was counted), and `ledger_qty`
+(optional, what the department's own stock book says — recorded
+independently, and may be left unrecorded entirely). Variance is always
+**physical vs. expected**, never physical vs. ledger — the ledger figure is
+informational, not authoritative, and comparing physical against it instead
+would let a wrong book figure quietly mask (or manufacture) a real physical
+loss.
+
+The comparison computes two flags per line, kept deliberately separate
+rather than collapsed into one "variance" concept:
+
+- **Primary** (`short` / `excess` / none): from `physical_qty − expected_qty`.
+  Negative is short (red), positive is excess (green).
+- **`bookDiffers`** (independent, secondary): true whenever a `ledger_qty`
+  was recorded and it disagrees with `expected_qty` — regardless of what the
+  primary flag says.
+
+A line is hidden (fully tallies) only when neither fact holds. This
+produces exactly the three cases SPEC.md's phase-5 brief describes:
+
+- Physical differs from expected, ledger not recorded or matches expected →
+  a real physical variance. Primary flag only.
+- Physical matches expected, but a recorded ledger figure disagrees →
+  **Book differs** only, amber, not a shortage — the prototype's Eva Water
+  case. The department's book is wrong; the stock is fine. Value is shown as
+  "—", not a fabricated ₦0.
+- All three figures differ → both flags render together (a primary
+  short/excess tag *and* a Book differs tag on the same row), so the two
+  separate problems — a real loss, and a wrong book — stay visible as two
+  separate facts rather than merging into a single ambiguous label.
+
+Editing a physical count from the Compare screen (`correctCountEntry` →
+`record_count_adjustment`) recalculates the variance immediately and always
+writes an `adjustments` row (previous value, new value, who, when) — even
+before a session locks — but never touches the frozen `expected_qty`.
 
 ## Phase 1 scope decisions (asked and answered before building)
 
@@ -469,13 +544,37 @@ received figures, not a continuation of the same batch.
   shows "already in this batch, remove it below to change the figure"
   instead of merging quantities.
 
+## Phase 5 scope decisions (asked and answered before building)
+
+- **Session list location**: the phase brief's "Session list" section (find
+  an in-progress or past session, filter, open it) needs a home, but
+  `design/ui-draft.html`'s own "History" nav item is reserved for phase 7's
+  richer reports/exports. Confirmed before building: a brand-new nav item
+  and route, `/sessions`, rather than pulling `/history` forward or folding
+  the list into `/count`'s own landing page.
+- **Ledger record entry point**: the optional ledger-figure second pass has
+  no nav slot of its own (and would collide in name with the existing phase-
+  3 "Stock ledger" balance-view nav item, an unrelated concept). Confirmed
+  before building: a second tab on the take-stock screen itself
+  (`/count/[id]`), enabled once the count is finished, rather than a link off
+  the Compare screen.
+- **Department picker for Take stock**: includes the central store, unlike
+  every other department picker in the app (Purchases/Requisitions/Sales all
+  exclude it) — a direct consequence of the central store having its own
+  expected-quantity formula in this phase's brief, meaning it's counted too.
+- **Virtualisation**: not added for the 150-item count list — measured
+  before deciding, following the phase-2 precedent of not reaching for a new
+  dependency until a real dependency exists. `React.memo` per row plus a
+  single stable `onChange` reference keeps a keystroke's re-render scoped to
+  one row regardless of list length.
+
 ## The eight phases
 
 1. **Foundation** — schema, auth, PWA shell, design system *(done)*
 2. **Admin** — departments, products, CSV import, users *(done)*
 3. **Central store** — purchases and requisitions *(done)*
 4. **Sales entry** as a searchable batch, posted in one action *(done)*
-5. Stock count and variance comparison
+5. **Stock count and variance comparison** *(done)*
 6. Reconciliation, reason codes and session locking
 7. Stock ledger, history, reports, exports
 8. Mobile polish and Vercel deployment

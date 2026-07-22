@@ -21,6 +21,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { key: "dash", label: "Dashboard", href: "/", roles: ["ADMIN", "AUDITOR"] },
       { key: "count", label: "Take stock", href: "/count", roles: ["ADMIN", "AUDITOR"] },
       { key: "var", label: "Compare stock", href: "/compare", roles: ["ADMIN", "AUDITOR"] },
+      { key: "sessions", label: "Sessions", href: "/sessions", roles: ["ADMIN", "AUDITOR"] },
       { key: "rec", label: "Reconcile", href: "/reconcile", roles: ["ADMIN", "AUDITOR"] },
       { key: "hist", label: "History", href: "/history", roles: ["ADMIN", "AUDITOR"] },
     ],

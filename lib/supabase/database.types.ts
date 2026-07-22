@@ -127,6 +127,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "count_lines_count_session_id_fkey"
+            columns: ["count_session_id"]
+            isOneToOne: false
+            referencedRelation: "count_sessions_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "count_lines_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
@@ -144,6 +151,7 @@ export type Database = {
           id: string
           locked_at: string | null
           status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
         }
         Insert: {
           as_at_date: string
@@ -153,6 +161,7 @@ export type Database = {
           id?: string
           locked_at?: string | null
           status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
         }
         Update: {
           as_at_date?: string
@@ -162,6 +171,7 @@ export type Database = {
           id?: string
           locked_at?: string | null
           status?: Database["public"]["Enums"]["session_status"]
+          updated_at?: string
         }
         Relationships: [
           {
@@ -451,6 +461,40 @@ export type Database = {
       }
     }
     Views: {
+      count_sessions_summary: {
+        Row: {
+          as_at_date: string | null
+          counted_by: string | null
+          counted_by_name: string | null
+          counted_count: number | null
+          created_at: string | null
+          department_id: string | null
+          department_name: string | null
+          id: string | null
+          locked_at: string | null
+          product_count: number | null
+          status: Database["public"]["Enums"]["session_status"] | null
+          updated_at: string | null
+          variance_count: number | null
+          variance_value: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "count_sessions_counted_by_fkey"
+            columns: ["counted_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_sessions_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       movements_detail: {
         Row: {
           business_day: string | null
@@ -554,6 +598,25 @@ export type Database = {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      finish_count_session: {
+        Args: { p_session_id: string; p_zero_fill_blanks: boolean }
+        Returns: {
+          as_at_date: string
+          counted_by: string
+          created_at: string
+          department_id: string
+          id: string
+          locked_at: string | null
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "count_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       get_department_balance: {
         Args: { p_as_at_date: string; p_department_id: string }
         Returns: {
@@ -603,6 +666,54 @@ export type Database = {
           p_lines: Json
         }
         Returns: string[]
+      }
+      record_count_adjustment: {
+        Args: {
+          p_count_line_id: string
+          p_created_by: string
+          p_new_qty: number
+          p_reason: string
+        }
+        Returns: {
+          count_session_id: string
+          expected_qty: number
+          id: string
+          ledger_qty: number | null
+          note: string | null
+          physical_qty: number | null
+          product_id: string
+          reason_code: Database["public"]["Enums"]["reason_code"] | null
+          variance: number | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "count_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      start_or_open_count_session: {
+        Args: {
+          p_as_at_date: string
+          p_counted_by: string
+          p_department_id: string
+        }
+        Returns: {
+          as_at_date: string
+          counted_by: string
+          created_at: string
+          department_id: string
+          id: string
+          locked_at: string | null
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "count_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

@@ -4,11 +4,15 @@ import { Card } from "@/components/ui/Card";
 import { Stat } from "@/components/ui/Stat";
 import { Tag } from "@/components/ui/Tag";
 import { Btn } from "@/components/ui/Button";
+import { getOverrideCount } from "@/lib/movements/actions";
 import Link from "next/link";
 
 // Phase 1: this dashboard reproduces design/ui-draft.html's sample figures
 // verbatim so the layout can be reviewed against the prototype. It is not yet
-// wired to real counts/movements — that lands in phases 5-7.
+// wired to real counts/movements — that lands in phases 5-7. Phase 3's one
+// exception: "flagged for review" is a real, live count of is_override
+// movements (SPEC.md asks for the auditor to see this count somewhere), since
+// it's the only figure this phase actually produces.
 export default async function DashboardPage() {
   const profile = await getCurrentProfile();
 
@@ -16,17 +20,22 @@ export default async function DashboardPage() {
     return <ScopedHome role={profile.role} departmentName={profile.departmentName} />;
   }
 
+  const overrideCount = await getOverrideCount();
+
   return (
     <PageShell
       title="Dashboard"
       subtitle="Tuesday, 21 July 2026 · as at close of Monday, 20 July"
       actions={<Btn variant="acc">Start count</Btn>}
     >
-      <div className="grid grid-cols-2 min-[900px]:grid-cols-4 gap-3 mb-4.5">
+      <div className="grid grid-cols-2 min-[900px]:grid-cols-5 gap-3 mb-4.5">
         <Stat label="Counted today" value="3" hint="/ 8" />
         <Stat label="Items with variance" value="17" colorClassName="text-red" />
         <Stat label="Variance value" value="₦48,250" colorClassName="text-red" />
         <Stat label="Awaiting reconciliation" value="2" hint="sessions" />
+        <Link href="/movements?override=1">
+          <Stat label="Flagged for review" value={String(overrideCount)} hint="overrides" colorClassName={overrideCount > 0 ? "text-amber" : undefined} />
+        </Link>
       </div>
 
       <Card title="Today's counts" extra="as at close of 20 July" className="mb-4">
@@ -198,10 +207,13 @@ export default async function DashboardPage() {
 }
 
 function ScopedHome({ role, departmentName }: { role: "STOREKEEPER" | "DEPARTMENT_USER"; departmentName: string | null }) {
-  const shortcut =
+  const shortcuts =
     role === "STOREKEEPER"
-      ? { label: "Go to Requisitions", href: "/requisitions" }
-      : { label: "Go to Sales entry", href: "/sales" };
+      ? [
+          { label: "Go to Purchases", href: "/purchases" },
+          { label: "Go to Requisitions", href: "/requisitions" },
+        ]
+      : [{ label: "Go to Sales entry", href: "/sales" }];
 
   return (
     <PageShell title="Sagefinan" subtitle={departmentName ?? undefined}>
@@ -210,9 +222,13 @@ function ScopedHome({ role, departmentName }: { role: "STOREKEEPER" | "DEPARTMEN
           <p className="mb-3">
             Signed in for <b className="text-ink font-medium">{departmentName ?? "your department"}</b>.
           </p>
-          <Link href={shortcut.href} className="text-teal">
-            {shortcut.label} →
-          </Link>
+          <div className="flex flex-col gap-2 items-start">
+            {shortcuts.map((s) => (
+              <Link key={s.href} href={s.href} className="text-teal">
+                {s.label} →
+              </Link>
+            ))}
+          </div>
         </div>
       </Card>
     </PageShell>

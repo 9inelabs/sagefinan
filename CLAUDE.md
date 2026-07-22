@@ -243,3 +243,111 @@ product search/filter/edit with pre-ticked departments, CSV dry-run preview
 user creation with one-time temp password, and 380px card-reflow layout for
 Products/Departments/department-detail all confirmed working; all synthetic
 test data (departments/products/users) was deleted afterward.
+
+**Phase 3 — Central store: purchases, requisitions, reversals, business-day
+locking.** Added `20260722090000_phase3_movements.sql`: no new tables. New
+`movements` columns — `supplier_name`/`invoice_reference` (PURCHASE context),
+`is_override`/`override_reason` (insufficient-stock override, flagged for
+auditor attention), `reversal_of_movement_id`. Three RPC functions so each
+batch/reversal is one transaction: `post_purchase_batch()`,
+`post_requisition_batch()` (re-checks every line's availability against
+`get_department_balance()` server-side — the client-side check in
+`lib/movements/actions.ts` is only there for a fast, friendly error; the RPC
+is the actual guarantee against a silent negative balance), and
+`post_movement_reversal()`.
+
+**Reversal model** (see SPEC.md for the full writeup): a reversal is an
+ordinary movement row with the *same* type/product/from/to as the movement it
+reverses — never a flipped direction — tagged `reversal_of_movement_id`. It
+deliberately doesn't flip `from_department_id`/`to_department_id`, which would
+fight `validate_movement`'s "requisitions only ever run central → non-central"
+rule for no benefit. Instead, `get_department_balance()` (redefined in this
+migration) nets a reversal's quantity as **negative** in whichever
+inbound/outbound branch its original counted in, so it exactly cancels the
+original at the original's `business_day` — verified end-to-end with a script
+that posted a purchase, a normal requisition, and an over-issued/overridden
+requisition, then reversed all three: the central store's Heineken balance
+returned to exactly its pre-test value. There is **no** `reversed_by_movement_id`
+column — movements are immutable (no UPDATE policy for anyone, still true
+after this migration), so the original row is never touched when it's
+reversed. Whether a movement has been reversed, and by what, is derived by
+looking for a row whose `reversal_of_movement_id` points back at it — the
+`movements_detail` view (below) computes this as `reversed_by_movement_id` so
+callers never have to. A reversal can't itself be reversed (reverse the
+original instead), and a movement already reversed can't be reversed again —
+both enforced inside `post_movement_reversal()`, both confirmed by script.
+
+**Business-day locking** is one trigger, `check_business_day_lock()`, on
+`movements` — applies to every insert (purchases, requisitions, reversals,
+and sales once phase 4 adds that type) rather than being re-implemented per
+posting action. Confirmed by script: a requisition against a department with
+a `LOCKED` session on or after the chosen `business_day` is rejected naming
+the department and the locked date; the identical call one business day later
+succeeds.
+
+*Purchases* (`/purchases`): supplier name, optional invoice/delivery-note
+reference, business day. Product search is restricted to active products
+**assigned to the central store** — not stated verbatim in SPEC.md, but a
+direct consequence of the hard "balance queries always go through
+`get_department_balance`, never hand-roll a movement sum" rule: that function
+only returns rows for assigned products, so an unassigned product would have
+no "current quantity" context to show. In practice the central store should
+be assigned to everything it can stock, so this is rarely a real restriction.
+
+*Requisitions* (`/requisitions`, replacing the phase-1 placeholder): business
+day, destination department (central store excluded from the list), received
+by (a required `Select` of active `DEPARTMENT_USER` profiles at the chosen
+department — the schema's `received_by uuid references profiles(id)` means
+this has to be an actual account, not free text; if a department has no user
+yet the form says so and the post button stays disabled). Product search
+restricted to products assigned to the destination; searching an unassigned
+product shows a plain explanation and a link to that product's assignment
+screen instead of a quantity field. An over-issue is blocked by default with
+the exact shortfall shown; entering a reason reveals an "Add anyway" path
+that posts the line with `is_override = true` and flags it.
+
+*Both entry screens* use a Sales-style staged batch (search → add → repeat →
+one post), not the prototype's literal one-line-at-a-time "Record
+requisition" button — asked and confirmed: the phase brief explicitly
+describes the batch/add/remove/post-once pattern, which is also what makes
+"all lines or none" a real transactional guarantee via the RPCs above. Adding
+a product already in the batch increases its quantity rather than creating a
+duplicate line, so there's never more than one row per product and no
+cross-line balance bookkeeping is needed.
+
+*Movements* (`/movements`, new nav item — `lib/nav.ts`, visible to all four
+roles): filter by type/department/business-day range/product, search by
+code or name, override-only toggle, 50-row server-side pagination, CSV
+export of the current filter (Route Handler, capped at 20,000 rows), and a
+detail page per movement (`/movements/[id]`) showing the full record plus
+either "reverses ↔" or "reversed by ↔" links when applicable. Backed by a
+new `movements_detail` view joining products/departments/profiles and
+deriving `reversed_by_movement_id` — carries no RLS of its own since, like
+every other list in this app, it's only ever queried through the service-role
+admin client. STOREKEEPER/DEPARTMENT_USER are scoped to movements touching
+their own department (mirrors the existing `movements_select` RLS policy);
+ADMIN/AUDITOR see everything. The department filter, the "flagged for
+review" override-count stat, and CSV export's row cap are all hidden/absent
+for the scoped roles rather than shown-but-empty. Reversal can only be
+triggered by ADMIN/STOREKEEPER, and only on a movement that is itself neither
+a reversal nor already reversed — the button doesn't render otherwise.
+
+The dashboard's "flagged for review" stat (ADMIN/AUDITOR only) is the one
+live figure on that otherwise-still-hardcoded phase-1 dashboard — a deliberate,
+narrow exception, confirmed rather than assumed, since SPEC.md explicitly asks
+for the auditor to see this count somewhere and the movements list this phase
+builds is the only real data this phase produces.
+
+Verified with a one-off Playwright + direct-RPC script (installed, used,
+removed): purchase batch posted and central store balance increased by
+exactly the batch total; a normal requisition line and an over-issued,
+overridden line both posted, with the override visible and filterable on
+`/movements`; a movement reversed from its detail page, redirecting to the
+new reversal's own detail page; business-day locking blocking a locked-date
+post and allowing the identical post one day later; double-reversal and
+reverse-a-reversal both rejected with clear messages; 380px layouts on
+Purchases/Requisitions/Movements confirmed with no horizontal overflow. All
+test movements were **reversed** (never deleted — see the reversal model
+above) and the one synthetic test user was deleted, restoring the seed data's
+balances to their original values, confirmed by re-reading
+`get_department_balance` before and after.

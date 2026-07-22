@@ -1,17 +1,22 @@
-import { getCurrentProfile, requireRole } from "@/lib/auth/profile";
+import { getCurrentProfile } from "@/lib/auth/profile";
 import { PageShell } from "@/components/app-shell/PageShell";
-import { PlaceholderNotice } from "@/components/PlaceholderNotice";
+import { AccessDenied } from "@/components/AccessDenied";
+import { listRequisitionDestinations } from "@/lib/movements/actions";
+import { RequisitionBatchForm } from "./RequisitionBatchForm";
+
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default async function RequisitionsPage() {
   const profile = await getCurrentProfile();
-  requireRole(profile, ["ADMIN", "STOREKEEPER"]);
+  if (profile.role !== "ADMIN" && profile.role !== "STOREKEEPER") return <AccessDenied />;
+
+  const destinations = await listRequisitionDestinations();
 
   return (
     <PageShell title="Requisitions" subtitle="Central store · movements to departments">
-      <PlaceholderNotice
-        phase={3}
-        description="One entry moves stock out of central store and into a department at the same time — a single record, so the two sides can never disagree."
-      />
+      <RequisitionBatchForm initialBusinessDay={todayIso()} destinations={destinations} />
     </PageShell>
   );
 }

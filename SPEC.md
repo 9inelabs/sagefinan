@@ -256,10 +256,49 @@ isn't something worth hand-rolling, see CLAUDE.md).
 | Nav item | Roles |
 |---|---|
 | Dashboard, Take stock, Compare stock, Reconcile, History | ADMIN, AUDITOR |
-| Stock ledger | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
-| Requisitions | ADMIN, STOREKEEPER |
+| Stock ledger, Movements (phase 3) | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
+| Purchases (phase 3), Requisitions | ADMIN, STOREKEEPER |
 | Sales entry | ADMIN, DEPARTMENT_USER |
 | Departments, Products, Users ("Administration" group, phase 2) | ADMIN |
+
+STOREKEEPER/DEPARTMENT_USER's view of Movements is scoped to movements
+touching their own `department_id` (mirrors the `movements_select` RLS
+policy); ADMIN/AUDITOR see every movement.
+
+## Reversal model (phase 3)
+
+Movements are never updated or deleted once posted (see "Movements are the
+single source of truth" above and CLAUDE.md's Conventions). To correct one,
+post a **reversal**: a new movement row with the same `type`, `product_id`,
+`from_department_id` and `to_department_id` as the movement it reverses —
+deliberately *not* a flipped direction, since that would fight
+`validate_movement`'s "requisitions only ever run central → non-central"
+rule — tagged `reversal_of_movement_id`, carrying a mandatory reason (stored
+in `note`) and the **original movement's `business_day`**, not today's, so
+historical balances stay correct.
+
+`get_department_balance()` nets a reversal's quantity as **negative** in
+whichever inbound/outbound branch its original counted in, so a reversal
+exactly cancels its original at the original's business day, on both sides
+at once for a REQUISITION. There is no `reversed_by_movement_id` column —
+storing one would mean updating the original row, which movements never do.
+Instead, "was this movement reversed, and by what" is derived by looking for
+a row whose `reversal_of_movement_id` points back at it (the
+`movements_detail` view computes this as `reversed_by_movement_id`). A
+movement that is itself a reversal cannot be reversed (reverse the original
+instead); a movement that has already been reversed cannot be reversed
+again — both enforced in `post_movement_reversal()`.
+
+## Business-day locking (phase 3)
+
+If a department has a count session with status `LOCKED` whose `as_at_date`
+is on or after a movement's `business_day`, no new movement — purchase,
+requisition, reversal, or (from phase 4) sale — may be posted touching that
+department on that business day. Enforced by a single trigger,
+`check_business_day_lock()`, on every insert to `movements`, so the rule
+lives in one place rather than being re-implemented per posting action. The
+error names the department and the locked date and says to post on a later
+business day instead.
 
 Non-admins hitting an Administration route directly (not through the sidebar,
 which already hides these) see an explicit "you don't have access to this
@@ -314,11 +353,38 @@ of "placeholder home page" given the dashboard build-out below.
   SPEC.md doesn't ask for one there and their consequences are already
   reversible (reactivate) and low-blast-radius.
 
+## Phase 3 scope decisions (asked and answered before building)
+
+- **Batch UI pattern**: the prototype's Requisitions screen posts one line
+  immediately ("Record requisition"), with no staged batch table — but the
+  phase brief explicitly describes add/remove/post-once, matching the
+  Sales screen mock instead. Built as a staged batch (Sales-style) on both
+  Purchases and Requisitions, confirmed before building.
+- **Movements list route**: a new `/movements` route and nav item rather than
+  building into the existing `/history` route, which is reserved for phase
+  7's count-session history — confirmed before building.
+- **"Flagged for review" override count**: a stat on the new `/movements`
+  page (always) plus one live tile on the otherwise-still-hardcoded
+  dashboard (ADMIN/AUDITOR only) — confirmed before building, since
+  SPEC.md explicitly asks for the auditor to see this count somewhere.
+- **Reversal shape**: same from/to/type as the original, not a flipped
+  direction — see "Reversal model" above for why, and why there is no
+  `reversed_by_movement_id` column.
+- **Purchases product search scope**: restricted to products assigned to the
+  central store, not stated verbatim in this phase's brief but a direct
+  consequence of "balance queries always go through `get_department_balance`,
+  never hand-roll a movement sum" — that function only returns assigned
+  products, so an unassigned one would have no "current quantity" context.
+- **Received by**: a required `Select` of active `DEPARTMENT_USER` profiles
+  at the destination department, not a free-text field — `received_by`
+  references `profiles(id)` in the phase-1 schema, so it has to be an actual
+  account.
+
 ## The eight phases
 
 1. **Foundation** — schema, auth, PWA shell, design system *(done)*
 2. **Admin** — departments, products, CSV import, users *(done)*
-3. Central store — purchases and requisitions
+3. **Central store** — purchases and requisitions *(done)*
 4. Sales entry as a searchable batch, posted in one action
 5. Stock count and variance comparison
 6. Reconciliation, reason codes and session locking

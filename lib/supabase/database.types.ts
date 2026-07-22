@@ -208,10 +208,15 @@ export type Database = {
           created_by: string
           from_department_id: string | null
           id: string
+          invoice_reference: string | null
+          is_override: boolean
           note: string | null
+          override_reason: string | null
           product_id: string
           quantity: number
           received_by: string | null
+          reversal_of_movement_id: string | null
+          supplier_name: string | null
           to_department_id: string | null
           type: Database["public"]["Enums"]["movement_type"]
         }
@@ -221,10 +226,15 @@ export type Database = {
           created_by: string
           from_department_id?: string | null
           id?: string
+          invoice_reference?: string | null
+          is_override?: boolean
           note?: string | null
+          override_reason?: string | null
           product_id: string
           quantity: number
           received_by?: string | null
+          reversal_of_movement_id?: string | null
+          supplier_name?: string | null
           to_department_id?: string | null
           type: Database["public"]["Enums"]["movement_type"]
         }
@@ -234,10 +244,15 @@ export type Database = {
           created_by?: string
           from_department_id?: string | null
           id?: string
+          invoice_reference?: string | null
+          is_override?: boolean
           note?: string | null
+          override_reason?: string | null
           product_id?: string
           quantity?: number
           received_by?: string | null
+          reversal_of_movement_id?: string | null
+          supplier_name?: string | null
           to_department_id?: string | null
           type?: Database["public"]["Enums"]["movement_type"]
         }
@@ -269,6 +284,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_reversal_of_movement_id_fkey"
+            columns: ["reversal_of_movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_reversal_of_movement_id_fkey"
+            columns: ["reversal_of_movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_reversal_of_movement_id_fkey"
+            columns: ["reversal_of_movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements_detail"
+            referencedColumns: ["reversed_by_movement_id"]
           },
           {
             foreignKeyName: "movements_to_department_id_fkey"
@@ -373,7 +409,91 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      movements_detail: {
+        Row: {
+          business_day: string | null
+          created_at: string | null
+          created_by: string | null
+          created_by_name: string | null
+          from_department_id: string | null
+          from_department_name: string | null
+          id: string | null
+          invoice_reference: string | null
+          is_override: boolean | null
+          note: string | null
+          override_reason: string | null
+          product_code: string | null
+          product_id: string | null
+          product_name: string | null
+          quantity: number | null
+          received_by: string | null
+          received_by_name: string | null
+          reversal_of_movement_id: string | null
+          reversed_by_movement_id: string | null
+          supplier_name: string | null
+          to_department_id: string | null
+          to_department_name: string | null
+          type: Database["public"]["Enums"]["movement_type"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_from_department_id_fkey"
+            columns: ["from_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_received_by_fkey"
+            columns: ["received_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_reversal_of_movement_id_fkey"
+            columns: ["reversal_of_movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_reversal_of_movement_id_fkey"
+            columns: ["reversal_of_movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements_detail"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_reversal_of_movement_id_fkey"
+            columns: ["reversal_of_movement_id"]
+            isOneToOne: false
+            referencedRelation: "movements_detail"
+            referencedColumns: ["reversed_by_movement_id"]
+          },
+          {
+            foreignKeyName: "movements_to_department_id_fkey"
+            columns: ["to_department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_import_products: {
@@ -408,6 +528,30 @@ export type Database = {
           received_value: number
           unit_cost: number
         }[]
+      }
+      post_movement_reversal: {
+        Args: { p_created_by: string; p_movement_id: string; p_reason: string }
+        Returns: string
+      }
+      post_purchase_batch: {
+        Args: {
+          p_business_day: string
+          p_created_by: string
+          p_invoice_reference: string
+          p_lines: Json
+          p_supplier_name: string
+        }
+        Returns: string[]
+      }
+      post_requisition_batch: {
+        Args: {
+          p_business_day: string
+          p_created_by: string
+          p_lines: Json
+          p_received_by: string
+          p_to_department_id: string
+        }
+        Returns: string[]
       }
     }
     Enums: {

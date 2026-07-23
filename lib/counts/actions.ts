@@ -193,6 +193,7 @@ export async function finishCountSession(sessionId: string, zeroFillBlanks: bool
   const { data, error } = await admin.rpc("finish_count_session", {
     p_session_id: sessionId,
     p_zero_fill_blanks: zeroFillBlanks,
+    p_finished_by: profile.id,
   });
   if (error) throw new Error(error.message);
 

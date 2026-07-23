@@ -581,3 +581,141 @@ movements, count sessions carry no immutability requirement, so hard-deleting
 throwaway test sessions was the correct cleanup rather than leaving audit
 clutter in a real department's session history), confirmed back to
 pre-test balances via `get_department_balance` before and after.
+
+**Phase 6 — Reconciliation, reason codes and session locking.** Added
+`20260723150000_phase6_reconcile.sql`. The phase-1 `reason_code` enum is
+retired: "add a code, retire a code, never delete a used code" (SPEC.md)
+can't be built on a Postgres enum — values can be added but never removed,
+and there's no per-value active flag — so it's replaced by a managed lookup
+table, `reason_codes` (code, label, `applies_to` — `VARIANCE`/`BOOK_DIFF`/
+`BOTH` — `requires_note`, `is_active`), seeded with the eight codes SPEC.md
+lists. `count_lines.reason_code` becomes `reason_code_id` (FK), plus a fully
+parallel set of columns — `book_diff_reason_code_id`/`book_diff_note` — for
+the **independent** "book differs" case: a line can need both a physical-
+variance reason and a book-difference reason at once (the three-way-mismatch
+case from phase 5), and they're never conflated. `reason_set_by`/
+`reason_set_at` (and the book-diff equivalents) exist purely so the audit
+trail below can show "reason attached, by whom, when" as a real event rather
+than inferring it from nothing — count_lines had no such timestamp before.
+`count_sessions` gains `finished_at`/`finished_by` (same reasoning —
+`updated_at` is bumped by autosave too, so it can't stand in for "finished")
+and `locked_by` (`locked_at` already existed from phase 1).
+
+**Locking preconditions**, re-validated entirely inside `lock_count_session()`
+— never trusting that the client's own progress check actually ran (CLAUDE.md's
+quality bar): every count line whose `variance <> 0` needs a `reason_code_id`,
+and every line whose `ledger_qty` disagrees with `expected_qty` needs a
+`book_diff_reason_code_id` — both independently — and if the chosen code has
+`requires_note` (true only for `OTHER`, seeded that way, but any future
+admin-added code can opt in), a blank note fails the same check. `select ...
+for update` takes a row lock on the session for the transaction's duration,
+so two concurrent lock attempts on the same session serialise instead of
+double-locking — confirmed by script (second call sees `status = 'LOCKED'`
+and is rejected cleanly, not racily).
+
+**Freezing on lock** is enforced at the trigger level, not just by the app
+never calling update: `count_lines_lock_guard` (before update on
+`count_lines`) raises if the parent session's status is `LOCKED`, so figures,
+reasons and notes are all frozen the instant a session locks, regardless of
+what calls the table afterwards — same reasoning as phase 3's
+`check_business_day_lock`. Business-day locking itself needed **no new
+code** this phase: that trigger already fires on every `movements` insert
+whenever a `LOCKED` session's `as_at_date` covers the movement's
+`business_day`, so the moment `lock_count_session` flips a session to
+`LOCKED`, phase 3's existing enforcement applies to it automatically —
+confirmed by script (a `SALE` insert dated on the locked day is rejected with
+the same message phase 3 introduced).
+
+**Post-lock adjustments** are genuinely append-only, not "an update that's
+labelled a correction": `record_post_lock_adjustment()` only ever inserts
+into `adjustments` — it never writes to `count_lines` (which the lock guard
+trigger would reject anyway, defence in depth). `previous_qty` on a new
+adjustment is the most recent *effective* figure — the certified
+`physical_qty` if this is the line's first adjustment since locking,
+otherwise the prior adjustment's own `new_qty` — so a chain of adjustments
+reads as one coherent chronological ledger sitting *alongside* the untouched
+original, never replacing it. Confirmed by script: two successive post-lock
+adjustments on the same line chain `5 → 6` then `6 → 7`, and `count_lines
+.physical_qty` reads `5` throughout, before and after both.
+
+**Access** (SPEC.md): `count_lines_select` RLS is tightened from phase 1's
+"admin/auditor see everything, everyone else sees their own department's
+rows" down to admin/auditor only — DEPARTMENT_USER/STOREKEEPER may not see
+reconciliation, reasons or variance values *at all*, not even as a
+defence-in-depth RLS branch nobody's UI actually exercises. `count_sessions`
+keeps its phase-1 "own department" branch (session existence/status alone
+isn't the sensitive part). Reason-code add/retire is ADMIN-only
+(`lib/reason-codes/actions.ts`); reconcile/lock/post-lock-adjustment is
+ADMIN/AUDITOR (`lib/reconcile/actions.ts`), both via `requireRole` in every
+server action, never inferred from a hidden button.
+
+*Reason codes admin*: folded into the existing Products page
+(`/products/reason-codes`, linked from its toolbar) rather than a new
+top-level nav item — confirmed before building. Retiring sets `is_active =
+false`; there's no delete action anywhere in the codebase for this table, so
+"never delete a used code" holds by construction, not by a runtime check.
+
+*Reconcile screen* (`/reconcile` landing → `/reconcile/[id]`, mirroring the
+Compare/Sessions landing-then-detail pattern): lists every non-tallying line
+(physical variance or book-differs, independently) with single-select reason
+chips (44px minimum touch target — `components/ui/Chip.tsx`, a new component
+since the prototype's own chip is a ~30px pill) and an optional note beneath,
+a live "N of M reconciled" progress count, and a persistent "what locking
+does" side card matching the prototype's copy. Book-differs lines are
+visually and structurally separate from physical-variance lines on the same
+row — their own heading ("a posting discrepancy, not a physical loss"), their
+own narrower chip set (`applies_to` excludes `BREAKAGE`/`SPILLAGE`/
+`UNRECORDED_SALE`/`EXPIRED_DAMAGED`, which make no sense as a bookkeeping
+explanation), their own note field. Correcting a miscount reuses phase 5's
+`correctCountEntry`/`record_count_adjustment` unchanged (a pre-lock line that
+now tallies drops out of the list, per SPEC.md); once `LOCKED`, the same
+button is replaced by "Raise adjustment", and each line shows its certified
+figure plus every adjustment since, in order. The lock button is disabled
+client-side whenever any line is unreasoned, with the outstanding products
+named inline — the server-side re-validation is the actual guarantee, this
+is just the friendly early warning. Locking pops a `ConfirmDialog` stating
+the three consequences from SPEC.md verbatim (permanent, business-day lock,
+adjustments append) before calling `lockCountSession`.
+
+*Audit trail*: a second tab on the same `/reconcile/[id]` screen (folded in
+rather than a new route, same reasoning as phase 5's ledger-record tab) —
+`getSessionAuditTrail()` synthesizes one chronological event list from
+`count_sessions` (created/finished/locked), each `count_lines` reason
+attachment, and every `adjustments` row (tagged pre-lock vs. post-lock by
+comparing its timestamp to `locked_at`, since there's no separate column for
+that distinction — see the append-only model above). Session/reason-attach/
+lock mutations call `router.refresh()` after their local state update so this
+tab's otherwise-static server-fetched prop picks up the new event without a
+manual reload; `lines`/`status`/etc. stay on locally-tracked `useState` and
+are unaffected by the refresh (a client component's state isn't reset by a
+parent server re-render with new props) — caught by the first UI verification
+pass, where the audit tab showed a stale pre-lock snapshot until this was
+added.
+
+*Reporting* (folded into `/reconcile` rather than new top-level nav items,
+confirmed before building): `/reconcile/reports` (variance-by-reason and
+book-diff-by-reason, both filterable by department/date-range, both
+CSV-exportable) and `/reconcile/investigation` (every line anywhere still
+carrying the `UNDER_INVESTIGATION` code, locked or not, department-
+filterable, CSV-exportable). Both are plain aggregation queries in
+`lib/reconcile/actions.ts`, not new database views — single-consumer, no
+other screen needs them, matching the phase-2/5 precedent of not reaching for
+a new abstraction without a second caller. The variance-by-reason report
+sums signed variance/value per code (so a net loss reads as negative,
+matching the sign convention already used on Compare/Sessions); book-diff
+rows report a line count and quantity only, value left as `null`/"—" — the
+same "no fabricated currency figure for a posting discrepancy" rule phase 5
+established for the Compare screen's own Book differs case.
+
+Verified with a direct RPC/table script (installed nothing — plain
+`@supabase/supabase-js` already a dependency — run, then its test session/
+lines/adjustments deleted): lock blocked while unreasoned, succeeds once
+reasoned, double-lock rejected, a direct `count_lines` update rejected once
+locked, a `SALE` on the locked business day rejected, a post-lock adjustment
+chain (`5→6→7`) recorded while `physical_qty` stayed `5` throughout. Plus a
+temporary Playwright script (installed, used, removed, same pattern as prior
+phases) against the dev server: reason-codes admin page lists the 8 seeded
+codes; the Reconcile screen's lock button disables/enables correctly, the
+lock confirm dialog states its consequences, a post-lock adjustment renders
+alongside the untouched certified figure, the audit trail lists every event
+in order, both report pages render, and 380px shows zero horizontal overflow.

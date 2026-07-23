@@ -86,6 +86,10 @@ export type Database = {
       }
       count_lines: {
         Row: {
+          book_diff_note: string | null
+          book_diff_reason_code_id: string | null
+          book_diff_reason_set_at: string | null
+          book_diff_reason_set_by: string | null
           count_session_id: string
           expected_qty: number
           id: string
@@ -93,10 +97,16 @@ export type Database = {
           note: string | null
           physical_qty: number | null
           product_id: string
-          reason_code: Database["public"]["Enums"]["reason_code"] | null
+          reason_code_id: string | null
+          reason_set_at: string | null
+          reason_set_by: string | null
           variance: number | null
         }
         Insert: {
+          book_diff_note?: string | null
+          book_diff_reason_code_id?: string | null
+          book_diff_reason_set_at?: string | null
+          book_diff_reason_set_by?: string | null
           count_session_id: string
           expected_qty?: number
           id?: string
@@ -104,10 +114,16 @@ export type Database = {
           note?: string | null
           physical_qty?: number | null
           product_id: string
-          reason_code?: Database["public"]["Enums"]["reason_code"] | null
+          reason_code_id?: string | null
+          reason_set_at?: string | null
+          reason_set_by?: string | null
           variance?: number | null
         }
         Update: {
+          book_diff_note?: string | null
+          book_diff_reason_code_id?: string | null
+          book_diff_reason_set_at?: string | null
+          book_diff_reason_set_by?: string | null
           count_session_id?: string
           expected_qty?: number
           id?: string
@@ -115,10 +131,26 @@ export type Database = {
           note?: string | null
           physical_qty?: number | null
           product_id?: string
-          reason_code?: Database["public"]["Enums"]["reason_code"] | null
+          reason_code_id?: string | null
+          reason_set_at?: string | null
+          reason_set_by?: string | null
           variance?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "count_lines_book_diff_reason_code_id_fkey"
+            columns: ["book_diff_reason_code_id"]
+            isOneToOne: false
+            referencedRelation: "reason_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_lines_book_diff_reason_set_by_fkey"
+            columns: ["book_diff_reason_set_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "count_lines_count_session_id_fkey"
             columns: ["count_session_id"]
@@ -140,6 +172,20 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "count_lines_reason_code_id_fkey"
+            columns: ["reason_code_id"]
+            isOneToOne: false
+            referencedRelation: "reason_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_lines_reason_set_by_fkey"
+            columns: ["reason_set_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
         ]
       }
       count_sessions: {
@@ -148,8 +194,11 @@ export type Database = {
           counted_by: string
           created_at: string
           department_id: string
+          finished_at: string | null
+          finished_by: string | null
           id: string
           locked_at: string | null
+          locked_by: string | null
           status: Database["public"]["Enums"]["session_status"]
           updated_at: string
         }
@@ -158,8 +207,11 @@ export type Database = {
           counted_by: string
           created_at?: string
           department_id: string
+          finished_at?: string | null
+          finished_by?: string | null
           id?: string
           locked_at?: string | null
+          locked_by?: string | null
           status?: Database["public"]["Enums"]["session_status"]
           updated_at?: string
         }
@@ -168,8 +220,11 @@ export type Database = {
           counted_by?: string
           created_at?: string
           department_id?: string
+          finished_at?: string | null
+          finished_by?: string | null
           id?: string
           locked_at?: string | null
+          locked_by?: string | null
           status?: Database["public"]["Enums"]["session_status"]
           updated_at?: string
         }
@@ -186,6 +241,20 @@ export type Database = {
             columns: ["department_id"]
             isOneToOne: false
             referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_sessions_finished_by_fkey"
+            columns: ["finished_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "count_sessions_locked_by_fkey"
+            columns: ["locked_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -417,6 +486,36 @@ export type Database = {
           },
         ]
       }
+      reason_codes: {
+        Row: {
+          applies_to: string
+          code: string
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          requires_note: boolean
+        }
+        Insert: {
+          applies_to: string
+          code: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          requires_note?: boolean
+        }
+        Update: {
+          applies_to?: string
+          code?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          requires_note?: boolean
+        }
+        Relationships: []
+      }
       sale_drafts: {
         Row: {
           business_day: string
@@ -599,14 +698,21 @@ export type Database = {
         Returns: Database["public"]["Enums"]["user_role"]
       }
       finish_count_session: {
-        Args: { p_session_id: string; p_zero_fill_blanks: boolean }
+        Args: {
+          p_finished_by: string
+          p_session_id: string
+          p_zero_fill_blanks: boolean
+        }
         Returns: {
           as_at_date: string
           counted_by: string
           created_at: string
           department_id: string
+          finished_at: string | null
+          finished_by: string | null
           id: string
           locked_at: string | null
+          locked_by: string | null
           status: Database["public"]["Enums"]["session_status"]
           updated_at: string
         }
@@ -633,6 +739,28 @@ export type Database = {
           received_value: number
           unit_cost: number
         }[]
+      }
+      lock_count_session: {
+        Args: { p_locked_by: string; p_session_id: string }
+        Returns: {
+          as_at_date: string
+          counted_by: string
+          created_at: string
+          department_id: string
+          finished_at: string | null
+          finished_by: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          status: Database["public"]["Enums"]["session_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "count_sessions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       post_movement_reversal: {
         Args: { p_created_by: string; p_movement_id: string; p_reason: string }
@@ -675,6 +803,10 @@ export type Database = {
           p_reason: string
         }
         Returns: {
+          book_diff_note: string | null
+          book_diff_reason_code_id: string | null
+          book_diff_reason_set_at: string | null
+          book_diff_reason_set_by: string | null
           count_session_id: string
           expected_qty: number
           id: string
@@ -682,12 +814,37 @@ export type Database = {
           note: string | null
           physical_qty: number | null
           product_id: string
-          reason_code: Database["public"]["Enums"]["reason_code"] | null
+          reason_code_id: string | null
+          reason_set_at: string | null
+          reason_set_by: string | null
           variance: number | null
         }
         SetofOptions: {
           from: "*"
           to: "count_lines"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_post_lock_adjustment: {
+        Args: {
+          p_count_line_id: string
+          p_created_by: string
+          p_new_qty: number
+          p_reason: string
+        }
+        Returns: {
+          count_line_id: string
+          created_at: string
+          created_by: string
+          id: string
+          new_qty: number
+          previous_qty: number
+          reason: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "adjustments"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -703,8 +860,11 @@ export type Database = {
           counted_by: string
           created_at: string
           department_id: string
+          finished_at: string | null
+          finished_by: string | null
           id: string
           locked_at: string | null
+          locked_by: string | null
           status: Database["public"]["Enums"]["session_status"]
           updated_at: string
         }
@@ -718,13 +878,6 @@ export type Database = {
     }
     Enums: {
       movement_type: "PURCHASE" | "REQUISITION" | "SALE"
-      reason_code:
-        | "BREAKAGE"
-        | "SPILLAGE"
-        | "UNRECORDED_SALE"
-        | "TRANSFER_NOT_POSTED"
-        | "POSTING_ERROR"
-        | "UNDER_INVESTIGATION"
       session_status: "DRAFT" | "COMPLETED" | "LOCKED"
       user_role: "ADMIN" | "STOREKEEPER" | "DEPARTMENT_USER" | "AUDITOR"
     }
@@ -858,14 +1011,6 @@ export const Constants = {
   public: {
     Enums: {
       movement_type: ["PURCHASE", "REQUISITION", "SALE"],
-      reason_code: [
-        "BREAKAGE",
-        "SPILLAGE",
-        "UNRECORDED_SALE",
-        "TRANSFER_NOT_POSTED",
-        "POSTING_ERROR",
-        "UNDER_INVESTIGATION",
-      ],
       session_status: ["DRAFT", "COMPLETED", "LOCKED"],
       user_role: ["ADMIN", "STOREKEEPER", "DEPARTMENT_USER", "AUDITOR"],
     },

@@ -82,6 +82,9 @@ export default async function ProductsPage({
       subtitle="Product master and department assignments"
       actions={
         <div className="flex gap-2">
+          <Link href="/products/reason-codes">
+            <Btn>Reason codes</Btn>
+          </Link>
           <Link href="/products/export">
             <Btn>Export CSV</Btn>
           </Link>

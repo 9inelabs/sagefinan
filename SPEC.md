@@ -497,10 +497,12 @@ list. This is the one view an auditor shows if a figure is ever challenged.
 - **Currency valuation**: computed now in `get_department_balance`, not
   deferred.
 - **Home page**: the prototype's full dashboard (stats, today's counts, stock
-  ledger summary, repeat variances, movements feed) is rebuilt with the same
-  hardcoded sample figures as the prototype — not yet wired to real
-  counts/movements (that's phases 5–7). Storekeeper/department_user get a
-  simpler placeholder home instead of this dashboard.
+  ledger summary, repeat variances, movements feed) was initially rebuilt
+  with the same hardcoded sample figures as the prototype, deferring the
+  live wiring to phases 5–7 — since replaced by real queries (see
+  `lib/dashboard/actions.ts` and CLAUDE.md's "Dashboard wired to live data"
+  follow-up) now that phases 5/6 exist to query. Storekeeper/department_user
+  get a simpler placeholder home instead of this dashboard.
 - **Nav scaffolding**: every sidebar item from the prototype exists as a real
   route from phase 1, role-filtered per the table above; unbuilt ones show a
   "Coming in phase N" placeholder card.

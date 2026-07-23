@@ -719,3 +719,49 @@ codes; the Reconcile screen's lock button disables/enables correctly, the
 lock confirm dialog states its consequences, a post-lock adjustment renders
 alongside the untouched certified figure, the audit trail lists every event
 in order, both report pages render, and 380px shows zero horizontal overflow.
+
+**Dashboard wired to live data (follow-up, no phase number).** The phase-1
+dashboard (`app/(app)/page.tsx`) was, by design at the time (see its own
+now-removed header comment), a verbatim reproduction of
+`design/ui-draft.html`'s sample figures — Heineken/Chivas/Bar/Kitchen numbers,
+a hardcoded "Tuesday, 21 July 2026" subtitle, a non-functional "Start count"
+button — deferred to phases 5-7 per the phase-1 scope decision. With phases
+5/6 now built and real accounts/departments going in, every one of those was
+replaced with a live query in a new `lib/dashboard/actions.ts`
+(`getDashboardData()`): the five header stats, the per-department "Today's
+counts" table, the "Stock ledger" summary (`get_department_balance` summed
+per active department for the business day — the same function every other
+balance figure in the app goes through), "Repeat variances" (products/
+departments with more than one variance in the last 30 days of finished
+sessions — a single occurrence isn't a "repeat"), and "Movements today" (the
+`movements_detail` view, most recent 8). Blind counting's structural
+guarantee extends here too: for a `DRAFT` session the dashboard's own query
+selects `physical_qty` only and never touches `expected_qty`, matching
+`lib/counts/actions.ts`'s existing convention — a session mid-count shows
+counted-so-far but "—" for variance/value until it's finished. Empty
+tables/lists render a proper `EmptyState` ("No departments yet", "No repeat
+variances", "No movements yet") rather than a blank gap; the per-department
+table always renders one row per active department regardless (with "—" for
+whatever hasn't happened yet), which is what makes an empty database look
+intentionally clean rather than broken. `lib/dates.ts` gained
+`formatLongDate`/`formatWeekdayDate`/`todayIso` for the header's two dates
+(today vs. the business day being reported as-at).
+
+A repo-wide grep for the same class of problem (prototype names, ₦ amounts,
+"Musa I."/"Grace O." etc.) turned up nothing else — every other screen
+already queries live data; `/ledger` and `/history` are still honest
+`PlaceholderNotice` phase-7 placeholders, not fake data.
+
+Separately: the sidebar's name/role/department (`components/app-shell/
+Sidebar.tsx`) was already reading live from the signed-in profile — it was
+never hardcoded. The "Daniel A." previously seen was the seed script's own
+`full_name` value for the admin account, correctly rendered; fixing it was a
+data change (`profiles.full_name`), not a code change.
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase): logged in as both real accounts against the
+now-populated-with-real-departments, zero-products/zero-movements database
+and asserted none of ~10 known prototype strings/figures appear anywhere on
+the dashboard, every list/table shows its correct empty state or real
+(zero) figures, the sidebar shows "Franklyn Raymond" for both accounts, and
+380px renders with no horizontal overflow.

@@ -883,3 +883,49 @@ export) as part of phase 7, still unbuilt (`/ledger` is still an honest
 ledger summary rather than that not-yet-built screen — building the full
 `/ledger` screen itself was out of scope for "bring the opening-balance
 piece forward" and wasn't attempted.
+
+**Search performance (follow-up, no phase number).** Purchases/
+Requisitions/Sales product search felt slow; diagnosed against the real
+catalogue (304 products) before changing anything, per measurement rather
+than assumption:
+
+- `EXPLAIN ANALYZE` on the `ilike '%term%'` search: `Seq Scan … Execution
+  Time: 0.818 ms`. Not today's bottleneck — 304 rows is nothing for
+  Postgres — but a leading-wildcard `ilike` can never use a plain btree
+  index, so this will start mattering as the catalogue grows toward
+  SPEC.md's ~1,000-product target. Added a `pg_trgm` GIN index on both
+  `products.code` and `products.name` anyway (cheap, correctness-neutral
+  insurance), in `20260724100000_search_performance.sql`.
+- No debounce anywhere — `onChange` called the server action directly on
+  every keystroke (a `searchToken` ref guarded against a stale response
+  clobbering a newer one, but never stopped the requests firing). New
+  `lib/useDebouncedSearch.ts` (shared by all three forms — genuinely
+  reduces duplication across three near-identical implementations, not a
+  premature abstraction) waits 250ms after the last keystroke, shows a
+  "Searching…" indicator while in flight, and still carries the
+  stale-response guard internally.
+- The real measured cost per search call: 3 **sequential** round trips
+  (product search → assignment/department lookup → `get_department_balance`
+  for the **whole department**, not just the matches) averaging ~1.3s
+  total (5 runs: 2619/1313/789/1406/811ms) over the connection to the
+  Supabase project. `get_department_balance` gained an optional
+  `p_product_ids uuid[]` parameter (default `null` — every existing caller
+  elsewhere in the app is unaffected) so search can ask for balances on
+  just the ~20 matched products instead of every product the department
+  stocks; the independent round trips (central-store lookup, product
+  search, assignment check, balance call, live-sale lookup — whichever
+  apply per screen) now run via `Promise.all` instead of one after another.
+  Re-measured after: same chain averaging ~600-700ms, roughly half — the
+  remainder is network round-trip time to the database, which parallelising
+  two stages instead of three or four is the correct lever for, not a code
+  problem to eliminate further.
+
+Verified: a throwaway script confirmed `get_department_balance`'s filtered
+and unfiltered results are identical for the same products, and that the
+plain 2-argument call every other caller uses (`finish_count_session`,
+`post_requisition_batch`, the dashboard, etc.) still works unchanged. A
+temporary Playwright script (installed, used, removed) drove all three
+real forms and counted actual network requests while typing: 3 keystrokes
+(faster than the 250ms debounce) produced exactly 1 search request on each
+of Purchases, Requisitions and Sales — not 3 — and Requisitions' assigned/
+not-assigned department-scoping still rendered correctly in the results.

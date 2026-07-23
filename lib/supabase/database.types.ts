@@ -724,7 +724,11 @@ export type Database = {
         }
       }
       get_department_balance: {
-        Args: { p_as_at_date: string; p_department_id: string }
+        Args: {
+          p_as_at_date: string
+          p_department_id: string
+          p_product_ids?: string[]
+        }
         Returns: {
           closing_qty: number
           closing_value: number
@@ -853,6 +857,8 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       start_or_open_count_session: {
         Args: {
           p_as_at_date: string

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Button";
@@ -15,6 +15,7 @@ import {
   searchProductsForRequisition,
   type RequisitionProductResult,
 } from "@/lib/movements/actions";
+import { useDebouncedSearch } from "@/lib/useDebouncedSearch";
 
 type BatchLine = {
   productId: string;
@@ -38,14 +39,20 @@ export function RequisitionBatchForm({
   const [receivedBy, setReceivedBy] = useState("");
   const [receivers, setReceivers] = useState<{ id: string; full_name: string }[]>([]);
 
-  const [search, setSearch] = useState("");
-  const [results, setResults] = useState<RequisitionProductResult[]>([]);
+  const {
+    query: search,
+    results,
+    searching,
+    handleChange: debouncedSearch,
+    setDisplayText,
+    setResults,
+    reset: resetSearch,
+  } = useDebouncedSearch((q: string) => searchProductsForRequisition(q, toDepartmentId, businessDay));
   const [picked, setPicked] = useState<RequisitionProductResult | null>(null);
   const [qty, setQty] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
   const [insufficientStock, setInsufficientStock] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
-  const searchToken = useRef(0);
 
   const [lines, setLines] = useState<BatchLine[]>([]);
   const [posting, setPosting] = useState(false);
@@ -61,17 +68,12 @@ export function RequisitionBatchForm({
     listReceivers(toDepartmentId).then(setReceivers);
   }, [toDepartmentId]);
 
-  async function runSearch(q: string) {
-    setSearch(q);
+  // The search box only ever renders once toDepartmentId is chosen (see the
+  // EmptyState guard in the JSX below), so no further guard is needed here.
+  function runSearch(q: string) {
     setPicked(null);
     resetAddState();
-    if (!q.trim() || !toDepartmentId) {
-      setResults([]);
-      return;
-    }
-    const token = ++searchToken.current;
-    const data = await searchProductsForRequisition(q, toDepartmentId, businessDay);
-    if (token === searchToken.current) setResults(data);
+    debouncedSearch(q);
   }
 
   function resetAddState() {
@@ -83,7 +85,7 @@ export function RequisitionBatchForm({
   function pick(product: RequisitionProductResult) {
     setPicked(product);
     setResults([]);
-    setSearch(`${product.code} — ${product.name}`);
+    setDisplayText(`${product.code} — ${product.name}`);
     setQty("");
     resetAddState();
   }
@@ -130,7 +132,7 @@ export function RequisitionBatchForm({
       ];
     });
     setPicked(null);
-    setSearch("");
+    resetSearch();
     setQty("");
     resetAddState();
   }
@@ -210,8 +212,7 @@ export function RequisitionBatchForm({
                 setToDepartmentId(e.target.value);
                 setLines([]);
                 setPicked(null);
-                setSearch("");
-                setResults([]);
+                resetSearch();
               }}
               className="w-full"
             >
@@ -249,6 +250,9 @@ export function RequisitionBatchForm({
             <Field label="Product">
               <div className="relative">
                 <Input placeholder="Search code or name" value={search} onChange={(e) => runSearch(e.target.value)} />
+                {searching ? (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-n600">Searching…</span>
+                ) : null}
                 {results.length > 0 ? (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-n200 rounded max-h-64 overflow-y-auto shadow-sm">
                     {results.map((r) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -19,6 +19,7 @@ import {
   type SalesProductResult,
   type SaleDraftLine,
 } from "@/lib/sales/actions";
+import { useDebouncedSearch } from "@/lib/useDebouncedSearch";
 
 type BatchLine = SaleDraftLine;
 
@@ -42,8 +43,15 @@ export function SalesBatchForm({
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [restoredNotice, setRestoredNotice] = useState(false);
 
-  const [search, setSearch] = useState("");
-  const [results, setResults] = useState<SalesProductResult[]>([]);
+  const {
+    query: search,
+    results,
+    searching,
+    handleChange: debouncedSearch,
+    setDisplayText,
+    setResults,
+    reset: resetSearch,
+  } = useDebouncedSearch((q: string) => searchProductsForSale(q, departmentId, businessDay));
   const [picked, setPicked] = useState<SalesProductResult | null>(null);
   const [qty, setQty] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
@@ -51,7 +59,6 @@ export function SalesBatchForm({
   const [overrideReason, setOverrideReason] = useState("");
   const [correctionMode, setCorrectionMode] = useState(false);
   const [correctionReason, setCorrectionReason] = useState("");
-  const searchToken = useRef(0);
 
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
@@ -68,8 +75,7 @@ export function SalesBatchForm({
     setDraftLoaded(false);
     setRestoredNotice(false);
     setPicked(null);
-    setSearch("");
-    setResults([]);
+    resetSearch();
     resetAddState();
 
     if (!departmentId) {
@@ -108,17 +114,12 @@ export function SalesBatchForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lines, draftLoaded]);
 
-  async function runSearch(q: string) {
-    setSearch(q);
+  // The search box only ever renders once departmentId is chosen (see the
+  // EmptyState guard in the JSX below), so no further guard is needed here.
+  function runSearch(q: string) {
     setPicked(null);
     resetAddState();
-    if (!q.trim() || !departmentId) {
-      setResults([]);
-      return;
-    }
-    const token = ++searchToken.current;
-    const data = await searchProductsForSale(q, departmentId, businessDay);
-    if (token === searchToken.current) setResults(data);
+    debouncedSearch(q);
   }
 
   function resetAddState() {
@@ -132,14 +133,14 @@ export function SalesBatchForm({
   function pick(product: SalesProductResult) {
     setPicked(product);
     setResults([]);
-    setSearch(`${product.code} — ${product.name}`);
+    setDisplayText(`${product.code} — ${product.name}`);
     setQty("");
     resetAddState();
   }
 
   function skipPicked() {
     setPicked(null);
-    setSearch("");
+    resetSearch();
     resetAddState();
   }
 
@@ -185,7 +186,7 @@ export function SalesBatchForm({
       },
     ]);
     setPicked(null);
-    setSearch("");
+    resetSearch();
     setQty("");
     resetAddState();
     setRestoredNotice(false);
@@ -298,6 +299,9 @@ export function SalesBatchForm({
             <Field label="Product">
               <div className="relative">
                 <Input placeholder="Search code or name" value={search} onChange={(e) => runSearch(e.target.value)} />
+                {searching ? (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-n600">Searching…</span>
+                ) : null}
                 {results.length > 0 ? (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-n200 rounded max-h-64 overflow-y-auto shadow-sm">
                     {results.map((r) => (

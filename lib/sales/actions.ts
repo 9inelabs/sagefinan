@@ -75,6 +75,13 @@ export type SalesProductResult = {
   existingSale: { movementId: string; quantity: number } | null;
 };
 
+// Performance note: assertNotCentralStore and the product search are
+// independent, so they run in parallel; the assignment check, the balance
+// figures and the existing-sale lookup are all independent of each other
+// once the matched product ids are known, so they also run in parallel —
+// five sequential round trips down to two. The balance call is scoped to
+// just the matched products instead of recomputing the whole department on
+// every keystroke — see CLAUDE.md's "Search performance" note.
 export async function searchProductsForSale(
   query: string,
   departmentId: string,
@@ -84,33 +91,30 @@ export async function searchProductsForSale(
   resolveDepartmentAccess(profile, departmentId);
 
   const admin = createAdminClient();
-  await assertNotCentralStore(admin, departmentId);
 
   const trimmed = query.trim();
   let productsQuery = admin.from("products").select("id, code, name").eq("is_active", true).order("name").limit(20);
   if (trimmed) productsQuery = productsQuery.or(`code.ilike.%${trimmed}%,name.ilike.%${trimmed}%`);
-  const { data: products, error } = await productsQuery;
+
+  const [, { data: products, error }] = await Promise.all([assertNotCentralStore(admin, departmentId), productsQuery]);
   if (error) throw new Error(error.message);
   if (!products || products.length === 0) return [];
 
   const productIds = products.map((p) => p.id);
 
-  const { data: assignments, error: assignError } = await admin
-    .from("product_assignments")
-    .select("product_id")
-    .eq("department_id", departmentId)
-    .in("product_id", productIds);
+  const [
+    { data: assignments, error: assignError },
+    { data: balances, error: balanceError },
+    existingSaleByProduct,
+  ] = await Promise.all([
+    admin.from("product_assignments").select("product_id").eq("department_id", departmentId).in("product_id", productIds),
+    admin.rpc("get_department_balance", { p_department_id: departmentId, p_as_at_date: businessDay, p_product_ids: productIds }),
+    findLiveSalesForProducts(admin, departmentId, businessDay, productIds),
+  ]);
   if (assignError) throw new Error(assignError.message);
-  const assignedIds = new Set((assignments ?? []).map((a) => a.product_id));
-
-  const { data: balances, error: balanceError } = await admin.rpc("get_department_balance", {
-    p_department_id: departmentId,
-    p_as_at_date: businessDay,
-  });
   if (balanceError) throw new Error(balanceError.message);
+  const assignedIds = new Set((assignments ?? []).map((a) => a.product_id));
   const balanceByProduct = new Map((balances ?? []).map((b) => [b.product_id, b]));
-
-  const existingSaleByProduct = await findLiveSalesForProducts(admin, departmentId, businessDay, productIds);
 
   return products.map((p) => {
     const balance = balanceByProduct.get(p.id);

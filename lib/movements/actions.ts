@@ -33,23 +33,32 @@ export type PurchaseProductResult = {
 // CLAUDE.md's "never hand-roll a movement sum" rule, and that function only
 // returns rows for assigned products, so an unassigned product has no
 // context to show here.
+// Performance note: this used to (a) fetch the central store department,
+// then (b) search products, then (c) call get_department_balance for the
+// WHOLE department — three sequential round trips, the last one recomputing
+// a balance for every assigned product even though only ~20 results are
+// ever shown. (a) and (b) don't depend on each other, so they now run in
+// parallel; (c) now passes the matched product ids so the balance function
+// only computes (and returns) rows for products actually on screen. See
+// CLAUDE.md's "Search performance" note for the measurements behind this.
 export async function searchProductsForPurchase(query: string, businessDay: string): Promise<PurchaseProductResult[]> {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN", "STOREKEEPER"]);
 
   const admin = createAdminClient();
-  const central = await getCentralStoreDepartment(admin);
 
   const trimmed = query.trim();
   let productsQuery = admin.from("products").select("id, code, name").eq("is_active", true).order("name").limit(20);
   if (trimmed) productsQuery = productsQuery.or(`code.ilike.%${trimmed}%,name.ilike.%${trimmed}%`);
-  const { data: products, error } = await productsQuery;
+
+  const [central, { data: products, error }] = await Promise.all([getCentralStoreDepartment(admin), productsQuery]);
   if (error) throw new Error(error.message);
   if (!products || products.length === 0) return [];
 
   const { data: balances, error: balanceError } = await admin.rpc("get_department_balance", {
     p_department_id: central.id,
     p_as_at_date: businessDay,
+    p_product_ids: products.map((p) => p.id),
   });
   if (balanceError) throw new Error(balanceError.message);
   const balanceByProduct = new Map((balances ?? []).map((b) => [b.product_id, b.closing_qty]));
@@ -75,6 +84,14 @@ export type RequisitionProductResult = {
 // can't sensibly requisition something the department doesn't stock. Results
 // still surface unassigned matches (flagged, not hidden) so the UI can say so
 // plainly and link to the assignment screen, per SPEC.md.
+//
+// Performance note: central-store lookup and the product search are
+// independent, so they run in parallel; the assignment check and the
+// balance figure are both independent of each other once the matched
+// product ids are known, so they also run in parallel — four sequential
+// round trips down to two. The balance call is scoped to just the matched
+// products instead of recomputing the whole central store on every
+// keystroke — see CLAUDE.md's "Search performance" note.
 export async function searchProductsForRequisition(
   query: string,
   toDepartmentId: string,
@@ -84,30 +101,24 @@ export async function searchProductsForRequisition(
   requireRole(profile, ["ADMIN", "STOREKEEPER"]);
 
   const admin = createAdminClient();
-  const central = await getCentralStoreDepartment(admin);
-  if (toDepartmentId === central.id) throw new Error("Requisitions cannot target the central store.");
 
   const trimmed = query.trim();
   let productsQuery = admin.from("products").select("id, code, name").eq("is_active", true).order("name").limit(20);
   if (trimmed) productsQuery = productsQuery.or(`code.ilike.%${trimmed}%,name.ilike.%${trimmed}%`);
-  const { data: products, error } = await productsQuery;
+
+  const [central, { data: products, error }] = await Promise.all([getCentralStoreDepartment(admin), productsQuery]);
+  if (toDepartmentId === central.id) throw new Error("Requisitions cannot target the central store.");
   if (error) throw new Error(error.message);
   if (!products || products.length === 0) return [];
 
   const productIds = products.map((p) => p.id);
-  const { data: assignments, error: assignError } = await admin
-    .from("product_assignments")
-    .select("product_id")
-    .eq("department_id", toDepartmentId)
-    .in("product_id", productIds);
+  const [{ data: assignments, error: assignError }, { data: balances, error: balanceError }] = await Promise.all([
+    admin.from("product_assignments").select("product_id").eq("department_id", toDepartmentId).in("product_id", productIds),
+    admin.rpc("get_department_balance", { p_department_id: central.id, p_as_at_date: businessDay, p_product_ids: productIds }),
+  ]);
   if (assignError) throw new Error(assignError.message);
-  const assignedIds = new Set((assignments ?? []).map((a) => a.product_id));
-
-  const { data: balances, error: balanceError } = await admin.rpc("get_department_balance", {
-    p_department_id: central.id,
-    p_as_at_date: businessDay,
-  });
   if (balanceError) throw new Error(balanceError.message);
+  const assignedIds = new Set((assignments ?? []).map((a) => a.product_id));
   const balanceByProduct = new Map((balances ?? []).map((b) => [b.product_id, b.closing_qty]));
 
   return products.map((p) => ({

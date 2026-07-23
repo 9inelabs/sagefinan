@@ -147,14 +147,42 @@ was retired in phase 6 — see "Reason codes" below.
 
 ## Balance function (supabase/migrations/20260721121900_balance_function.sql)
 
-`get_department_balance(p_department_id uuid, p_as_at_date date)` returns one
-row per product assigned to the department: `opening_qty`, `received_qty`,
-`issued_qty`, `closing_qty`, and the same four as `_value` (× `unit_cost`).
-This is the single function that powers the stock ledger, the sales screen,
-and the count comparison — nowhere else recomputes a balance. It includes
-products with zero movements (left-joined from `product_assignments`).
-Decision: currency valuation is computed now (phase 1), not deferred, since
-the prototype's dashboard/ledger screens display it.
+`get_department_balance(p_department_id uuid, p_as_at_date date, p_product_ids
+uuid[] default null)` returns one row per product assigned to the
+department: `opening_qty`, `received_qty`, `issued_qty`, `closing_qty`, and
+the same four as `_value` (× `unit_cost`). This is the single function that
+powers the stock ledger, the sales screen, and the count comparison —
+nowhere else recomputes a balance. It includes products with zero movements
+(left-joined from `product_assignments`). Decision: currency valuation is
+computed now (phase 1), not deferred, since the prototype's dashboard/
+ledger screens display it.
+
+`p_product_ids` (added alongside the search-performance work below) is
+optional and defaults to null, meaning every product assigned to the
+department — every caller from phase 1 through opening balances passes
+only the first two arguments and is unaffected. When supplied, computation
+and the returned rows are restricted to just those products — used by
+Purchases/Requisitions/Sales product search so a balance figure is never
+computed for the whole department just to show ~20 search results.
+
+## Search performance (Purchases/Requisitions/Sales product search)
+
+Diagnosed against the real catalogue before changing anything: at ~300
+products, an unindexed `ilike '%term%'` scan executes in under 1ms — not
+the bottleneck, though a `pg_trgm` GIN index was added on `products.code`
+and `products.name` regardless, since a leading-wildcard `ilike` can never
+use a plain btree index and this will matter once the catalogue approaches
+the ~1,000-product scale this spec targets. The measured cause was two
+things compounding: no debounce (a search fired on every keystroke), and
+each search call making 2-4 **sequential** database round trips — including
+a `get_department_balance` call scoped to the *entire department* rather
+than the handful of matched products. Fixed by: a 250ms debounce
+(`lib/useDebouncedSearch.ts`, shared across all three forms) with a
+"Searching…" indicator; running the independent round trips concurrently
+via `Promise.all` instead of one after another; and passing the matched
+product ids into `get_department_balance`'s new optional filter so the
+balance call only computes what's actually shown. Case-insensitive
+matching on both `code` and `name` was already correct and unchanged.
 
 ## Design tokens (extracted from design/ui-draft.html, wired into app/globals.css)
 

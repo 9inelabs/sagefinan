@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Field } from "@/components/ui/Field";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { postPurchaseBatch, searchProductsForPurchase, type PurchaseProductResult } from "@/lib/movements/actions";
+import { useDebouncedSearch } from "@/lib/useDebouncedSearch";
 
 type BatchLine = {
   productId: string;
@@ -21,12 +22,12 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
   const [supplierName, setSupplierName] = useState("");
   const [invoiceReference, setInvoiceReference] = useState("");
 
-  const [search, setSearch] = useState("");
-  const [results, setResults] = useState<PurchaseProductResult[]>([]);
+  const { query: search, results, searching, handleChange: runSearch, setDisplayText, setResults, reset: resetSearch } = useDebouncedSearch(
+    (q: string) => searchProductsForPurchase(q, businessDay)
+  );
   const [picked, setPicked] = useState<PurchaseProductResult | null>(null);
   const [qty, setQty] = useState("");
   const [addError, setAddError] = useState<string | null>(null);
-  const searchToken = useRef(0);
 
   const [lines, setLines] = useState<BatchLine[]>([]);
   const [posting, setPosting] = useState(false);
@@ -35,23 +36,16 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
     null
   );
 
-  async function runSearch(q: string) {
-    setSearch(q);
+  function handleSearchChange(q: string) {
     setPicked(null);
     setAddError(null);
-    if (!q.trim()) {
-      setResults([]);
-      return;
-    }
-    const token = ++searchToken.current;
-    const data = await searchProductsForPurchase(q, businessDay);
-    if (token === searchToken.current) setResults(data);
+    runSearch(q);
   }
 
   function pick(product: PurchaseProductResult) {
     setPicked(product);
     setResults([]);
-    setSearch(`${product.code} — ${product.name}`);
+    setDisplayText(`${product.code} — ${product.name}`);
     setQty("");
     setAddError(null);
   }
@@ -75,7 +69,7 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
       return [...prev, { productId: picked.id, code: picked.code, name: picked.name, currentQty: picked.availableQty!, quantity: n }];
     });
     setPicked(null);
-    setSearch("");
+    resetSearch();
     setQty("");
     setAddError(null);
   }
@@ -156,7 +150,10 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
         <div className="p-4">
           <Field label="Product">
             <div className="relative">
-              <Input placeholder="Search code or name" value={search} onChange={(e) => runSearch(e.target.value)} />
+              <Input placeholder="Search code or name" value={search} onChange={(e) => handleSearchChange(e.target.value)} />
+              {searching ? (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-n600">Searching…</span>
+              ) : null}
               {results.length > 0 ? (
                 <div className="absolute z-10 mt-1 w-full bg-white border border-n200 rounded max-h-64 overflow-y-auto shadow-sm">
                   {results.map((r) => (

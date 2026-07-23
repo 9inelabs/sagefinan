@@ -292,8 +292,10 @@ async function getRecentMovements(admin: AdminClient): Promise<RecentMovementRow
     detail:
       m.type === "PURCHASE"
         ? `${m.supplier_name ?? "Supplier"} → ${m.to_department_name} · ${m.quantity} ${m.product_name}`
-        : m.type === "REQUISITION"
-          ? `${m.from_department_name} → ${m.to_department_name} · ${m.quantity} ${m.product_name}`
-          : `${m.from_department_name} · ${m.quantity} ${m.product_name}`,
+        : m.type === "OPENING"
+          ? `${m.to_department_name} · ${m.quantity} ${m.product_name}`
+          : m.type === "REQUISITION"
+            ? `${m.from_department_name} → ${m.to_department_name} · ${m.quantity} ${m.product_name}`
+            : `${m.from_department_name} · ${m.quantity} ${m.product_name}`,
   }));
 }

@@ -22,9 +22,13 @@ literally bottles — bottles is the system's unit of account).
 ## Movements are the single source of truth
 
 There is no stored "current quantity" column anywhere. Stock levels are always
-computed by summing movement records up to a business day. Three types:
+computed by summing movement records up to a business day. Four types:
 
 - `PURCHASE` — supplier into central store (`to_department_id` = central store, `from_department_id` = null)
+- `OPENING` (phase 6-and-a-half — see "Opening balances" below) — a starting
+  quantity into **any** department, including the central store
+  (`to_department_id` = that department, `from_department_id` = null,
+  same one-sided shape as `PURCHASE` but with no central-store restriction)
 - `REQUISITION` — central store to another department, **one record carrying
   both sides** (`from_department_id` and `to_department_id` both set) — never
   two separate records, so the two sides cannot drift apart
@@ -318,6 +322,71 @@ Storekeeper/department_user's home page ("/") is a minimal placeholder
 shortcutting to their one relevant action page, since the full audit
 dashboard doesn't apply to them — decided in phase 1 as a reasonable reading
 of "placeholder home page" given the dashboard build-out below.
+
+## Opening balances (brought forward from the phase 8 plan)
+
+Before real counting begins, each department needs a starting quantity per
+product — what's physically on the shelf, as at a chosen date. This is
+separate from the product catalogue import (phase 2), which carries no
+quantities at all.
+
+**Movement type, not a flag**: opening stock is `OPENING`, a fourth
+`movement_type` value, not a specially-flagged `PURCHASE`. Reusing
+`PURCHASE` would be wrong twice over — `validate_movement` restricts it to
+the central store, and a real purchase has a supplier, which an opening
+snapshot doesn't. `OPENING` is one-sided like `PURCHASE`
+(`from_department_id` null, `to_department_id` = the department) but valid
+for **any** department, central store included — `validate_movement` has
+no restriction on it. This keeps opening stock identifiable and reportable
+on its own terms (its own filter/CSV row on `/movements`) while getting
+immutability, reversal and business-day locking for free, exactly as every
+other movement type does.
+
+**Balance function**: `get_department_balance()` folds `OPENING` movements
+into `opening_qty` for every date **on or after** their own `business_day`
+— never into `received_qty`, unlike every other inbound type (which counts
+toward opening only for strictly-earlier dates, and toward received on the
+exact day). This is what makes the opening date itself show the entered
+figure as the *opening* balance, not as a same-day receipt — both opening
+and closing read exactly what was entered, as at that date. A reversal of
+an `OPENING` movement shares its type, so it gets the same treatment
+automatically. No branching on `is_central_store` is needed here either —
+the same generic to/from-department-id convention this function has always
+used covers the central store for free.
+
+**Duplicates**: at most one *live* `OPENING` movement per (department,
+product) — "live" meaning neither itself a reversal nor yet reversed.
+Replacing one reuses the existing reversal mechanism (`post_movement_reversal`)
+to cancel the old entry, then inserts the new one, both inside
+`post_opening_balances()`'s single transaction — never two live entries
+stacked for the same department+product. A quantity of 0 follows the
+zero-sales convention from phase 4: `movements.quantity` can't store a 0
+row, so none is written; a replace-with-0 reverses the old entry and writes
+no replacement, leaving the product reading 0 (indistinguishable
+afterwards from "never set" — an accepted consequence, same as zero-sales).
+
+**Two entry points**, both admin-only:
+
+- **On-screen form** (`/opening-balances`) — pick a department (including
+  the central store, like Take Stock's picker), an as-at date, then a
+  shelf-ordered product list prefilled with each product's current opening
+  quantity. Products with none show "Not set", with a running count of how
+  many remain. Only changed rows are submitted; leaving a prefilled value
+  untouched is how "skip" is expressed, changing it is how "replace" is
+  expressed — a single confirmation names the replace count before saving.
+- **CSV import** (`/opening-balances/import`), format `department, code,
+  name, opening_qty, as_at_date` — dry-run preview (create / already-set /
+  no-op counts, every rejected row with its reason) before a single-
+  transaction commit, same shape as the phase-2 product importer.
+  Validates: department exists, product exists and is assigned to that
+  department, quantity is a non-negative integer, date is valid, and the
+  department has no `LOCKED` session covering that date (a friendly
+  preview-time echo of what the business-day-lock trigger would reject
+  regardless). Rows already carrying a live opening balance are flagged;
+  whether to replace them is one checkbox for the whole file, not a
+  per-row prompt — impractical for a file that can carry hundreds of rows.
+  Template: `public/templates/opening-balance-import-template.csv`. Export
+  (`/opening-balances/export`) lists every current live opening balance.
 
 ## Blind counting (phase 5)
 

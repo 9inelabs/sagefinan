@@ -766,6 +766,10 @@ export type Database = {
         Args: { p_created_by: string; p_movement_id: string; p_reason: string }
         Returns: string
       }
+      post_opening_balances: {
+        Args: { p_created_by: string; p_lines: Json }
+        Returns: string[]
+      }
       post_purchase_batch: {
         Args: {
           p_business_day: string
@@ -877,7 +881,7 @@ export type Database = {
       }
     }
     Enums: {
-      movement_type: "PURCHASE" | "REQUISITION" | "SALE"
+      movement_type: "PURCHASE" | "REQUISITION" | "SALE" | "OPENING"
       session_status: "DRAFT" | "COMPLETED" | "LOCKED"
       user_role: "ADMIN" | "STOREKEEPER" | "DEPARTMENT_USER" | "AUDITOR"
     }
@@ -1010,7 +1014,7 @@ export const Constants = {
   },
   public: {
     Enums: {
-      movement_type: ["PURCHASE", "REQUISITION", "SALE"],
+      movement_type: ["PURCHASE", "REQUISITION", "SALE", "OPENING"],
       session_status: ["DRAFT", "COMPLETED", "LOCKED"],
       user_role: ["ADMIN", "STOREKEEPER", "DEPARTMENT_USER", "AUDITOR"],
     },

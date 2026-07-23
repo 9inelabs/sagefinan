@@ -238,7 +238,9 @@ export default async function DashboardPage() {
               {recentMovements.map((m) => (
                 <div key={m.id} className="border-b border-n200 last:border-b-0 px-4 py-[13px]">
                   <div className="flex justify-between items-center">
-                    <b className="font-medium text-sm">{m.type === "PURCHASE" ? "Purchase" : m.type === "REQUISITION" ? "Requisition" : "Sale"}</b>
+                    <b className="font-medium text-sm">
+                      {m.type === "PURCHASE" ? "Purchase" : m.type === "OPENING" ? "Opening balance" : m.type === "REQUISITION" ? "Requisition" : "Sale"}
+                    </b>
                     <span className="text-n600 text-xs tabular-nums">
                       {new Date(m.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                     </span>

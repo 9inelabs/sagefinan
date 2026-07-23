@@ -14,6 +14,7 @@ const TYPE_LABEL: Record<MovementType, string> = {
   PURCHASE: "Purchase",
   REQUISITION: "Requisition",
   SALE: "Sale",
+  OPENING: "Opening balance",
 };
 
 function formatTime(iso: string) {
@@ -21,7 +22,7 @@ function formatTime(iso: string) {
 }
 
 function route(row: MovementRow) {
-  if (row.type === "PURCHASE") return row.toDepartmentName ?? "—";
+  if (row.type === "PURCHASE" || row.type === "OPENING") return row.toDepartmentName ?? "—";
   if (row.type === "SALE") return row.fromDepartmentName ?? "—";
   return `${row.fromDepartmentName ?? "—"} → ${row.toDepartmentName ?? "—"}`;
 }

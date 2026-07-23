@@ -57,6 +57,7 @@ export function MovementsFilters({
         <option value="PURCHASE">Purchase</option>
         <option value="REQUISITION">Requisition</option>
         <option value="SALE">Sale</option>
+        <option value="OPENING">Opening balance</option>
       </Select>
       {showDepartmentFilter ? (
         <Select defaultValue={initial.department} onChange={(e) => navigate({ department: e.target.value })}>

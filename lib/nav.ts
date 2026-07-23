@@ -57,6 +57,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { key: "departments", label: "Departments", href: "/departments", roles: ["ADMIN"] },
       { key: "prod", label: "Products", href: "/products", roles: ["ADMIN"] },
+      { key: "opening-balances", label: "Opening balances", href: "/opening-balances", roles: ["ADMIN"] },
       { key: "users", label: "Users", href: "/users", roles: ["ADMIN"] },
     ],
   },

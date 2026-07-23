@@ -765,3 +765,121 @@ and asserted none of ~10 known prototype strings/figures appear anywhere on
 the dashboard, every list/table shows its correct empty state or real
 (zero) figures, the sidebar shows "Franklyn Raymond" for both accounts, and
 380px renders with no horizontal overflow.
+
+**Opening balances (brought forward from the phase 8 plan, no phase
+number).** Two migrations — `20260724090000_opening_balance_enum.sql` (just
+`alter type movement_type add value 'OPENING'`, its own migration since
+Postgres forbids using a freshly-added enum value inside the transaction
+that added it) and `20260724090100_opening_balances.sql` (everything else).
+
+**Decision** (documented in SPEC.md): opening stock is a distinct movement
+type, `OPENING`, not a flagged `PURCHASE` or a side column. Reusing
+`PURCHASE` would be wrong twice over — `validate_movement` restricts it to
+the central store, and a real purchase has a supplier, which an opening
+snapshot doesn't have. `OPENING` is one-sided like `PURCHASE`
+(`from_department_id` null, `to_department_id` = the department) but,
+unlike `PURCHASE`, valid for **any** department including the central
+store — `validate_movement` has no restriction for it at all. This keeps
+opening stock identifiable/reportable on its own terms (filterable on
+`/movements`, its own row in every CSV export) while reusing every bit of
+existing movement machinery — immutability, reversal, business-day locking
+— for free.
+
+**Balance function.** `get_department_balance()` folds `OPENING` movements
+into `opening_qty` for every date **on or after** their own `business_day`
+(`<=`), never into `received_qty` — every other inbound type keeps the
+existing rule (strictly-earlier dates count toward opening, the exact day
+counts toward received). This is what makes "opening and closing both read
+exactly what I entered, as at the date I chose" literally true on the
+opening date itself: without the `<=` split, an opening balance dated today
+would show as a receipt today and 0 opening. A reversal of an `OPENING`
+movement shares its type, so it automatically gets the same treatment and
+nets out correctly for every date at/after the reversal's own business day.
+Verified with a throwaway RPC script before building any UI: opening_qty
+and closing_qty both read exactly the entered figure on the opening date,
+0 before it, carried forward correctly after it, and the same mechanism
+worked identically for the central store (no branching needed — the
+function's existing to/from-department-id convention already generalizes
+it, exactly as SPEC.md's core accounting rule promises).
+
+**Duplicates.** At most one *live* `OPENING` movement per (department,
+product) at a time — "live" meaning neither itself a reversal nor yet
+reversed. Replacing one reuses `post_movement_reversal()` (already generic
+across every movement type) to cancel the old entry, then inserts the new
+one, both in the same `post_opening_balances()` transaction — never two
+live entries stacked. A quantity of 0 follows phase 4's zero-sales
+convention exactly: `movements.quantity` can't store a 0 row anyway, so no
+movement is written for it; a replace-with-0 reverses the old entry and
+writes no replacement, leaving the product reading 0 — indistinguishable
+afterwards from "never set," an accepted consequence, same as zero-sales.
+
+**Two entry points**, both admin-only, both funnelling into
+`post_opening_balances()` for the one-transaction guarantee:
+
+- **On-screen form** (`/opening-balances`): pick a department (every active
+  one, including the central store — same reasoning as phase 5's Take
+  Stock picker), pick an as-at date, then a shelf-ordered product list
+  (`OpeningBalanceRow` — a close cousin of phase 5's `CountRow`) prefilled
+  with each product's current live opening quantity. A stat tile shows how
+  many products still have none. Only *changed* rows are submitted — a
+  save that re-submits an unchanged prefilled value is correctly treated
+  as a no-op, not a replace. If any changed row has an existing value, a
+  single `ConfirmDialog` names the count before saving ("make me choose:
+  skip or replace" is satisfied by the prefill itself: leaving a value
+  untouched **is** skip, changing it **is** replace — no per-row prompt
+  needed for a form the admin can see in full before submitting).
+- **CSV import** (`/opening-balances/import`, format `department, code,
+  name, opening_qty, as_at_date`): same dry-run-then-confirm shape as
+  phase 2's product importer. Validates department exists, product exists
+  and is assigned to that department (unassigned is a row error naming the
+  fix, same as CLAUDE.md's existing "restricted search" reasoning), a
+  non-negative integer quantity, a valid date, and — a friendlier
+  preview-time echo of what `check_business_day_lock` would reject anyway
+  — that the department has no `LOCKED` session covering that date.
+  Duplicate department+code pairs *within* the file are rejected (first
+  wins), matching the product importer's convention. Rows whose
+  department+product already has a live opening balance are flagged
+  "already set"; whether to replace them is one checkbox for the whole
+  file (impractical to prompt per-row on a file that can carry hundreds of
+  rows), not a per-row choice — confirmed as the pragmatic reading of
+  "make me choose" for a bulk path. Template at
+  `public/templates/opening-balance-import-template.csv`; export
+  (`/opening-balances/export`) lists every current live opening balance.
+
+**Movements UI**: `/movements`' type filter, list, CSV export, and detail
+page all gained "Opening balance" alongside Purchase/Requisition/Sale — no
+export-route changes needed (the CSV `type` column is already the raw enum
+value), just label maps. Reversing an `OPENING` entry from a movement's
+detail page is restricted to ADMIN (STOREKEEPER can still reverse
+PURCHASE/REQUISITION there, unchanged) — consistent with opening balances
+being an admin-only concern everywhere else. The dashboard's "Movements
+today" feed and its live Stock ledger summary (both built the session
+before this one) needed one label/branch each and otherwise picked up
+`OPENING` automatically, since both already go through
+`get_department_balance`/`movements_detail`.
+
+Verified end-to-end: a throwaway RPC script (create → check on/before/after
+the opening date → replace → replace-with-zero → confirm exactly one live
+row throughout), then a temporary Playwright script (installed, used,
+removed) against VIP Bar with real data — entered two products' opening
+balances via the actual form, confirmed `get_department_balance` reads
+back exactly what was entered as both opening and closing on that date, an
+untouched product still reads exactly 0, the movements are identifiable as
+`OPENING` and one-sided, "Opening balance" appears as a real filter option
+on `/movements`, the import wizard describes its CSV columns correctly,
+and 380px renders with no horizontal overflow. All test movements were
+**reversed**, never deleted (the one exception: the very first throwaway
+check, on a fabricated 2026-01-01 date no real session will ever touch,
+was hard-deleted rather than reversed, since reversing would have left six
+permanent noise rows for a date that was never real business activity in
+the first place — every subsequent check, including the VIP Bar one, was
+reversed per the established convention).
+
+Note: SPEC.md's phase-8 plan mentioned a full "Stock ledger" screen
+(per-product opening/received/issued/closing with search/pagination/CSV
+export) as part of phase 7, still unbuilt (`/ledger` is still an honest
+`PlaceholderNotice`). This work verified the underlying figures directly
+(`get_department_balance`) and via the dashboard's live per-department
+ledger summary rather than that not-yet-built screen — building the full
+`/ledger` screen itself was out of scope for "bring the opening-balance
+piece forward" and wasn't attempted.

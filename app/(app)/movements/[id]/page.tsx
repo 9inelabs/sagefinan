@@ -7,7 +7,7 @@ import { Tag } from "@/components/ui/Tag";
 import { getMovementDetail } from "@/lib/movements/actions";
 import { ReverseMovementForm } from "./ReverseMovementForm";
 
-const TYPE_LABEL = { PURCHASE: "Purchase", REQUISITION: "Requisition", SALE: "Sale" } as const;
+const TYPE_LABEL = { PURCHASE: "Purchase", REQUISITION: "Requisition", SALE: "Sale", OPENING: "Opening balance" } as const;
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -25,7 +25,9 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
   if (!movement) notFound();
 
   const canReverse =
-    (profile.role === "ADMIN" || profile.role === "STOREKEEPER") && !movement.isReversal && !movement.isReversed;
+    (profile.role === "ADMIN" || (profile.role === "STOREKEEPER" && movement.type !== "OPENING")) &&
+    !movement.isReversal &&
+    !movement.isReversed;
 
   return (
     <PageShell title="Movement detail" subtitle={`${TYPE_LABEL[movement.type]} · ${movement.businessDay}`}>

@@ -1163,3 +1163,61 @@ until resolved, a new password persists across a fresh sign-in, and a
 accounts confirmed created with the correct role/department/
 `must_change_password=true` via a direct database read (not just the
 script's own report).
+
+**Loading & navigation feedback (follow-up, no phase number).** User-reported
+symptom: clicking any nav item or link produced a silent pause — nothing
+visible happened until the new page suddenly appeared — which read as the
+app being unresponsive, especially on the heavier screens (ledger, history,
+reports, movements, dashboard) where a Supabase round trip is genuinely
+~600-700ms (the same figure the "Search performance" follow-up measured).
+See SPEC.md's new "Loading & navigation feedback" section for the full
+mechanism writeup; summary of what changed:
+
+- Added `nextjs-toploader` (new dependency — confirmed as the right call
+  before adding it: the App Router has no built-in global route-change
+  event, so a top progress bar needs either this exact library's
+  click-listener + patched-history-API approach or a hand-rolled copy of the
+  same thing; reached for the maintained version rather than reimplementing
+  it) mounted once in `app/layout.tsx`, Teal, 3px, no spinner icon.
+- Added `components/ui/Skeleton.tsx` — dependency-free primitives
+  (`SkeletonPage`, `SkeletonTable`, `SkeletonStatRow`, `SkeletonListRows`,
+  `SkeletonFormCard`, `SkeletonSpinner`, plain CSS `animate-pulse`, no client
+  JS) — and a `loading.tsx` for every one of the 35 route segments under
+  `app/(app)`, each sized to that screen's real column/row/action count so
+  the skeleton→content swap doesn't shift layout. `ReportsTabsSkeleton`
+  (`app/(app)/reconcile/ReportsTabsSkeleton.tsx`) is a small shared piece
+  used by the five loading screens under the reports-hub/investigation tabs,
+  mirroring the existing `ReportsTabs.tsx` precedent of one shared local-nav
+  component for that group of routes.
+- Added `.skeleton-in` (`app/globals.css`) — a 160ms fade-in with a 120ms
+  `animation-delay` and `animation-fill-mode: backwards` — so a skeleton is
+  present but invisible for the first 120ms of any navigation; a load under
+  that threshold never visibly flashes one. Pure CSS, no JS timer, so it
+  can't drift or race.
+- `components/app-shell/Sidebar.tsx` now tracks the just-clicked href in
+  local state and highlights it immediately rather than waiting on
+  `usePathname()`, which only updates once the route actually lands — on a
+  slow fetch that could otherwise lag the visible tap-acknowledgement by
+  seconds. Self-clears via a `useEffect` keyed on `pathname`.
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase) driving a throwaway test-admin account against
+the real dev server with the browser's network artificially throttled
+(400ms latency, ~750kbps) so the loading states were actually observable: a
+click on a sidebar item highlighted it and started the top bar within one
+frame, before the route changed; `/ledger`'s skeleton (sized to its real 7
+columns) appeared and stayed until the real header and data rendered;
+`/movements` rendered its real table with real seeded rows after the same
+sequence; a direct test of the `.skeleton-in` CSS itself (inject the class,
+read computed opacity at 0ms and 60ms) confirmed it stays at `opacity: 0`
+for the first 120ms regardless of how fast a load resolves, which is what
+actually guarantees no flash on fast pages — a real "fast navigation"
+couldn't be staged end-to-end for this check, since the CDP network
+throttle used to make the *slow* case observable only affects the browser,
+not the dev server's own outbound fetches to the real remote Supabase
+project. 380px checked on the dashboard and ledger (both skeleton and
+loaded states): no horizontal overflow either way. `npm run build` (Next
+15.5.20, Turbopack) confirmed a clean production build with all 35 new
+`loading.tsx` files and the new dependency. The throwaway test account and
+script were both removed afterward, same as every prior phase's Playwright
+verification.

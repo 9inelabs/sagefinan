@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { signOut } from "@/lib/auth/actions";
 import { ROLE_LABELS, type NavGroup } from "@/lib/nav";
 import type { CurrentProfile } from "@/lib/auth/profile";
@@ -17,6 +18,14 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const sees_all = profile.role === "ADMIN" || profile.role === "AUDITOR";
+
+  // The clicked item highlights the instant it's tapped, not once the new route has
+  // actually rendered — pathname only updates when navigation completes, which can
+  // lag noticeably on a slow data fetch. Cleared as soon as pathname catches up.
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+  useEffect(() => {
+    setPendingHref(null);
+  }, [pathname]);
 
   return (
     <div className="flex flex-col h-full w-[212px] bg-ink text-white">
@@ -34,12 +43,16 @@ export function Sidebar({
           <div key={group.title} className="px-2.5 pt-3.5 pb-1">
             <p className="text-[11px] text-n400 px-2 pb-1.5 tracking-wide uppercase">{group.title}</p>
             {group.items.map((item) => {
-              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              const currentlyOn = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+              const active = currentlyOn || pendingHref === item.href;
               return (
                 <Link
                   key={item.key}
                   href={item.href}
-                  onClick={onNavigate}
+                  onClick={() => {
+                    if (!currentlyOn) setPendingHref(item.href);
+                    onNavigate?.();
+                  }}
                   className={`block w-full text-left px-2.5 py-2 rounded text-[13.5px] mb-px transition-colors ${
                     active ? "bg-teal text-white" : "text-[#D1D5DB] hover:bg-white/[0.07] hover:text-white"
                   }`}

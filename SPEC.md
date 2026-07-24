@@ -184,6 +184,51 @@ product ids into `get_department_balance`'s new optional filter so the
 balance call only computes what's actually shown. Case-insensitive
 matching on both `code` and `name` was already correct and unchanged.
 
+## Loading & navigation feedback
+
+Every route under `app/(app)` gives immediate visual feedback on navigation —
+no silent gap between tap and page swap. Three independent mechanisms, all
+under `AppShell`/`Sidebar`/`PageShell` so a new route gets this for free by
+following the existing `PageShell` pattern; the only thing a new screen must
+add itself is its own `loading.tsx`.
+
+- **Top progress bar** — `nextjs-toploader` (the one dependency this pattern
+  added; chosen over hand-rolling a click-listener + patched-history-API
+  version of the same thing, since the App Router has no built-in global
+  route-change event to hook — see the library's own README for why that
+  approach is what every App-Router top-bar implementation converges on),
+  mounted once in `app/layout.tsx`, coloured `var(--teal)`, 3px, no spinner.
+  Starts the instant a link is clicked or `router.push` fires, completes when
+  the new route's content is ready — independent of whether that route has a
+  `loading.tsx`.
+- **`loading.tsx` per route segment** — every folder under `app/(app)` with a
+  `page.tsx` has a sibling `loading.tsx` built from the shared primitives in
+  `components/ui/Skeleton.tsx` (`SkeletonPage`, `SkeletonPageHeader`,
+  `SkeletonTable`, `SkeletonStatRow`, `SkeletonListRows`, `SkeletonFormCard`,
+  `SkeletonSpinner`, `SkeletonBlock`). `SkeletonPage`/`SkeletonPageHeader`
+  mirror `PageShell`'s own header/body chrome exactly (same padding, same
+  max-width) so swapping skeleton → real content never shifts layout. Table/
+  list screens compose `SkeletonTable`/`SkeletonListRows` sized to the real
+  page's column/row count; forms and batch-entry screens use
+  `SkeletonFormCard`; the lightest screens (pickers) use `SkeletonSpinner`.
+  **New screens**: add a `loading.tsx` next to the new `page.tsx`, pick
+  whichever primitive matches the real layout shape, and pass roughly the
+  real column/row/action count — exact fidelity isn't required, just the
+  general shape, so the swap doesn't jump.
+- **No-flicker delay** — `.skeleton-in` (`app/globals.css`) is a 160ms
+  fade-in with a 120ms `animation-delay` and `animation-fill-mode: backwards`,
+  so a skeleton stays at `opacity: 0` — present in the DOM but invisible —
+  for the first 120ms of any navigation. A load that resolves before that
+  never visibly shows a skeleton at all; nothing conditional or JS-timed is
+  needed, it's a property of the CSS itself. `SkeletonPage` wraps every
+  `loading.tsx`'s content in this class already; a bespoke `loading.tsx` that
+  doesn't use `SkeletonPage` should wrap its own root in `SkeletonIn`.
+- **Instant sidebar active state** — `components/app-shell/Sidebar.tsx` tracks
+  the just-clicked `href` in local state and highlights it immediately, before
+  `usePathname()` catches up (which can lag a slow data fetch by seconds);
+  the pending highlight self-clears via a `useEffect` keyed on `pathname` once
+  the route actually lands.
+
 ## Design tokens (extracted from design/ui-draft.html, wired into app/globals.css)
 
 - Two primary colours only: Ink `#111827` (text, headers, primary buttons,

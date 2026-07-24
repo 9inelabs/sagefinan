@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentProfile, requireRole } from "@/lib/auth/profile";
 import { PageShell } from "@/components/app-shell/PageShell";
+import { Btn } from "@/components/ui/Button";
 import { getCountSessionMeta } from "@/lib/counts/actions";
 import { getReconcileData, getSessionAuditTrail } from "@/lib/reconcile/actions";
 import { listReasonCodes } from "@/lib/reason-codes/actions";
@@ -23,7 +25,15 @@ export default async function ReconcileSessionPage({ params }: { params: Promise
   ]);
 
   return (
-    <PageShell title="Reconcile" subtitle={`${session.departmentName} · ${progress.reconciled} of ${progress.total} reconciled`}>
+    <PageShell
+      title="Reconcile"
+      subtitle={`${session.departmentName} · ${progress.reconciled} of ${progress.total} reconciled`}
+      actions={
+        <Link href={`/reconcile/${id}/export-pdf`}>
+          <Btn>Export PDF</Btn>
+        </Link>
+      }
+    >
       <ReconcileScreen
         session={session}
         initialLines={lines}

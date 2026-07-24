@@ -26,7 +26,7 @@ export default async function ReconcilePage() {
             <Btn>Under investigation</Btn>
           </Link>
           <Link href="/reconcile/reports">
-            <Btn>Variance reasons report</Btn>
+            <Btn>Reports</Btn>
           </Link>
         </div>
       }

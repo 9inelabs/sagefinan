@@ -25,7 +25,7 @@ export function Sidebar({
         <img src="/logo-mark.png" alt="" className="w-[26px] h-auto flex-none invert" />
         <div>
           <b className="block text-[15px] font-medium tracking-tight">Sagefinan</b>
-          <span className="block text-[11px] text-n400 mt-px">Grand Hotel</span>
+          <span className="block text-[11px] text-n400 mt-px">De-Moon Hotel</span>
         </div>
       </div>
 

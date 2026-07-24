@@ -589,3 +589,262 @@ export async function getUnderInvestigationLines(filters: { departmentId?: strin
   result.sort((a, b) => (a.asAtDate < b.asAtDate ? 1 : -1));
   return result;
 }
+
+// ============================================================================
+// REPEAT VARIANCES — "the finding that one-off screens can't show" (SPEC.md
+// phase 7): every product/department pair with a variance across more than
+// one finished session in the chosen range, full list (not the dashboard's
+// top-10 teaser), sortable, with a per-product session-by-session drill-down.
+// Same application-code aggregation as the dashboard's own getRepeatVariances
+// (CLAUDE.md's phase-6 precedent: single-consumer report, no new view) —
+// this just widens the range/filters and drops the cap.
+// ============================================================================
+
+export type RepeatVarianceReportRow = {
+  productId: string;
+  productCode: string;
+  productName: string;
+  departmentId: string;
+  departmentName: string;
+  occurrences: number;
+  totalVariance: number;
+  totalValue: number;
+};
+
+export async function getRepeatVarianceReport(filters: {
+  departmentId?: string;
+  from: string;
+  to: string;
+  sort?: "occurrences" | "value";
+}): Promise<RepeatVarianceReportRow[]> {
+  const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "AUDITOR"]);
+
+  const admin = createAdminClient();
+  let sessionQuery = admin
+    .from("count_sessions")
+    .select("id, department_id, departments(name)")
+    .in("status", ["COMPLETED", "LOCKED"])
+    .gte("as_at_date", filters.from)
+    .lte("as_at_date", filters.to);
+  if (filters.departmentId) sessionQuery = sessionQuery.eq("department_id", filters.departmentId);
+  const { data: sessions, error: sessionsError } = await sessionQuery;
+  if (sessionsError) throw new Error(sessionsError.message);
+  if (!sessions || sessions.length === 0) return [];
+
+  const sessionIds = sessions.map((s) => s.id);
+  const deptBySession = new Map(sessions.map((s) => [s.id, { id: s.department_id, name: s.departments?.name ?? "—" }]));
+
+  const { data: lines, error } = await admin
+    .from("count_lines")
+    .select("count_session_id, product_id, physical_qty, expected_qty, products(code, name, unit_cost)")
+    .in("count_session_id", sessionIds);
+  if (error) throw new Error(error.message);
+
+  const agg = new Map<string, RepeatVarianceReportRow>();
+  for (const l of lines ?? []) {
+    const variance = (l.physical_qty ?? 0) - l.expected_qty;
+    if (variance === 0) continue;
+    const dept = deptBySession.get(l.count_session_id);
+    if (!dept) continue;
+    const key = `${l.product_id}:${dept.id}`;
+    const entry = agg.get(key) ?? {
+      productId: l.product_id,
+      productCode: l.products!.code,
+      productName: l.products!.name,
+      departmentId: dept.id,
+      departmentName: dept.name,
+      occurrences: 0,
+      totalVariance: 0,
+      totalValue: 0,
+    };
+    entry.occurrences += 1;
+    entry.totalVariance += variance;
+    entry.totalValue += Math.abs(variance) * l.products!.unit_cost;
+    agg.set(key, entry);
+  }
+
+  const rows = Array.from(agg.values()).filter((r) => r.occurrences >= 2);
+  const sortKey = filters.sort ?? "occurrences";
+  rows.sort((a, b) => (sortKey === "value" ? b.totalValue - a.totalValue : b.occurrences - a.occurrences));
+  return rows;
+}
+
+export type RepeatVarianceSessionRow = {
+  sessionId: string;
+  asAtDate: string;
+  status: SessionStatus;
+  expectedQty: number;
+  countedQty: number;
+  variance: number;
+  value: number;
+};
+
+export async function getRepeatVarianceProductHistory(input: {
+  productId: string;
+  departmentId: string;
+  from: string;
+  to: string;
+}): Promise<{ productCode: string; productName: string; departmentName: string; rows: RepeatVarianceSessionRow[] }> {
+  const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "AUDITOR"]);
+
+  const admin = createAdminClient();
+  const { data: sessions, error: sessionsError } = await admin
+    .from("count_sessions")
+    .select("id, as_at_date, status, departments(name)")
+    .eq("department_id", input.departmentId)
+    .in("status", ["COMPLETED", "LOCKED"])
+    .gte("as_at_date", input.from)
+    .lte("as_at_date", input.to)
+    .order("as_at_date", { ascending: false });
+  if (sessionsError) throw new Error(sessionsError.message);
+  if (!sessions || sessions.length === 0) return { productCode: "", productName: "", departmentName: "—", rows: [] };
+
+  const sessionIds = sessions.map((s) => s.id);
+  const { data: lines, error } = await admin
+    .from("count_lines")
+    .select("count_session_id, physical_qty, expected_qty, products(code, name, unit_cost)")
+    .eq("product_id", input.productId)
+    .in("count_session_id", sessionIds);
+  if (error) throw new Error(error.message);
+
+  const lineBySession = new Map((lines ?? []).map((l) => [l.count_session_id, l]));
+  let productCode = "";
+  let productName = "";
+
+  const rows: RepeatVarianceSessionRow[] = [];
+  for (const s of sessions) {
+    const line = lineBySession.get(s.id);
+    if (!line) continue;
+    productCode = line.products!.code;
+    productName = line.products!.name;
+    const variance = (line.physical_qty ?? 0) - line.expected_qty;
+    if (variance === 0) continue;
+    rows.push({
+      sessionId: s.id,
+      asAtDate: s.as_at_date,
+      status: s.status,
+      expectedQty: line.expected_qty,
+      countedQty: line.physical_qty ?? 0,
+      variance,
+      value: Math.abs(variance) * line.products!.unit_cost,
+    });
+  }
+
+  return { productCode, productName, departmentName: sessions[0]?.departments?.name ?? "—", rows };
+}
+
+// ============================================================================
+// PERIOD SUMMARY — one department, one chosen date range: total purchases/
+// received value, total issued/sold value, opening/closing stock value, and
+// variance value + breakdown by reason. All computed straight from
+// get_department_balance (period boundaries) and a direct movements sum
+// (period activity), never a stored total — same "no new stored totals"
+// principle as every other report this phase (SPEC.md).
+// ============================================================================
+
+export type PeriodSummary = {
+  departmentId: string;
+  departmentName: string;
+  isCentralStore: boolean;
+  from: string;
+  to: string;
+  openingValue: number;
+  closingValue: number;
+  receivedValue: number;
+  issuedValue: number;
+  varianceValue: number;
+  varianceLineCount: number;
+  varianceRows: ReasonReportRow[];
+  bookDiffRows: ReasonReportRow[];
+};
+
+export async function getPeriodSummary(input: { departmentId: string; from: string; to: string }): Promise<PeriodSummary> {
+  const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "AUDITOR"]);
+
+  const admin = createAdminClient();
+  const { data: dept, error: deptError } = await admin
+    .from("departments")
+    .select("id, name, is_central_store")
+    .eq("id", input.departmentId)
+    .single();
+  if (deptError || !dept) throw new Error(deptError?.message ?? "Department not found.");
+
+  const [openingBalance, closingBalance] = await Promise.all([
+    admin.rpc("get_department_balance", { p_department_id: input.departmentId, p_as_at_date: input.from }),
+    admin.rpc("get_department_balance", { p_department_id: input.departmentId, p_as_at_date: input.to }),
+  ]);
+  if (openingBalance.error) throw new Error(openingBalance.error.message);
+  if (closingBalance.error) throw new Error(closingBalance.error.message);
+  const openingValue = (openingBalance.data ?? []).reduce((s, r) => s + r.opening_value, 0);
+  const closingValue = (closingBalance.data ?? []).reduce((s, r) => s + r.closing_value, 0);
+
+  // Period activity (every day in range, not just the boundary dates): a
+  // direct movements sum, mirroring get_department_balance's own inbound/
+  // outbound convention — OPENING never counts as "received" (SPEC.md's
+  // opening-balance model), and a reversal nets negative in the same branch
+  // its original counted in.
+  const { data: movements, error: movementsError } = await admin
+    .from("movements")
+    .select("type, quantity, from_department_id, to_department_id, reversal_of_movement_id, product_id, products(unit_cost)")
+    .gte("business_day", input.from)
+    .lte("business_day", input.to)
+    .or(`from_department_id.eq.${input.departmentId},to_department_id.eq.${input.departmentId}`);
+  if (movementsError) throw new Error(movementsError.message);
+
+  let receivedValue = 0;
+  let issuedValue = 0;
+  for (const m of movements ?? []) {
+    const signedQty = m.reversal_of_movement_id ? -m.quantity : m.quantity;
+    const value = signedQty * (m.products?.unit_cost ?? 0);
+    if (m.to_department_id === input.departmentId && m.type !== "OPENING") receivedValue += value;
+    if (m.from_department_id === input.departmentId) issuedValue += value;
+  }
+
+  const sessionQuery = admin
+    .from("count_sessions")
+    .select("id")
+    .eq("department_id", input.departmentId)
+    .in("status", ["COMPLETED", "LOCKED"])
+    .gte("as_at_date", input.from)
+    .lte("as_at_date", input.to);
+  const { data: sessions, error: sessionsError } = await sessionQuery;
+  if (sessionsError) throw new Error(sessionsError.message);
+  const sessionIds = (sessions ?? []).map((s) => s.id);
+
+  let varianceValue = 0;
+  let varianceLineCount = 0;
+  if (sessionIds.length > 0) {
+    const { data: lines, error: linesError } = await admin
+      .from("count_lines")
+      .select("physical_qty, expected_qty, products(unit_cost)")
+      .in("count_session_id", sessionIds);
+    if (linesError) throw new Error(linesError.message);
+    for (const l of lines ?? []) {
+      const variance = (l.physical_qty ?? 0) - l.expected_qty;
+      if (variance === 0) continue;
+      varianceLineCount += 1;
+      varianceValue += variance * (l.products?.unit_cost ?? 0);
+    }
+  }
+
+  const { varianceRows, bookDiffRows } = await getVarianceByReasonReport({ departmentId: input.departmentId, from: input.from, to: input.to });
+
+  return {
+    departmentId: dept.id,
+    departmentName: dept.name,
+    isCentralStore: dept.is_central_store,
+    from: input.from,
+    to: input.to,
+    openingValue,
+    closingValue,
+    receivedValue,
+    issuedValue,
+    varianceValue,
+    varianceLineCount,
+    varianceRows,
+    bookDiffRows,
+  };
+}

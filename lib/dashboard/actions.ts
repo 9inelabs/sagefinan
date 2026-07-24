@@ -34,6 +34,7 @@ export type RepeatVarianceRow = {
   productId: string;
   productCode: string;
   productName: string;
+  departmentId: string;
   departmentName: string;
   occurrences: number;
   totalVariance: number;
@@ -66,10 +67,23 @@ export type DashboardData = {
 
 // Every figure below is a live query against the real schema — nothing here
 // is a placeholder. ADMIN/AUDITOR see every department (SPEC.md's roles
-// table), so there is no further department scoping to apply; STOREKEEPER/
-// DEPARTMENT_USER never reach this function — the page routes them to
-// ScopedHome before calling it.
-export async function getDashboardData(): Promise<DashboardData> {
+// table), so there is no further role-based department scoping to apply;
+// STOREKEEPER/DEPARTMENT_USER never reach this function — the page routes
+// them to ScopedHome before calling it. `departmentId` is an optional
+// user-chosen filter (the header select in design/ui-draft.html), narrowing
+// every section below to one department — SPEC.md's "all figures scoped to
+// the selected department filter."
+export async function listDashboardDepartments() {
+  const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "AUDITOR"]);
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.from("departments").select("id, name").eq("is_active", true).order("name");
+  if (error) throw new Error(error.message);
+  return data ?? [];
+}
+
+export async function getDashboardData(departmentId?: string): Promise<DashboardData> {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN", "AUDITOR"]);
 
@@ -78,7 +92,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const { data: departments, error: deptError } = await admin.from("departments").select("id, name").eq("is_active", true).order("name");
   if (deptError) throw new Error(deptError.message);
-  const activeDepartments = departments ?? [];
+  const activeDepartments = departmentId ? (departments ?? []).filter((d) => d.id === departmentId) : departments ?? [];
 
   const { data: assignments, error: assignError } = await admin.from("product_assignments").select("department_id");
   if (assignError) throw new Error(assignError.message);
@@ -164,10 +178,9 @@ export async function getDashboardData(): Promise<DashboardData> {
   const varianceLineCount = departmentRows.reduce((sum, r) => sum + (r.varianceCount ?? 0), 0);
   const varianceValue = departmentRows.reduce((sum, r) => sum + (r.varianceValue ?? 0), 0);
 
-  const { count: awaitingReconciliation, error: awaitingError } = await admin
-    .from("count_sessions")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "COMPLETED");
+  let awaitingQuery = admin.from("count_sessions").select("id", { count: "exact", head: true }).eq("status", "COMPLETED");
+  if (departmentId) awaitingQuery = awaitingQuery.eq("department_id", departmentId);
+  const { count: awaitingReconciliation, error: awaitingError } = await awaitingQuery;
   if (awaitingError) throw new Error(awaitingError.message);
 
   // Stock ledger: get_department_balance is the one function every balance
@@ -201,8 +214,8 @@ export async function getDashboardData(): Promise<DashboardData> {
     { openingValue: 0, receivedValue: 0, issuedValue: 0, closingValue: 0, productCount: 0 }
   );
 
-  const repeatVariances = await getRepeatVariances(admin);
-  const recentMovements = await getRecentMovements(admin);
+  const repeatVariances = await getRepeatVariances(admin, departmentId);
+  const recentMovements = await getRecentMovements(admin, departmentId);
 
   return {
     businessDay,
@@ -226,16 +239,18 @@ export async function getDashboardData(): Promise<DashboardData> {
 // miss isn't a "repeat", so occurrences < 2 are dropped. totalValue sums the
 // unsigned magnitude per occurrence (total exposure), while totalVariance
 // stays signed (net short/excess) for the coloured "Total" column.
-async function getRepeatVariances(admin: AdminClient): Promise<RepeatVarianceRow[]> {
+async function getRepeatVariances(admin: AdminClient, departmentId?: string): Promise<RepeatVarianceRow[]> {
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
   const thirtyDaysAgoIso = thirtyDaysAgo.toISOString().slice(0, 10);
 
-  const { data: recentSessions, error: recentSessionsError } = await admin
+  let sessionQuery = admin
     .from("count_sessions")
     .select("id, department_id, departments(name)")
     .in("status", ["COMPLETED", "LOCKED"])
     .gte("as_at_date", thirtyDaysAgoIso);
+  if (departmentId) sessionQuery = sessionQuery.eq("department_id", departmentId);
+  const { data: recentSessions, error: recentSessionsError } = await sessionQuery;
   if (recentSessionsError) throw new Error(recentSessionsError.message);
   if (!recentSessions || recentSessions.length === 0) return [];
 
@@ -259,6 +274,7 @@ async function getRepeatVariances(admin: AdminClient): Promise<RepeatVarianceRow
       productId: l.product_id,
       productCode: l.products!.code,
       productName: l.products!.name,
+      departmentId: dept.id,
       departmentName: dept.name,
       occurrences: 0,
       totalVariance: 0,
@@ -276,12 +292,14 @@ async function getRepeatVariances(admin: AdminClient): Promise<RepeatVarianceRow
     .slice(0, 10);
 }
 
-async function getRecentMovements(admin: AdminClient): Promise<RecentMovementRow[]> {
-  const { data: rows, error } = await admin
+async function getRecentMovements(admin: AdminClient, departmentId?: string): Promise<RecentMovementRow[]> {
+  let query = admin
     .from("movements_detail")
-    .select("id, type, created_at, quantity, product_name, from_department_name, to_department_name, supplier_name, created_by_name")
-    .order("created_at", { ascending: false })
-    .limit(8);
+    .select(
+      "id, type, created_at, quantity, product_name, from_department_id, to_department_id, from_department_name, to_department_name, supplier_name, created_by_name"
+    );
+  if (departmentId) query = query.or(`from_department_id.eq.${departmentId},to_department_id.eq.${departmentId}`);
+  const { data: rows, error } = await query.order("created_at", { ascending: false }).limit(8);
   if (error) throw new Error(error.message);
 
   return (rows ?? []).map((m) => ({

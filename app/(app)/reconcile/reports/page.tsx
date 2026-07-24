@@ -8,6 +8,7 @@ import { listCountDepartments } from "@/lib/counts/actions";
 import { getVarianceByReasonReport } from "@/lib/reconcile/actions";
 import { formatNaira } from "@/lib/format";
 import { ReportFilters } from "./ReportFilters";
+import { ReportsTabs } from "../ReportsTabs";
 
 type SearchParams = { department?: string; from?: string; to?: string };
 
@@ -26,7 +27,21 @@ export default async function VarianceReasonReportPage({ searchParams }: { searc
   if (filters.to) exportSp.set("to", filters.to);
 
   return (
-    <PageShell title="Variance reasons report" subtitle="How many lines, total quantity and value, per reason code">
+    <PageShell
+      title="Reports"
+      subtitle="How many lines, total quantity and value, per reason code"
+      actions={
+        <div className="flex gap-2">
+          <Link href={`/reconcile/reports/export?${exportSp.toString()}`}>
+            <Btn>Export CSV</Btn>
+          </Link>
+          <Link href={`/reconcile/reports/export-pdf?${exportSp.toString()}`}>
+            <Btn>Export PDF</Btn>
+          </Link>
+        </div>
+      }
+    >
+      <ReportsTabs active="/reconcile/reports" />
       <div className="flex flex-col gap-4">
         <Card title="Filters">
           <ReportFilters departments={departments} initial={{ department: params.department ?? "", from: params.from ?? "", to: params.to ?? "" }} />
@@ -38,11 +53,6 @@ export default async function VarianceReasonReportPage({ searchParams }: { searc
           ) : (
             <ReasonTable rows={varianceRows} showValue />
           )}
-          <div className="p-4 border-t border-n200 flex justify-end">
-            <Link href={`/reconcile/reports/export?${exportSp.toString()}`}>
-              <Btn>Export CSV</Btn>
-            </Link>
-          </div>
         </Card>
 
         <Card title="Book differences by reason" extra="A posting discrepancy, not a physical loss — no currency value is computed">

@@ -589,6 +589,66 @@ post-lock by comparing its `created_at` to the session's `locked_at`, since
 there's no separate column for that distinction — into one chronological
 list. This is the one view an auditor shows if a figure is ever challenged.
 
+## Reporting model (phase 7)
+
+Every report in this phase — Stock ledger, Count history, Repeat variances,
+Variance by reason, Period summary — reads straight from
+`get_department_balance` and direct `movements`/`count_lines`/`adjustments`
+queries in application code. No new stored totals, no new views, no new RPC
+functions: the same principle CLAUDE.md's Conventions section states for
+balance queries generally, and the same single-consumer-aggregation-in-
+application-code precedent phase 6's own reports (variance by reason, under
+investigation) already established. A report can never drift from the
+records behind it, because it has no figure of its own to drift.
+
+**Stock ledger drill-down** ("show me why," `/ledger/[productId]`): every
+movement matching exactly the predicate `get_department_balance` itself
+sums for that product/department/as-at-date (`to`/`from` = the department,
+`business_day` ≤ the chosen date) — the list screen's figures and the
+drill-down's movement list can never disagree, because they're computed
+from the same rows. `adjustments` rows are deliberately not shown here:
+they correct a *physical count* (phase 5/6), never touch `movements`, and
+this core accounting rule means closing quantity is a pure movements sum —
+an adjustment has no part in it.
+
+**Period summary**: opening/closing value come from two
+`get_department_balance` calls at the range's boundary dates (the function's
+own `opening_qty`/`closing_qty` split already means "balance as at the start
+of this date" vs. "balance as at the end of this date," so no new logic is
+needed for period boundaries). Total received/issued value for the *whole*
+range is a direct `movements` sum instead, mirroring `get_department_balance`'s
+inbound/outbound convention movement-by-movement (`to_department_id` = this
+department and `type <> 'OPENING'` counts as received; `from_department_id`
+= this department counts as issued; a reversal's quantity nets negative in
+whichever side its original counted in) — necessary because the balance
+function only ever returns a single day's received/issued figures, not a
+range total.
+
+**PDF exports**: one shared shell, `lib/pdf/ReportDocument.tsx`
+(`@react-pdf/renderer` — chosen over `pdfkit`'s lower-level API and a
+Puppeteer/real-HTML approach that would need a headless-Chromium binary in
+the Vercel serverless runtime) — hotel name, report title, department/date
+scope line, "Generated ‹date› by ‹name›," then the data, matching this
+phase's brief verbatim. Text uses `lib/pdf/fonts/DejaVuSans.ttf`, not
+Inter/Noto Sans: Google Fonts' per-subset static files aren't cumulative
+(the "latin" subset covers ASCII and the minus/dash punctuation this app's
+own sign-formatting uses but not the Naira sign; "latin-ext" covers the
+Naira sign but not ASCII or those dashes), so no single Google-Fonts subset
+file could print everything these reports need — confirmed with `fontkit`
+before choosing DejaVu Sans, one file that covers all of it.
+
+**Indexes**: `20260724110000_phase7_reporting_indexes.sql` replaces
+`movements`' single-column `from_department_id`/`to_department_id` indexes
+(phase 1) with composite `(department_id, business_day)` indexes — several
+reads this phase added (the period summary's movements sum, the ledger
+drill-down) filter by one department column *and* a business_day range
+together, a shape phase 3's `/movements` filter also has but was never
+indexed for. Added pre-emptively, sized for this spec's target scale
+(~1,000 products / ~8 departments / months of movements) rather than
+measured against today's real data (12 movements total, too small for
+`EXPLAIN` to prefer an index scan either way) — same reasoning as the
+`pg_trgm` index added ahead of need in the search-performance work.
+
 ## Phase 1 scope decisions (asked and answered before building)
 
 - **Currency valuation**: computed now in `get_department_balance`, not
@@ -799,6 +859,32 @@ received figures, not a continuation of the same batch.
   so the two concerns share infrastructure without letting a physical-only
   explanation get attached to a bookkeeping problem.
 
+## Phase 7 scope decisions (asked and answered before building)
+
+- **PDF library**: `@react-pdf/renderer` — confirmed before adding it as a
+  new dependency, over `pdfkit` (lower-level, manual layout math) and a
+  Puppeteer/real-HTML render (pixel-perfect against the app's own CSS, but a
+  much heavier Vercel-serverless commitment — a headless-Chromium binary —
+  than this app's existing small, purpose-fit dependencies like `sharp`/
+  `papaparse`).
+- **Reports navigation**: expand `/reconcile/reports` into a tabbed hub
+  (`ReportsTabs`) covering Variance by reason, Repeat variances, Period
+  summary and Under investigation — confirmed before building, over adding
+  new top-level sidebar items or folding everything into `/history` instead.
+  Continues phase 6's own precedent of keeping report pages off the sidebar.
+- **Count history's detail view**: confirmed before building that opening a
+  session from `/history` reuses `/reconcile/[id]` directly rather than a
+  new, stripped-down read-only page — same role gate, same data (variances,
+  reasons, full audit trail), and that screen is already effectively locked
+  down once a session is `LOCKED` (its one remaining action, "Raise
+  post-lock adjustment," is a legitimate appended correction, not an edit to
+  history — see "Post-lock adjustments" above).
+- **Hotel name**: PDF headers print "De-Moon Hotel," confirmed against the
+  login page's already-approved subtitle — and `components/app-shell
+  /Sidebar.tsx`'s leftover "Grand Hotel" (copied verbatim from
+  `design/ui-draft.html`'s own prototype text in phase 1, never caught since)
+  was corrected to match in the same pass.
+
 ## The eight phases
 
 1. **Foundation** — schema, auth, PWA shell, design system *(done)*
@@ -807,5 +893,5 @@ received figures, not a continuation of the same batch.
 4. **Sales entry** as a searchable batch, posted in one action *(done)*
 5. **Stock count and variance comparison** *(done)*
 6. **Reconciliation, reason codes and session locking** *(done)*
-7. Stock ledger, history, reports, exports
+7. **Stock ledger, history, reports, exports** *(done)*
 8. Mobile polish and Vercel deployment

@@ -929,3 +929,183 @@ real forms and counted actual network requests while typing: 3 keystrokes
 (faster than the 250ms debounce) produced exactly 1 search request on each
 of Purchases, Requisitions and Sales — not 3 — and Requisitions' assigned/
 not-assigned department-scoping still rendered correctly in the results.
+
+**Phase 7 — Reporting and reading layer.** No new tables, views or RPC
+functions — every report reads straight from `get_department_balance` and
+direct `movements`/`count_lines`/`adjustments` queries in application code,
+the same "no new stored totals" principle SPEC.md asks for and the same
+single-consumer-aggregation-in-app-code precedent phase 6's reports already
+set. One migration, `20260724110000_phase7_reporting_indexes.sql` — indexes
+only, no schema change (see "Indexes" below).
+
+**PDF export** (confirmed before building — new dependency): `@react-pdf
+/renderer`, chosen over `pdfkit` (lower-level, manual layout) and a
+Puppeteer/real-HTML approach (pixel-perfect but needs a headless-Chromium
+binary, a much heavier Vercel-serverless commitment than this app's existing
+small dependencies). `lib/pdf/ReportDocument.tsx` is the one shared shell
+every export route builds on — header (hotel name, report title, department/
+date scope line, "Generated ‹date› by ‹name›"), a generic `PdfTable`
+(flexbox-row columns since react-pdf has no HTML `<table>`, hairline row
+borders and n50 header background mirroring the web app's own table
+styling), and a footer with page numbers. `lib/pdf/theme.ts` re-declares the
+Ink/Teal/neutral/semantic palette for react-pdf's separate StyleSheet system
+and holds the currency/sign formatting helpers.
+
+**Font**: `lib/pdf/fonts/DejaVuSans.ttf` (Bitstream Vera license, redistributable
+— `DejaVuSans-LICENSE.txt` alongside it), not Inter or Noto Sans. Checked
+with `fontkit` before deciding: Google Fonts' per-subset static files (what
+Fontsource/`fonts.gstatic.com` actually serve) are not cumulative — the
+"latin" subset has ASCII and the minus/dash characters `formatNaira`'s sign
+logic uses but not the Naira sign (U+20A6); the "latin-ext" subset has the
+Naira sign but not ASCII or those dashes at all. No single Google-Fonts
+subset file covers everything these reports print. DejaVu Sans is one
+757KB file confirmed (via the same `fontkit.hasGlyphForCodePoint` check) to
+carry every glyph needed — ASCII, ₦, and the em-dash/minus-sign punctuation
+the rest of the app already uses — so PDF exports use the exact same
+characters as the web UI (`formatNairaPdf`/`signedNairaPdf`/`signedQtyPdf`
+in `lib/pdf/theme.ts` mirror `lib/format.ts` and each page's own `sign`
+helper, not ASCII substitutes). Registered once via `Font.register` reading
+the file from `process.cwd()` at module load. One simplification: react-pdf
+has no built-in "repeat this header row after a page break" for flexbox
+tables (unlike HTML `<thead>`), so a table spanning several printed pages
+shows its header once, at the top — acceptable for reports of this size
+(SPEC.md's own ~1,000-product / ~8-department scale), not attempted further.
+
+**Sidebar hotel name fix** (confirmed before building, unrelated one-line
+drive-by): `components/app-shell/Sidebar.tsx` still read "Grand Hotel" —
+copied verbatim from `design/ui-draft.html`'s own prototype text back in
+phase 1, and never caught by the "Dashboard wired to live data" follow-up's
+grep sweep (which only checked for known sample *figures*, not this string).
+The real name, confirmed via the login page's already-approved "Stock
+Database for De-Moon Hotel" subtitle, is De-Moon Hotel — the sidebar now
+reads that, and it's what every PDF header prints too.
+
+*Stock ledger* (`/ledger`, `lib/ledger/actions.ts` — replacing the phase-1
+placeholder): department + as-at-date picker (defaulting to today), a
+product table straight from `get_department_balance`, a totals row (closing
+value only, per SPEC.md's literal ask — summing quantity across unrelated
+SKUs the way the dashboard's per-department value totals do would be
+meaningless here), search and a "with movement only" filter (both applied
+in application code after one balance call — a department stocks at most
+~150 products, SPEC.md's own scale target, so this is not a pagination
+problem the way Products' 1,000-row catalogue was in phase 2). Column labels
+swap on `department.isCentralStore` exactly as SPEC.md specifies (Opening/
+Received/Sales/Closing vs. Opening/Purchases/Requisitions out/Closing) —
+confirmed against real data both ways (a temporary product assignment was
+added to the real central store, which currently stocks nothing, to exercise
+the swap, then removed — see "Verified" below). `STOREKEEPER`/
+`DEPARTMENT_USER` are locked to their own department (`lib/nav.ts`'s Stock
+ledger entry already lists all four roles from phase 3 — this phase just
+had to honour that existing scoping, not decide it fresh) via
+`assertDepartmentAccess`, mirroring `/movements`' existing pattern; no
+picker renders for them since there is nothing to pick.
+
+Clicking a product row opens `/ledger/[productId]` — the "show me why"
+view: every movement (`to`/`from` = this department, this product,
+`business_day` ≤ the as-at date) that fed into the figures on the list
+screen, which is exactly the same predicate `get_department_balance` itself
+sums, so the two can never disagree. SPEC.md's brief also lists "adjustment"
+among what produced the closing number — deliberately not included here:
+an `adjustments` row (phase 5/6, correcting a *physical count*) never
+touches `movements`, and the core accounting rule (SPEC.md) is that closing
+is a pure movements sum, so an adjustment plays no part in this particular
+figure. CSV and PDF export both reflect the current filters exactly.
+
+*Dashboard* (`app/(app)/page.tsx`, `lib/dashboard/actions.ts`): gained the
+department filter the prototype's own header select always had (previously
+decorative) — `getDashboardData(departmentId?)` now scopes the per-department
+table, the stock-ledger summary/totals, repeat variances, and the movements-
+today feed all to one department when chosen, and the "awaiting
+reconciliation" stat's count query gains the same scope. The stock-ledger
+summary's "Open" link now carries `?department=` through to `/ledger`.
+
+*Count history* (`/history` — replacing the phase-1 placeholder, kept as its
+own route rather than merged with `/sessions`, per the phase-5 decision that
+reserved this route for exactly this): `listCountSessions` (`lib/counts
+/actions.ts`) gained an optional `productSearch` filter — resolved to a
+session-id allowlist in application code (matching products, then the
+`count_lines` rows naming them, same shape as every other report this phase
+built), since `count_sessions_summary` is session-level and has no product
+column to filter on. Confirmed before building: a session's read-only detail
+view reuses `/reconcile/[id]` directly rather than a new zero-actions page —
+same role gate, same data (variances, reasons, audit trail), and that
+screen is already effectively locked-down once a session is `LOCKED`
+("Raise adjustment" is a legitimate appended correction, not an edit to
+history). CSV and PDF export both reflect the filtered list; `/reconcile
+/[id]` itself gained an "Export PDF" button (`/reconcile/[id]/export-pdf`)
+producing the single-session detail PDF (variance lines + full audit trail)
+SPEC.md's History section separately asks for.
+
+*Reports hub* (confirmed before building: expand `/reconcile/reports`
+rather than add new sidebar items or fold into `/history` — continues phase
+6's own precedent of keeping report *pages* off the sidebar): a new
+`ReportsTabs` local-nav component now sits above all four report screens —
+the existing Variance-by-reason report (which also gained a PDF export
+alongside its CSV one) and Under-investigation list, plus two new pages:
+
+- **Repeat variances** (`/reconcile/reports/repeat-variances`,
+  `getRepeatVarianceReport` in `lib/reconcile/actions.ts`) — the dashboard's
+  own repeat-variances teaser widened into a full, filterable, sortable
+  report (department, date range, sort by frequency or value), no top-10
+  cap. Clicking a product opens `/reconcile/reports/repeat-variances
+  /[productId]` (`getRepeatVarianceProductHistory`), a session-by-session
+  variance history for that one product/department pair.
+- **Period summary** (`/reconcile/reports/period-summary`,
+  `getPeriodSummary`) — one department, one date range: opening/closing
+  value from `get_department_balance` at the range's two boundary dates,
+  total received/issued value from a direct `movements` sum over every day
+  in between (mirroring `get_department_balance`'s own inbound/outbound and
+  reversal-sign conventions — `OPENING` movements never count as "received,"
+  matching the balance function's own rule), and variance value/breakdown by
+  reason (the existing `getVarianceByReasonReport`, called with the same
+  filters — no duplicate aggregation). PDF export only (SPEC.md calls this
+  "a concise one-page view suitable to hand to management, exportable to
+  PDF" — no CSV asked for or added).
+
+**Indexes** (`20260724110000_phase7_reporting_indexes.sql`): several new
+reads (`getPeriodSummary`'s movements sum, `getLedgerProductHistory`'s
+drill-down) filter `movements` by one department column *and* a
+`business_day` range together — a shape phase 3's `/movements` filter also
+has, just never indexed for. Measured first, per CLAUDE.md's quality bar:
+real production data today is 12 movements total, so `EXPLAIN` correctly
+picks a Seq Scan regardless of what's indexed — there is nothing to measure
+a real win against yet. Added anyway, sized for SPEC.md's target scale
+(~1,000 products / ~8 departments / months of movements), same reasoning as
+the `pg_trgm` index added pre-emptively in `20260724100000_search
+_performance.sql`. `movements_from_department_id_idx`/`movements_to
+_department_id_idx` (single-column, phase 1) are replaced rather than
+supplemented — a composite `(department_id, business_day)` index serves
+every equality-only lookup the old single-column index served (leftmost-
+prefix) plus the new department+range shape, so keeping both would only add
+write-time index-maintenance cost for no read benefit.
+
+**Access**: every report route/action requires `ADMIN`/`AUDITOR` via
+`requireRole` (`getPeriodSummary`, `getRepeatVarianceReport`,
+`getRepeatVarianceProductHistory`, `listCountSessions`'s product-search
+addition, all four export routes) — `DEPARTMENT_USER`/`STOREKEEPER` reach
+none of it, exactly SPEC.md's access table. Stock ledger and Movements stay
+open to all four roles, unchanged from their phase-3 scoping (`lib/nav.ts`
+already listed both that way; this phase didn't touch that decision, only
+built the ledger screen that decision was made for).
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase) against real production data, signed in as a
+throwaway test-admin account created via the Admin API and deleted
+afterward (the real admin account's password is unknown to this session, by
+design — never guessed at or reset): the dashboard's department filter
+updates every scoped section; the ledger's central-store label swap
+confirmed by temporarily assigning one product to the real central store
+(which currently stocks nothing) and reading the table headers both ways,
+then removing the assignment; the product drill-down page, all CSV exports,
+and every PDF export (ledger, history, reconcile session detail, variance-
+by-reason, repeat variances, period summary) returned `200` with the
+correct content type, and every PDF buffer's first bytes were `%PDF-`;
+the reports hub's four tabs all render and link correctly; 380/768/1440px
+showed no horizontal overflow on any of the new screens. One test-script
+artifact worth recording: iterating a native `<select>` through several
+`selectOption()` calls in the same test run didn't reliably trigger the
+client-side navigation Playwright's `waitForLoadState("networkidle")` was
+waiting on, made the ledger's label-swap look broken on the first pass —
+resolved by verifying the same URLs via direct `page.goto()` instead, which
+confirmed the server-side logic was correct all along and the flakiness was
+in the test's interaction with the select, not the app.

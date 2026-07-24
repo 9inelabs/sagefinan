@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { listCountDepartments } from "@/lib/counts/actions";
 import { getUnderInvestigationLines } from "@/lib/reconcile/actions";
 import { InvestigationFilter } from "./InvestigationFilter";
+import { ReportsTabs } from "../ReportsTabs";
 
 type SearchParams = { department?: string };
 
@@ -25,6 +26,7 @@ export default async function UnderInvestigationPage({ searchParams }: { searchP
 
   return (
     <PageShell title="Under investigation" subtitle="Every line still holding this status, across every session — locked or not">
+      <ReportsTabs active="/reconcile/investigation" />
       <Card title="Open items" extra={`${lines.length} line${lines.length === 1 ? "" : "s"}`}>
         <InvestigationFilter departments={departments} initial={departmentId ?? ""} />
 

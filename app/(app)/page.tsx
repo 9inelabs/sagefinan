@@ -7,9 +7,10 @@ import { Tag } from "@/components/ui/Tag";
 import { Btn } from "@/components/ui/Button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getOverrideCount } from "@/lib/movements/actions";
-import { getDashboardData, type DepartmentCountRow } from "@/lib/dashboard/actions";
+import { getDashboardData, listDashboardDepartments, type DepartmentCountRow } from "@/lib/dashboard/actions";
 import { formatNaira } from "@/lib/format";
 import { todayIso, formatLongDate, formatWeekdayDate } from "@/lib/dates";
+import { DashboardDepartmentFilter } from "./DashboardDepartmentFilter";
 
 const STATUS_TAG: Record<DepartmentCountRow["status"], { variant: "mut" | "acc" | "warn"; label: string; action: string; href: (r: DepartmentCountRow) => string }> = {
   NOT_STARTED: { variant: "mut", label: "Not started", action: "Count", href: () => "/count" },
@@ -23,14 +24,20 @@ function signedValue(value: number) {
   return `${sign}${formatNaira(value)}`;
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ department?: string }> }) {
   const profile = await getCurrentProfile();
 
   if (profile.role === "STOREKEEPER" || profile.role === "DEPARTMENT_USER") {
     return <ScopedHome role={profile.role} departmentName={profile.departmentName} />;
   }
 
-  const [overrideCount, data] = await Promise.all([getOverrideCount(), getDashboardData()]);
+  const { department: departmentId } = await searchParams;
+
+  const [overrideCount, data, departments] = await Promise.all([
+    getOverrideCount(),
+    getDashboardData(departmentId || undefined),
+    listDashboardDepartments(),
+  ]);
   const { departmentRows, ledgerRows, ledgerTotals, stats, repeatVariances, recentMovements, businessDay } = data;
 
   return (
@@ -38,9 +45,12 @@ export default async function DashboardPage() {
       title="Dashboard"
       subtitle={`${formatLongDate(todayIso())} · as at close of ${formatWeekdayDate(businessDay)}`}
       actions={
-        <Link href="/count">
-          <Btn variant="acc">Start count</Btn>
-        </Link>
+        <>
+          <DashboardDepartmentFilter departments={departments} initial={departmentId ?? ""} />
+          <Link href="/count">
+            <Btn variant="acc">Start count</Btn>
+          </Link>
+        </>
       }
     >
       <div className="grid grid-cols-2 min-[900px]:grid-cols-5 gap-3 mb-4.5">
@@ -166,7 +176,7 @@ export default async function DashboardPage() {
                     <td className="px-4 h-9 text-[13.5px] text-right font-medium tabular-nums whitespace-nowrap">{formatNaira(row.closingValue)}</td>
                     <td className="px-4 h-9 text-[13.5px] text-right text-n600 tabular-nums whitespace-nowrap">{row.productCount}</td>
                     <td className="px-4 h-9 text-[13.5px] text-right whitespace-nowrap">
-                      <Link href="/ledger" className="text-teal">
+                      <Link href={`/ledger?department=${row.departmentId}`} className="text-teal">
                         Open
                       </Link>
                     </td>

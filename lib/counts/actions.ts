@@ -413,6 +413,7 @@ export type CountSessionFilters = {
   asAtFrom?: string;
   asAtTo?: string;
   statuses?: SessionStatus[];
+  productSearch?: string;
 };
 
 export type CountSessionRow = {
@@ -430,6 +431,28 @@ export type CountSessionRow = {
 
 const SESSIONS_PAGE_SIZE = 50;
 
+// Product search (History's addition to the phase-5 session list, SPEC.md's
+// "search by product"): resolved to a session-id allowlist in application
+// code, same shape as the dashboard's own aggregations, rather than a new
+// view — count_sessions_summary is session-level and has no product column
+// to filter on directly.
+async function sessionIdsMatchingProduct(admin: AdminClient, query: string): Promise<string[] | null> {
+  const trimmed = query.trim();
+  if (!trimmed) return null;
+
+  const { data: products, error: productError } = await admin
+    .from("products")
+    .select("id")
+    .or(`code.ilike.%${trimmed}%,name.ilike.%${trimmed}%`);
+  if (productError) throw new Error(productError.message);
+  const productIds = (products ?? []).map((p) => p.id);
+  if (productIds.length === 0) return [];
+
+  const { data: lines, error: lineError } = await admin.from("count_lines").select("count_session_id").in("product_id", productIds);
+  if (lineError) throw new Error(lineError.message);
+  return Array.from(new Set((lines ?? []).map((l) => l.count_session_id)));
+}
+
 export async function listCountSessions(
   filters: CountSessionFilters,
   page: number
@@ -438,11 +461,18 @@ export async function listCountSessions(
   requireRole(profile, ["ADMIN", "AUDITOR"]);
 
   const admin = createAdminClient();
+
+  const matchingSessionIds = await sessionIdsMatchingProduct(admin, filters.productSearch ?? "");
+  if (matchingSessionIds !== null && matchingSessionIds.length === 0) {
+    return { rows: [], totalCount: 0, page: 1, totalPages: 1 };
+  }
+
   let q = admin.from("count_sessions_summary").select("*", { count: "exact" });
   if (filters.departmentId) q = q.eq("department_id", filters.departmentId);
   if (filters.asAtFrom) q = q.gte("as_at_date", filters.asAtFrom);
   if (filters.asAtTo) q = q.lte("as_at_date", filters.asAtTo);
   if (filters.statuses && filters.statuses.length > 0) q = q.in("status", filters.statuses);
+  if (matchingSessionIds !== null) q = q.in("id", matchingSessionIds);
 
   const safePage = Math.max(1, page);
   const from = (safePage - 1) * SESSIONS_PAGE_SIZE;
@@ -469,4 +499,42 @@ export async function listCountSessions(
     page: safePage,
     totalPages,
   };
+}
+
+const SESSIONS_EXPORT_CAP = 5000;
+
+// Uncapped (well, capped generously — see EXPORT_ROW_CAP's precedent on
+// lib/movements/actions.ts) read for History's CSV/PDF export: same filters
+// as listCountSessions, no pagination.
+export async function listCountSessionsForExport(filters: CountSessionFilters): Promise<CountSessionRow[]> {
+  const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "AUDITOR"]);
+
+  const admin = createAdminClient();
+
+  const matchingSessionIds = await sessionIdsMatchingProduct(admin, filters.productSearch ?? "");
+  if (matchingSessionIds !== null && matchingSessionIds.length === 0) return [];
+
+  let q = admin.from("count_sessions_summary").select("*");
+  if (filters.departmentId) q = q.eq("department_id", filters.departmentId);
+  if (filters.asAtFrom) q = q.gte("as_at_date", filters.asAtFrom);
+  if (filters.asAtTo) q = q.lte("as_at_date", filters.asAtTo);
+  if (filters.statuses && filters.statuses.length > 0) q = q.in("status", filters.statuses);
+  if (matchingSessionIds !== null) q = q.in("id", matchingSessionIds);
+
+  const { data, error } = await q.order("as_at_date", { ascending: false }).limit(SESSIONS_EXPORT_CAP);
+  if (error) throw new Error(error.message);
+
+  return (data ?? []).map((r) => ({
+    id: r.id!,
+    departmentId: r.department_id!,
+    departmentName: r.department_name!,
+    asAtDate: r.as_at_date!,
+    countedByName: r.counted_by_name!,
+    status: r.status!,
+    productCount: r.product_count ?? 0,
+    countedCount: r.counted_count ?? 0,
+    varianceCount: r.variance_count,
+    varianceValue: r.variance_value,
+  }));
 }

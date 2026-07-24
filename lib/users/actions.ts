@@ -63,6 +63,9 @@ export async function createUser(input: { fullName: string; email: string; role:
     full_name: fullName,
     role: input.role,
     department_id: input.departmentId,
+    // A temp password is only ever meant to get someone in the door once —
+    // see app/change-password, gated in app/(app)/layout.tsx.
+    must_change_password: true,
   });
   if (profileError) {
     // Roll back the orphaned auth user so a failed profile insert doesn't

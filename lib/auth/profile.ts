@@ -12,6 +12,7 @@ export type CurrentProfile = {
   role: UserRole;
   departmentId: string | null;
   departmentName: string | null;
+  mustChangePassword: boolean;
 };
 
 // Reads the signed-in user's profile for use in Server Components/layouts.
@@ -30,7 +31,7 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile> => {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("id, full_name, role, department_id, is_active, departments(name)")
+    .select("id, full_name, role, department_id, is_active, must_change_password, departments(name)")
     .eq("id", user.id)
     .single();
 
@@ -53,6 +54,7 @@ export const getCurrentProfile = cache(async (): Promise<CurrentProfile> => {
     role: profile.role,
     departmentId: profile.department_id,
     departmentName: profile.departments?.name ?? null,
+    mustChangePassword: profile.must_change_password,
   };
 });
 

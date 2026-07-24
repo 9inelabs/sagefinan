@@ -1109,3 +1109,57 @@ waiting on, made the ledger's label-swap look broken on the first pass —
 resolved by verifying the same URLs via direct `page.goto()` instead, which
 confirmed the server-side logic was correct all along and the flakiness was
 in the test's interaction with the select, not the app.
+
+**Real staff accounts + forced first-login password change (follow-up, no
+phase number).** Seven real accounts (six `DEPARTMENT_USER` across VIP Bar/
+Mini-Mart/Roof-Top Bar, one `STOREKEEPER` at the central store) were created
+via the Admin API, each with its own name-as-temp-password — the same
+one-time-temp-password model the Users admin screen already used (phase 2),
+just with an operator-chosen password instead of a random one, since these
+are being handed to people directly rather than shown once in a UI. Created
+by a throwaway, uncommitted script (`scripts/_create-staff-accounts.mjs`,
+deleted immediately after running) rather than a permanent seed script —
+this is a one-off operator action on real production data, not something a
+fresh environment should replay, and the temp passwords are plain text that
+must never enter git history.
+
+**No first-login password-change flow existed before this** — a temp
+password (whether admin-generated or, here, an operator-chosen name) was
+usable indefinitely. Added `profiles.must_change_password` (new column,
+`20260724120000_must_change_password.sql`, defaults `false` — the real
+admin/auditor accounts already in use are untouched), checked once in
+`app/(app)/layout.tsx` right after `getCurrentProfile()` and redirected to a
+new top-level `/change-password` route (outside the `(app)` group — no
+sidebar, no loop risk, same reasoning as `/login` living outside it) if set.
+That route uses the app's normal Ink/Teal design tokens, not `/login`'s own
+soft-white treatment — SPEC.md's "Login route visual treatment" section
+scopes that styling to `/login` alone. The password-change action itself is
+self-service (the signed-in session proves identity), but clearing the flag
+requires the admin client since `profiles_update` RLS is ADMIN-only (phase
+1) — same "privileged write, permission checked in application code" shape
+as everywhere else, where the check here is simply "this row is the calling
+session's own." `lib/users/actions.ts`'s `createUser()` now sets
+`must_change_password: true` on every new account by default, so this
+protection isn't specific to the seven accounts created here — any future
+admin-created user gets it too.
+
+**Access verification** (the task's explicit ask, not assumed): read
+through every department-scoped action a `DEPARTMENT_USER`/`STOREKEEPER`
+can reach (`lib/sales/actions.ts`'s `resolveDepartmentAccess`,
+`lib/movements/actions.ts`'s `applyMovementScope`, `lib/ledger/actions.ts`'s
+`assertDepartmentAccess` from phase 7) — all key off `profile.departmentId`
+from the session-derived profile, never a client-supplied id, and all
+reject rather than silently redirect if a scoped role's own department
+doesn't match; two `DEPARTMENT_USER`s in the same department therefore see
+identical data for it, by construction, not by extra code. No gap found;
+nothing changed here besides confirming it. Verified end-to-end with a
+temporary Playwright script (installed, used, removed) against two
+throwaway test accounts (created and deleted — the seven real accounts'
+own first-login prompts were never consumed by this): the forced
+`/change-password` redirect fires on sign-in and blocks every other route
+until resolved, a new password persists across a fresh sign-in, and a
+`STOREKEEPER` is redirected away from `/reconcile/reports`, `/history`,
+`/compare` and `/reconcile` while still reaching `/purchases`. Seven real
+accounts confirmed created with the correct role/department/
+`must_change_password=true` via a direct database read (not just the
+script's own report).

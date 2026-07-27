@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { getCurrentProfile, requireRole, type UserRole } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+const MIN_PASSWORD_LENGTH = 6; // matches supabase/config.toml's minimum_password_length
+
 function generateTempPassword(length = 14): string {
   // Avoids visually ambiguous characters (0/O, 1/l/I) since this is read
   // aloud or retyped by hand when handed to the new user.
@@ -13,6 +15,18 @@ function generateTempPassword(length = 14): string {
   let out = "";
   for (let i = 0; i < length; i++) out += charset[bytes[i] % charset.length];
   return out;
+}
+
+// Shared by createUser and setUserPassword: an admin/auditor may type their
+// own password instead of taking the auto-generated one (see CLAUDE.md's
+// follow-up on this) — validated here so both callers reject the same way.
+function resolvePassword(customPassword: string | undefined): string {
+  if (customPassword === undefined) return generateTempPassword();
+  const trimmed = customPassword.trim();
+  if (trimmed.length < MIN_PASSWORD_LENGTH) {
+    throw new Error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+  }
+  return trimmed;
 }
 
 function validateRoleDepartment(role: UserRole, departmentId: string | null, centralStoreId: string | null) {
@@ -34,7 +48,13 @@ async function countActiveAdmins(excludingId?: string) {
   return count ?? 0;
 }
 
-export async function createUser(input: { fullName: string; email: string; role: UserRole; departmentId: string | null }) {
+export async function createUser(input: {
+  fullName: string;
+  email: string;
+  role: UserRole;
+  departmentId: string | null;
+  customPassword?: string;
+}) {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN"]);
 
@@ -47,7 +67,7 @@ export async function createUser(input: { fullName: string; email: string; role:
   const { data: central } = await admin.from("departments").select("id").eq("is_central_store", true).maybeSingle();
   validateRoleDepartment(input.role, input.departmentId, central?.id ?? null);
 
-  const tempPassword = generateTempPassword();
+  const tempPassword = resolvePassword(input.customPassword);
   const { data: authUser, error: authError } = await admin.auth.admin.createUser({
     email,
     password: tempPassword,
@@ -138,4 +158,27 @@ export async function setUserActive(id: string, isActive: boolean) {
 
   revalidatePath("/users");
   revalidatePath(`/users/${id}`);
+}
+
+// Sets (or resets) a user's password directly — the only recovery path today,
+// since no SMTP provider is configured for a "forgot password" email flow
+// (see phase 2's CreateUserForm). Always forces a fresh sign-in through
+// /change-password, same as a newly created account's temp password — no
+// opt-out, confirmed before building (see CLAUDE.md's follow-up log).
+export async function setUserPassword(id: string, customPassword?: string) {
+  const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN"]);
+
+  const admin = createAdminClient();
+  const tempPassword = resolvePassword(customPassword);
+
+  const { error: authError } = await admin.auth.admin.updateUserById(id, { password: tempPassword });
+  if (authError) throw new Error(authError.message);
+
+  const { error: profileError } = await admin.from("profiles").update({ must_change_password: true }).eq("id", id);
+  if (profileError) throw new Error(profileError.message);
+
+  revalidatePath("/users");
+  revalidatePath(`/users/${id}`);
+  return { tempPassword };
 }

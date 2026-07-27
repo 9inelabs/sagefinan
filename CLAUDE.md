@@ -1221,3 +1221,55 @@ loaded states): no horizontal overflow either way. `npm run build` (Next
 `loading.tsx` files and the new dependency. The throwaway test account and
 script were both removed afterward, same as every prior phase's Playwright
 verification.
+
+**Admin-assigned passwords (follow-up, no phase number).** The Users screen
+(phase 2) could only ever hand a new account a random auto-generated temp
+password, and had no way at all to change a user's password once created —
+with no SMTP provider configured (unchanged since phase 2), there's no
+"forgot password" email flow, so a locked-out account had no recovery path
+short of a one-off script like `_create-staff-accounts.mjs`. Scope confirmed
+before building, since it touches an existing access-control decision:
+
+- **Stays ADMIN-only** — no AUDITOR access to user management. SPEC.md's
+  role table scopes AUDITOR to "counts, variances, reconciliation"; asked
+  and confirmed this wasn't meant to change.
+- **Password reset added to the edit screen**, not just account creation —
+  this is what actually makes it a recovery path.
+- **Every admin-set password is always one-time**, no opt-out — forces
+  `/change-password` on next sign-in exactly like the existing auto-generated
+  temp password (the redirect gate in `app/(app)/layout.tsx` needed no
+  changes, since it already keys off `profiles.must_change_password`
+  regardless of who set the password or why).
+
+`lib/users/actions.ts`'s `createUser` gained an optional `customPassword`
+(validated to ≥6 characters — `supabase/config.toml`'s own
+`minimum_password_length`, and the deployed project already accepted a
+5-character password in the staff-account run, so this is a floor, not a
+new restriction); omitting it keeps today's auto-generate behaviour exactly
+as before. A new `setUserPassword(id, customPassword?)` — same validation,
+same ADMIN-only `requireRole` guard — calls
+`admin.auth.admin.updateUserById()` and sets `must_change_password: true`,
+sharing the same resolve/validate helper as `createUser` so the two can't
+drift on what counts as an acceptable password.
+
+Two small components now sit under `app/(app)/users/` shared by both forms:
+`PasswordChoiceFields` (an auto-generate/type-your-own `Chip` toggle —
+reused `components/ui/Chip.tsx` rather than inventing new toggle styling,
+since it already has the 44px-touch-target pill treatment this needed) and
+`TempPasswordReveal` (the "copy this once" result screen, extracted from
+`CreateUserForm`'s own success state, now also used by `EditUserForm`'s
+reset flow). `EditUserForm` gained a "Set new password" section, gated
+behind `components/ui/ConfirmDialog.tsx` (the same component department
+deactivation already uses) since setting a new password immediately
+invalidates whatever the user was signing in with — the dialog states that
+consequence before it happens, not after.
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase) against a throwaway test-admin account:
+created a user with a custom password and confirmed signing in with it
+redirected straight to `/change-password`; used "Set new password" on an
+existing test account with a different custom value and confirmed the old
+password stopped working while the new one signed in (also forced to
+`/change-password`); confirmed the auto-generate path on both forms still
+produces a working temp password unchanged; 380px layout on both forms
+showed no horizontal overflow. Test accounts and script removed afterward.

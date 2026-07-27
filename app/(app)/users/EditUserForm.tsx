@@ -6,8 +6,11 @@ import { Btn } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
-import { updateUser } from "@/lib/users/actions";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { updateUser, setUserPassword } from "@/lib/users/actions";
 import type { UserRole } from "@/lib/auth/profile";
+import { PasswordChoiceFields, isPasswordChoiceValid, type PasswordMode } from "./PasswordChoiceFields";
+import { TempPasswordReveal } from "./TempPasswordReveal";
 
 const ROLES: { value: UserRole; label: string }[] = [
   { value: "ADMIN", label: "Admin" },
@@ -35,6 +38,12 @@ export function EditUserForm({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [settingPassword, setSettingPassword] = useState(false);
+  const [passwordMode, setPasswordMode] = useState<PasswordMode>("auto");
+  const [customPassword, setCustomPassword] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [resetPassword, setResetPassword] = useState<string | null>(null);
+
   const nonCentralDepartments = departments.filter((d) => d.id !== centralStoreId);
   const needsDepartment = role === "DEPARTMENT_USER";
   const isStorekeeper = role === "STOREKEEPER";
@@ -51,6 +60,10 @@ export function EditUserForm({
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setPending(false);
     }
+  }
+
+  if (resetPassword) {
+    return <TempPasswordReveal email={user.email} tempPassword={resetPassword} verb="reset" onDone={() => router.push("/users")} />;
   }
 
   return (
@@ -107,6 +120,32 @@ export function EditUserForm({
         Active
       </label>
 
+      <div className="pt-3.5 mb-3.5 border-t border-n200">
+        {settingPassword ? (
+          <>
+            <PasswordChoiceFields
+              mode={passwordMode}
+              customValue={customPassword}
+              onModeChange={setPasswordMode}
+              onCustomValueChange={setCustomPassword}
+              disabled={pending}
+            />
+            <div className="flex gap-2">
+              <Btn type="button" disabled={pending || !isPasswordChoiceValid(passwordMode, customPassword)} onClick={() => setConfirmOpen(true)}>
+                Set password
+              </Btn>
+              <Btn type="button" onClick={() => setSettingPassword(false)} disabled={pending}>
+                Cancel
+              </Btn>
+            </div>
+          </>
+        ) : (
+          <Btn type="button" onClick={() => setSettingPassword(true)} disabled={pending}>
+            Set new password
+          </Btn>
+        )}
+      </div>
+
       {error ? <p className="text-sm text-red mb-3">{error}</p> : null}
 
       <div className="flex gap-2">
@@ -117,6 +156,25 @@ export function EditUserForm({
           Cancel
         </Btn>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Set a new password?"
+        description={
+          <>
+            <b className="text-ink font-medium">{user.fullName}</b> will be signed out of any existing session and must use this new password
+            next time they sign in.
+          </>
+        }
+        confirmLabel="Set password"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={async () => {
+          const result = await setUserPassword(user.id, passwordMode === "custom" ? customPassword : undefined);
+          setConfirmOpen(false);
+          setSettingPassword(false);
+          setResetPassword(result.tempPassword);
+        }}
+      />
     </div>
   );
 }

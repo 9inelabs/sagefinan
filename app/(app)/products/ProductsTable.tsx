@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { Btn } from "@/components/ui/Button";
 import { Select } from "@/components/ui/Select";
 import { Tag } from "@/components/ui/Tag";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { setProductActive } from "@/lib/products/actions";
-import { addProductsToDepartment } from "@/lib/product-assignments/actions";
+import { addProductsToDepartment, removeProductsFromDepartment } from "@/lib/product-assignments/actions";
 
 type ProductRow = {
   id: string;
@@ -34,6 +35,7 @@ export function ProductsTable({
   const [assignTo, setAssignTo] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [pendingToggle, setPendingToggle] = useState<string | null>(null);
+  const [confirmUnassign, setConfirmUnassign] = useState(false);
 
   const allOnPageSelected = products.length > 0 && products.every((p) => selected.has(p.id));
 
@@ -60,6 +62,15 @@ export function ProductsTable({
     router.refresh();
   }
 
+  async function unassignSelected() {
+    if (!assignTo || selected.size === 0) return;
+    await removeProductsFromDepartment(assignTo, [...selected]);
+    setConfirmUnassign(false);
+    setSelected(new Set());
+    setAssignTo("");
+    router.refresh();
+  }
+
   async function toggleActive(id: string, isActive: boolean) {
     setPendingToggle(id);
     await setProductActive(id, !isActive);
@@ -73,7 +84,7 @@ export function ProductsTable({
         <div className="px-4 py-2.5 border-b border-n200 bg-n50 flex flex-wrap items-center gap-2">
           <span className="text-sm">{selected.size} selected</span>
           <Select value={assignTo} onChange={(e) => setAssignTo(e.target.value)}>
-            <option value="">Assign to department…</option>
+            <option value="">Choose department…</option>
             {departments.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.name}
@@ -82,6 +93,9 @@ export function ProductsTable({
           </Select>
           <Btn variant="acc" disabled={!assignTo || assigning} onClick={assignSelected}>
             {assigning ? "Assigning…" : "Assign"}
+          </Btn>
+          <Btn disabled={!assignTo} onClick={() => setConfirmUnassign(true)}>
+            Unassign
           </Btn>
         </div>
       ) : null}
@@ -184,6 +198,21 @@ export function ProductsTable({
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={confirmUnassign}
+        title="Unassign from department?"
+        description={
+          <>
+            Unassign <b className="text-ink font-medium">{selected.size}</b> product{selected.size === 1 ? "" : "s"} from{" "}
+            <b className="text-ink font-medium">{departments.find((d) => d.id === assignTo)?.name}</b>? They&apos;ll no longer appear in that
+            department&apos;s stock ledger, counts, or transaction screens until reassigned.
+          </>
+        }
+        confirmLabel="Unassign"
+        onCancel={() => setConfirmUnassign(false)}
+        onConfirm={unassignSelected}
+      />
     </div>
   );
 }

@@ -1273,3 +1273,53 @@ password stopped working while the new one signed in (also forced to
 `/change-password`); confirmed the auto-generate path on both forms still
 produces a working temp password unchanged; 380px layout on both forms
 showed no horizontal overflow. Test accounts and script removed afterward.
+
+**Bulk unassign products from a department (follow-up, no phase number).**
+The Products page's row-selection toolbar (phase 2) could already bulk
+*assign* several products to a department at once, but unassigning was
+always one product at a time (unchecking a department on that product's own
+edit screen, or removing it from `/departments/[id]`'s product manager) —
+asked for the symmetric bulk operation on the Products page itself.
+
+`lib/product-assignments/actions.ts` gained
+`removeProductsFromDepartment(departmentId, productIds[])`, placed next to
+the existing single-product `removeProductFromDepartment` and mirroring
+`addProductsToDepartment`'s shape exactly — a bulk delete instead of a bulk
+upsert, same ADMIN-only guard, same `revalidatePath` pair. A pair that isn't
+currently assigned is a harmless no-op, same as `addProductsToDepartment`'s
+existing `ignoreDuplicates` behaviour on an already-assigned pair.
+
+`ProductsTable.tsx`'s toolbar (unchanged trigger — checkboxes are already
+visible on every row, ticking one already reveals this toolbar, confirmed
+before building that no separate "Select" mode toggle was wanted) gained a
+second button, **Unassign**, sharing the same department `<Select>` the
+existing Assign button already uses rather than adding a second dropdown.
+Unlike Assign (no confirmation), Unassign opens
+`components/ui/ConfirmDialog.tsx` — the same component department
+deactivation already uses — naming the exact count and department before
+anything happens, since this is a removal rather than an addition (asked
+and confirmed before building). Confirming clears the selection and department
+choice and calls `router.refresh()`, mirroring `assignSelected`'s existing
+cleanup exactly.
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase) against real department/product data: selected
+two products with a real, live assignment to a real department (the two
+lowest product codes assigned there, chosen deliberately so they'd land on
+the Products page's first 50-row page regardless of how many products that
+department has), unassigned them via the new button, confirmed via a direct
+database read (not just the UI) that the `product_assignments` rows were
+actually gone, and confirmed `/departments/[id]`'s product manager no longer
+listed them. Since this touches real assignment data rather than synthetic
+test rows, the exact same rows — including `shelf_order`, which a UI
+re-assign would have reset to null — were restored directly afterward and
+verified to match the pre-test state exactly.
+
+One unrelated finding from this pass, not fixed here: at 380px the Products
+page's own header overflows horizontally — `Reason codes` / `Export CSV` /
+`Import CSV` / `Add product` don't wrap in `PageShell`'s actions slot, which
+has no `flex-wrap`. Confirmed via measurement that this is pre-existing (the
+overflow is the header's action buttons specifically, present with or
+without the selection toolbar open) and not something this change
+introduced — flagged for a future pass rather than folded into this one,
+since fixing an unrelated screen wasn't part of what was asked here.

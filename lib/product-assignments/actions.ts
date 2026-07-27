@@ -97,6 +97,27 @@ export async function removeProductFromDepartment(departmentId: string, productI
   revalidatePath("/products");
 }
 
+// Bulk counterpart of removeProductFromDepartment — Products page's
+// row-selection toolbar (ProductsTable.tsx), mirroring addProductsToDepartment's
+// bulk-upsert shape as a bulk delete. A pair that isn't currently assigned is
+// a harmless no-op, same as addProductsToDepartment's ignoreDuplicates.
+export async function removeProductsFromDepartment(departmentId: string, productIds: string[]) {
+  const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN"]);
+  if (productIds.length === 0) return;
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("product_assignments")
+    .delete()
+    .eq("department_id", departmentId)
+    .in("product_id", productIds);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/departments/${departmentId}`);
+  revalidatePath("/products");
+}
+
 export async function reorderDepartmentProducts(departmentId: string, orderedProductIds: string[]) {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN"]);

@@ -4,6 +4,7 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { PageShell } from "@/components/app-shell/PageShell";
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
+import { AccessDenied } from "@/components/AccessDenied";
 import { getMovementDetail } from "@/lib/movements/actions";
 import { ReverseMovementForm } from "./ReverseMovementForm";
 
@@ -20,6 +21,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export default async function MovementDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const profile = await getCurrentProfile();
+  if (profile.role === "DEPARTMENT_USER") return <AccessDenied />;
   const { id } = await params;
   const movement = await getMovementDetail(id);
   if (!movement) notFound();

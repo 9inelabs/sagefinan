@@ -7,6 +7,7 @@ import { Btn } from "@/components/ui/Button";
 import { Stat } from "@/components/ui/Stat";
 import { Tag } from "@/components/ui/Tag";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { AccessDenied } from "@/components/AccessDenied";
 import { getOverrideCount, listMovements, type MovementFilters, type MovementRow, type MovementType } from "@/lib/movements/actions";
 import { MovementsFilters } from "./MovementsFilters";
 
@@ -39,6 +40,7 @@ type SearchParams = {
 
 export default async function MovementsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const profile = await getCurrentProfile();
+  if (profile.role === "DEPARTMENT_USER") return <AccessDenied />;
   const params = await searchParams;
 
   const filters: MovementFilters = {

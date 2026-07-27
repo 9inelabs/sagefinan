@@ -340,7 +340,7 @@ type CurrentProfile = Awaited<ReturnType<typeof getCurrentProfile>>;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyMovementScope(query: any, profile: CurrentProfile, filters: MovementFilters): any {
   let q = query;
-  if (profile.role === "STOREKEEPER" || profile.role === "DEPARTMENT_USER") {
+  if (profile.role === "STOREKEEPER") {
     if (!profile.departmentId) return null;
     q = q.or(`from_department_id.eq.${profile.departmentId},to_department_id.eq.${profile.departmentId}`);
   }
@@ -363,6 +363,7 @@ export async function listMovements(
   page: number
 ): Promise<{ rows: MovementRow[]; totalCount: number; page: number; totalPages: number }> {
   const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "AUDITOR", "STOREKEEPER"]);
   const admin = createAdminClient();
 
   const base = admin.from("movements_detail").select("*", { count: "exact" });
@@ -386,6 +387,7 @@ const EXPORT_ROW_CAP = 20000;
 
 export async function listMovementsForExport(filters: MovementFilters): Promise<MovementRow[]> {
   const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "AUDITOR", "STOREKEEPER"]);
   const admin = createAdminClient();
 
   const base = admin.from("movements_detail").select("*");
@@ -411,13 +413,14 @@ export type MovementDetail = MovementRow & {
 
 export async function getMovementDetail(id: string): Promise<MovementDetail | null> {
   const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "AUDITOR", "STOREKEEPER"]);
   const admin = createAdminClient();
 
   const { data, error } = await admin.from("movements_detail").select("*").eq("id", id).maybeSingle();
   if (error) throw new Error(error.message);
   if (!data) return null;
 
-  if (profile.role === "STOREKEEPER" || profile.role === "DEPARTMENT_USER") {
+  if (profile.role === "STOREKEEPER") {
     const touches = data.from_department_id === profile.departmentId || data.to_department_id === profile.departmentId;
     if (!touches) return null;
   }

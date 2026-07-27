@@ -1343,3 +1343,31 @@ bug), then confirmed the new sort produces ascending `shelf_order` with
 every shelf-ordered product ahead of any unordered ones — `ledger/page.tsx`
 renders `data.rows` directly with no further reordering, so this is the
 only place the fix needed to happen.
+
+**Movements removed from DEPARTMENT_USER (access change, no phase number).**
+`lib/nav.ts`'s Movements item dropped `DEPARTMENT_USER` from its roles.
+Matched at every layer this app already uses for a restricted screen, not
+just the nav entry (a hidden link alone doesn't stop a direct URL): both
+`app/(app)/movements/page.tsx` and `app/(app)/movements/[id]/page.tsx` gained
+`if (profile.role === "DEPARTMENT_USER") return <AccessDenied />;`, same
+`AccessDenied` pattern Purchases/Requisitions already use for their own
+narrower role sets. The three underlying `lib/movements/actions.ts`
+functions (`listMovements`, `listMovementsForExport`, `getMovementDetail`)
+each gained `requireRole(profile, ["ADMIN", "AUDITOR", "STOREKEEPER"])` —
+these are Server Actions reachable on their own, not just through the pages
+that call them (`listMovementsForExport` also backs `/movements/export`'s
+CSV download), so the page-level guard alone wouldn't have been enough,
+matching CLAUDE.md's standing "check the caller's role in application code"
+rule. The now-dead `DEPARTMENT_USER` branches inside `applyMovementScope`
+and `getMovementDetail`'s own department-touch check were removed rather
+than left as unreachable code, since that role can no longer reach either
+function. SPEC.md's nav table and its Movements-scoping note updated to
+match — Stock ledger is unaffected and still shows all four roles.
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase) against four throwaway test accounts, one per
+role: ADMIN/AUDITOR/STOREKEEPER all still see the nav item and can reach
+`/movements`; DEPARTMENT_USER's nav hides it and hitting `/movements`,
+`/movements/[id]`, and `/movements/export` directly all correctly block
+(AccessDenied on the two pages, a redirect away on the export route) rather
+than silently no-op or 500.

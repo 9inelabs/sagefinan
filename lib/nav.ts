@@ -39,7 +39,7 @@ export const NAV_GROUPS: NavGroup[] = [
         key: "movements",
         label: "Movements",
         href: "/movements",
-        roles: ["ADMIN", "AUDITOR", "STOREKEEPER", "DEPARTMENT_USER"],
+        roles: ["ADMIN", "AUDITOR", "STOREKEEPER"],
       },
       { key: "purchases", label: "Purchases", href: "/purchases", roles: ["ADMIN", "STOREKEEPER"] },
       { key: "req", label: "Requisitions", href: "/requisitions", roles: ["ADMIN", "STOREKEEPER"] },

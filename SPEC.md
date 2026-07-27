@@ -341,13 +341,18 @@ isn't something worth hand-rolling, see CLAUDE.md).
 | Nav item | Roles |
 |---|---|
 | Dashboard, Take stock, Compare stock, Sessions (phase 5), Reconcile, History | ADMIN, AUDITOR |
-| Stock ledger, Movements (phase 3) | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
+| Stock ledger | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
+| Movements (phase 3) | ADMIN, AUDITOR, STOREKEEPER |
 | Purchases (phase 3), Requisitions | ADMIN, STOREKEEPER |
 | Sales entry (phase 4) | ADMIN, STOREKEEPER, DEPARTMENT_USER |
 | Sales history (phase 4) | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
 | Departments, Products, Users ("Administration" group, phase 2) | ADMIN |
 
-STOREKEEPER/DEPARTMENT_USER's view of Movements is scoped to movements
+DEPARTMENT_USER has no access to Movements at all (follow-up, see
+CLAUDE.md) — nav item hidden, the page and detail route both show
+`AccessDenied`, and the underlying `listMovements`/`listMovementsForExport`/
+`getMovementDetail` actions reject the role directly so a direct URL or
+API call can't reach it either. STOREKEEPER's view is scoped to movements
 touching their own `department_id` (mirrors the `movements_select` RLS
 policy); ADMIN/AUDITOR see every movement.
 

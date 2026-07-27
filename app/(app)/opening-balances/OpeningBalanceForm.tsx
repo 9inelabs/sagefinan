@@ -10,14 +10,11 @@ import { Select } from "@/components/ui/Select";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { saveOpeningBalances, type OpeningBalanceLine } from "@/lib/opening-balances/actions";
+import { yesterdayIso } from "@/lib/dates";
 import { OpeningBalanceRow } from "./OpeningBalanceRow";
 
 type Department = { id: string; name: string; is_central_store: boolean };
 type ScreenData = { lines: OpeningBalanceLine[]; missingCount: number; totalCount: number };
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function OpeningBalanceForm({
   departments,
@@ -72,7 +69,11 @@ export function OpeningBalanceForm({
 }
 
 function DepartmentForm({ departmentId, screenData }: { departmentId: string; screenData: ScreenData }) {
-  const [asAtDate, setAsAtDate] = useState(todayIso());
+  // Matches Sales entry/Take stock's own default (lib/dates.ts's yesterdayIso) —
+  // an opening balance dated today, combined with those forms defaulting to
+  // yesterday, otherwise leaves a same-day gap where a department's own sales
+  // screen shows 0 available for stock that was in fact on the shelf.
+  const [asAtDate, setAsAtDate] = useState(yesterdayIso());
   const [lines, setLines] = useState(screenData.lines);
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(screenData.lines.map((l) => [l.productId, l.currentQty != null ? String(l.currentQty) : ""]))

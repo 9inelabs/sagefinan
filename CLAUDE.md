@@ -1371,3 +1371,36 @@ role: ADMIN/AUDITOR/STOREKEEPER all still see the nav item and can reach
 `/movements/[id]`, and `/movements/export` directly all correctly block
 (AccessDenied on the two pages, a redirect away on the export route) rather
 than silently no-op or 500.
+
+**Opening balances default date (bug fix, no phase number).** Reported
+symptom: an admin set an opening balance for Roof-Top Bar's Water (63
+bottles), the stock ledger showed it correctly, but a department user
+trying to record a sale for it saw "Opening 0 · received 0." Root cause
+confirmed against the real data before changing anything: the Opening
+balances screen (`OpeningBalanceForm.tsx`) defaulted its as-at date to
+**today**, while Sales entry and Take stock both already default to
+**yesterday** (`lib/dates.ts`'s `yesterdayIso()`, deliberately, per SPEC.md
+— "defaulting to today invites off-by-one phantom variances"). The opening
+balance was recorded with `business_day = 2026-07-27`; `get_department_balance`
+only folds an `OPENING` movement into `opening_qty` for dates on or after
+its own `business_day` (`supabase/migrations/20260724090100_opening_balances.sql`,
+by design — an opening figure shouldn't apply retroactively to a date
+before it was certified), so querying as at 2026-07-26 correctly returned
+0. Not a bug in the balance function or in per-department scoping — a
+direct query confirmed the same product correctly carries independent
+balances per department (VIP Bar 75/74, Roof-Top Bar 63/63, Mini-Mart
+unassigned) — purely a same-day gap from the two forms disagreeing on what
+"today" should default to.
+
+Fixed by making `OpeningBalanceForm.tsx` default to `yesterdayIso()` too,
+same as the two forms it was disagreeing with — matching, not a new rule.
+This prevents the same gap for every future department/product onboarding;
+it does **not** retroactively change the already-recorded 2026-07-27 entry
+for Roof-Top Bar's Water, which is real production data — left for the
+admin to correct via the existing "replace" flow on that screen if they
+want it to apply from an earlier date, rather than silently rewritten here.
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase) against a throwaway test-admin account:
+confirmed `/opening-balances`' date input now defaults to the same value
+`/sales`' does.

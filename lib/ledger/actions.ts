@@ -60,6 +60,7 @@ export type LedgerRow = {
   closingQty: number;
   closingValue: number;
   hasMovement: boolean;
+  shelfOrder: number | null;
 };
 
 export type LedgerData = {
@@ -88,11 +89,17 @@ export async function getLedgerData(input: {
     .single();
   if (deptError || !dept) throw new Error(deptError?.message ?? "Department not found.");
 
-  const { data: balances, error } = await admin.rpc("get_department_balance", {
-    p_department_id: input.departmentId,
-    p_as_at_date: input.asAtDate,
-  });
+  const [{ data: balances, error }, { data: assignments, error: assignError }] = await Promise.all([
+    admin.rpc("get_department_balance", {
+      p_department_id: input.departmentId,
+      p_as_at_date: input.asAtDate,
+    }),
+    admin.from("product_assignments").select("product_id, shelf_order").eq("department_id", input.departmentId),
+  ]);
   if (error) throw new Error(error.message);
+  if (assignError) throw new Error(assignError.message);
+
+  const shelfOrderByProduct = new Map((assignments ?? []).map((a) => [a.product_id, a.shelf_order]));
 
   let rows: LedgerRow[] = (balances ?? []).map((b) => ({
     productId: b.product_id,
@@ -105,7 +112,19 @@ export async function getLedgerData(input: {
     closingQty: b.closing_qty,
     closingValue: b.closing_value,
     hasMovement: b.received_qty !== 0 || b.issued_qty !== 0,
+    shelfOrder: shelfOrderByProduct.get(b.product_id) ?? null,
   }));
+
+  // Same shelf-order-first, name-fallback sort as the department's own
+  // product manager (lib/product-assignments/actions.ts's
+  // listDepartmentAssignments) — the ledger should read in the order the
+  // department actually shelves its stock, not alphabetically.
+  rows.sort((a, b) => {
+    if (a.shelfOrder != null && b.shelfOrder != null) return a.shelfOrder - b.shelfOrder;
+    if (a.shelfOrder != null) return -1;
+    if (b.shelfOrder != null) return 1;
+    return a.name.localeCompare(b.name);
+  });
 
   const totalCount = rows.length;
 

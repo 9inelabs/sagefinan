@@ -1323,3 +1323,23 @@ overflow is the header's action buttons specifically, present with or
 without the selection toolbar open) and not something this change
 introduced — flagged for a future pass rather than folded into this one,
 since fixing an unrelated screen wasn't part of what was asked here.
+
+**Stock ledger shelf order (bug fix, no phase number).** `/ledger` was
+showing products in whatever order `get_department_balance` happened to
+return them — the function has no `ORDER BY`, and that order turned out to
+read as alphabetical by product name, not the department's actual shelf
+order the take-stock/reconcile screens already use. `getLedgerData`
+(`lib/ledger/actions.ts`) now fetches each product's `shelf_order` from
+`product_assignments` alongside the balance call and sorts rows with the
+exact same shelf-order-first, name-fallback comparator
+`listDepartmentAssignments` (`lib/product-assignments/actions.ts`) already
+uses for the department's own product manager — so the ledger now reads in
+the same order as everywhere else shelf order matters. Both `/ledger/export`
+and `/ledger/export-pdf` call `getLedgerData` too, so both picked up the fix
+for free with no changes of their own. Verified with a throwaway read-only
+script (installed, used, removed) against real department data: confirmed
+the raw RPC order was indeed alphabetical-by-name (reproducing the reported
+bug), then confirmed the new sort produces ascending `shelf_order` with
+every shelf-ordered product ahead of any unordered ones — `ledger/page.tsx`
+renders `data.rows` directly with no further reordering, so this is the
+only place the fix needed to happen.

@@ -10,6 +10,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { AccessDenied } from "@/components/AccessDenied";
 import { getOverrideCount, listMovements, type MovementFilters, type MovementRow, type MovementType } from "@/lib/movements/actions";
 import { MovementsFilters } from "./MovementsFilters";
+import { MovementRowActions } from "./MovementRowActions";
+import type { UserRole } from "@/lib/auth/profile";
 
 const TYPE_LABEL: Record<MovementType, string> = {
   PURCHASE: "Purchase",
@@ -26,6 +28,13 @@ function route(row: MovementRow) {
   if (row.type === "PURCHASE" || row.type === "OPENING") return row.toDepartmentName ?? "—";
   if (row.type === "SALE") return row.fromDepartmentName ?? "—";
   return `${row.fromDepartmentName ?? "—"} → ${row.toDepartmentName ?? "—"}`;
+}
+
+// Same eligibility rule as the detail page's own canReverse
+// (app/(app)/movements/[id]/page.tsx) — kept in sync there since
+// reverseMovement() itself now also re-checks the storekeeper cases server-side.
+function canReverse(role: UserRole, row: MovementRow) {
+  return (role === "ADMIN" || (role === "STOREKEEPER" && row.type !== "OPENING")) && !row.isReversal && !row.isReversed;
 }
 
 type SearchParams = {
@@ -115,11 +124,11 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    {["Business day", "Time", "Type", "Product", "Route", "Qty", "Entered by", "Received by", "Flags"].map((h, i) => (
+                    {["Business day", "Time", "Type", "Product", "Route", "Qty", "Entered by", "Received by", "Flags", ""].map((h, i) => (
                       <th
-                        key={h}
+                        key={h + i}
                         className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
-                          i === 5 ? "text-right" : ""
+                          i === 5 || i === 9 ? "text-right" : ""
                         }`}
                       >
                         {h}
@@ -151,6 +160,9 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
                           {m.isReversed ? <Tag variant="bad">Reversed</Tag> : null}
                         </div>
                       </td>
+                      <td className="px-4 h-9 text-right whitespace-nowrap">
+                        {canReverse(profile.role, m) ? <MovementRowActions movementId={m.id} /> : null}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -159,33 +171,37 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
 
             <div className="min-[900px]:hidden divide-y divide-n200">
               {rows.map((m) => (
-                <Link
-                  key={m.id}
-                  href={`/movements/${m.id}`}
-                  className={`block p-4 ${m.isReversed ? "opacity-60" : ""}`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium">{TYPE_LABEL[m.type]}</span>
-                    <span className="text-xs text-n600 tabular-nums">
-                      {m.businessDay} · {formatTime(m.createdAt)}
-                    </span>
-                  </div>
-                  <div className="text-sm mt-1">
-                    {m.productName} <span className="text-n600 text-xs">{m.productCode}</span>
-                  </div>
-                  <div className="text-xs text-n600 mt-0.5">{route(m)}</div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-xs text-n600">by {m.createdByName}</span>
-                    <span className="text-sm font-medium tabular-nums">{m.quantity}</span>
-                  </div>
-                  {m.isOverride || m.isReversal || m.isReversed ? (
-                    <div className="flex gap-1.5 mt-2">
-                      {m.isOverride ? <Tag variant="warn">Override</Tag> : null}
-                      {m.isReversal ? <Tag variant="mut">Reversal</Tag> : null}
-                      {m.isReversed ? <Tag variant="bad">Reversed</Tag> : null}
+                <div key={m.id} className={`p-4 ${m.isReversed ? "opacity-60" : ""}`}>
+                  <Link href={`/movements/${m.id}`} className="block">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium">{TYPE_LABEL[m.type]}</span>
+                      <span className="text-xs text-n600 tabular-nums">
+                        {m.businessDay} · {formatTime(m.createdAt)}
+                      </span>
                     </div>
-                  ) : null}
-                </Link>
+                    <div className="text-sm mt-1">
+                      {m.productName} <span className="text-n600 text-xs">{m.productCode}</span>
+                    </div>
+                    <div className="text-xs text-n600 mt-0.5">{route(m)}</div>
+                    <div className="flex items-center justify-between mt-2">
+                      <span className="text-xs text-n600">by {m.createdByName}</span>
+                      <span className="text-sm font-medium tabular-nums">{m.quantity}</span>
+                    </div>
+                    {m.isOverride || m.isReversal || m.isReversed ? (
+                      <div className="flex gap-1.5 mt-2">
+                        {m.isOverride ? <Tag variant="warn">Override</Tag> : null}
+                        {m.isReversal ? <Tag variant="mut">Reversal</Tag> : null}
+                        {m.isReversed ? <Tag variant="bad">Reversed</Tag> : null}
+                      </div>
+                    ) : null}
+                  </Link>
+                  <div className="flex gap-4 text-sm mt-3">
+                    <Link href={`/movements/${m.id}`} className="text-teal">
+                      View details
+                    </Link>
+                    {canReverse(profile.role, m) ? <MovementRowActions movementId={m.id} /> : null}
+                  </div>
+                </div>
               ))}
             </div>
           </>

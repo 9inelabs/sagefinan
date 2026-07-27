@@ -261,6 +261,24 @@ export async function reverseMovement(movementId: string, reason: string) {
   if (!trimmed) throw new Error("A reason is required to reverse a movement.");
 
   const admin = createAdminClient();
+
+  // Both rules already exist as display-only logic on the detail page's own
+  // canReverse — post_movement_reversal itself doesn't enforce either, so
+  // re-checked here rather than trusting the UI never gets a second entry
+  // point (which this movements-list Reverse button now is).
+  if (profile.role === "STOREKEEPER") {
+    const { data: target, error: targetError } = await admin
+      .from("movements")
+      .select("type, from_department_id, to_department_id")
+      .eq("id", movementId)
+      .maybeSingle();
+    if (targetError) throw new Error(targetError.message);
+    if (!target) throw new Error("Movement not found.");
+    if (target.type === "OPENING") throw new Error("Only an admin can reverse an opening balance.");
+    const touches = target.from_department_id === profile.departmentId || target.to_department_id === profile.departmentId;
+    if (!touches) throw new Error("You don't have access to reverse that movement.");
+  }
+
   const { data, error } = await admin.rpc("post_movement_reversal", {
     p_movement_id: movementId,
     p_reason: trimmed,

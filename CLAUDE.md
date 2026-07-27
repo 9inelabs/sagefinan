@@ -1404,3 +1404,57 @@ Verified with a temporary Playwright script (installed, used, removed, same
 pattern as every prior phase) against a throwaway test-admin account:
 confirmed `/opening-balances`' date input now defaults to the same value
 `/sales`' does.
+
+**Reverse a movement from the Movements list (follow-up, no phase number).**
+Asked for a way to undo a wrong transaction (a department user's mis-entered
+sale, a storekeeper's mis-entered requisition) from an admin account. True
+deletion was never on the table — `movements` rows are never updated or
+deleted by anyone, for any role, by design (no RLS policy permits it) —
+this is an audit system, and a record that can silently vanish defeats the
+point. Confirmed with the user that the app's existing **reversal** model
+(phase 3 — an offsetting entry that cancels the original out, both stay
+visible) already achieves the practical goal ("balance reverts to what it
+was"), with one real gap: it only lived on a movement's own detail page
+(`/movements/[id]`, `ReverseMovementForm.tsx`), not the list, so correcting
+anything meant clicking into every row first.
+
+Added `app/(app)/movements/MovementRowActions.tsx` — a "Reverse" button
+using `components/ui/ConfirmDialog.tsx` (already the app's standard
+consequential-action confirmation, used for department deactivation,
+password reset, bulk unassign) with the required reason field rendered
+directly in its `description` slot rather than a bespoke modal, since
+`ConfirmDialog` already accepts arbitrary `ReactNode` there. Calls the same
+`reverseMovement()` action the detail page's own form already calls —
+nothing about what a reversal *does* changed, only where it can be
+triggered from. Wired into `/movements`' desktop table (new trailing
+Actions column) and mobile cards, which needed restructuring first: the
+whole card used to be one `<Link>` to the detail page, and a button can't
+safely nest inside an anchor, so the header line stays a `<Link>` and a
+separate actions row (`View details` + `Reverse`) was added below it,
+matching `ProductsTable.tsx`'s existing Edit/Deactivate row pattern.
+
+While reading `reverseMovement()` for this: it only checked
+`requireRole(profile, ["ADMIN", "STOREKEEPER"])` — the "storekeeper can't
+reverse an OPENING movement" and "storekeeper can only reverse within their
+own department" rules were real, but only existed as the detail page's
+client-side `canReverse` display logic, never re-checked by the action or
+`post_movement_reversal` itself. Since this change adds a second UI entry
+point into the same function, and CLAUDE.md's standing rule is not to trust
+that a client-side check actually ran, `reverseMovement()` now re-checks
+both directly (mirroring `getMovementDetail`'s existing STOREKEEPER
+department-touch check) before calling the RPC. Pre-existing gap, not
+introduced by this change, but a two-line fix in a function already being
+touched here rather than left for later.
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase): posted a throwaway movement via direct RPC
+call, reversed it from the Movements list (not the detail page) as a
+throwaway ADMIN account, confirmed the row picked up the Reversed tag after
+`router.refresh()` and the reversal is visible from `/movements/[id]`;
+confirmed an empty reason is rejected; confirmed a throwaway STOREKEEPER
+account is blocked — via a direct call to `reverseMovement()`, not just by
+the button being hidden — from reversing an `OPENING` movement and from
+reversing a movement touching a different department; confirmed 380px
+renders the new mobile actions row without overflow. The throwaway
+movement was reversed (not deleted, per the model this feature itself
+implements) and all test accounts removed afterward.

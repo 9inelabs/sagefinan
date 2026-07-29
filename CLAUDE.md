@@ -1458,3 +1458,58 @@ reversing a movement touching a different department; confirmed 380px
 renders the new mobile actions row without overflow. The throwaway
 movement was reversed (not deleted, per the model this feature itself
 implements) and all test accounts removed afterward.
+
+**Shared messages (new feature, no phase number).** Requested: one room
+every signed-in user — any role, any department — can post to and read,
+live, no refresh needed. Explained the tradeoffs and confirmed before
+building (see SPEC.md's new "Shared messages" section for the full
+model): truly live via Supabase Realtime rather than a refresh/poll
+pattern (the first live feature in this app); no editing or deleting a
+message, ever, for anyone including admins, same rule `movements` already
+lives by; all four roles included; plain text only for this pass, no
+attachments.
+
+Two migrations — `20260729090000_messages.sql` (table, one RLS policy,
+added to the `supabase_realtime` publication) and
+`20260729090100_messages_author_denorm.sql` (adds `author_name`/
+`author_role` directly on the row) — the second one exists because this
+phase's own read/write split surfaced a real constraint while building, not
+because it was planned that way: a Realtime `INSERT` payload is the raw row
+only, and `profiles_select`'s existing RLS (`id = auth.uid() or admin`)
+means a browser session receiving someone *else's* live message can't
+resolve their name the normal way (a join), so `postMessage()`
+(`lib/messages/actions.ts`) writes the poster's own already-known name/role
+alongside the message instead. `messages_select` is the one and only RLS
+policy on the table — no insert/update/delete policy for anyone; writes go
+through the same service-role/admin-client path every other write in this
+app already uses (`postMessage()`), which still triggers a Realtime
+broadcast to every subscriber regardless of which client wrote the row,
+since Realtime listens to Postgres's own replication stream.
+
+`app/(app)/messages/` — `page.tsx` (no role guard, everyone allowed;
+server-renders the last 100 messages via `listRecentMessages()`) and
+`MessagesPanel.tsx` (client component: opens a Realtime channel on mount
+via `lib/supabase/client.ts`, appends new rows as they arrive, auto-scrolls
+to the latest). Deliberately no optimistic send — the composer waits for
+the same Realtime event every other open tab gets, including the sender's
+own, rather than rendering a local echo that would need reconciling against
+the real row. New "General" nav group (`lib/nav.ts`), placed first/above
+"Audit" since this is the one screen every role can reach regardless of
+what else they can. `loading.tsx` added matching the established loading
+pattern (SPEC.md's "Loading & navigation feedback" section).
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase): **two browser contexts signed in as two
+different throwaway test accounts simultaneously** — posted a message from
+one and confirmed it appeared in the other's already-open page with no
+reload, confirmed all four roles can reach `/messages` and post, confirmed
+an empty/over-length message is rejected, confirmed no edit/delete
+affordance exists anywhere in the UI, confirmed 380px renders the message
+list and composer with no horizontal overflow. Unlike every other feature's
+verification, the test messages this created are real, permanent rows the
+instant they post — there's no reversal-equivalent to correct a message
+with — so leaving fake content sitting in a real shared chat forever
+wasn't acceptable; the script hard-deleted its own two test rows directly
+via the admin client once verification passed (a backend cleanup of the
+script's own fixtures, not a capability the app exposes to any user — the
+table's RLS still grants no one a delete).

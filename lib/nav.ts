@@ -16,6 +16,17 @@ export type NavGroup = {
 // signed-in role before rendering — a role sees only what applies to it.
 export const NAV_GROUPS: NavGroup[] = [
   {
+    title: "General",
+    items: [
+      {
+        key: "messages",
+        label: "Messages",
+        href: "/messages",
+        roles: ["ADMIN", "AUDITOR", "STOREKEEPER", "DEPARTMENT_USER"],
+      },
+    ],
+  },
+  {
     title: "Audit",
     items: [
       { key: "dash", label: "Dashboard", href: "/", roles: ["ADMIN", "AUDITOR"] },

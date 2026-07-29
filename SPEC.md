@@ -699,6 +699,59 @@ measured against today's real data (12 movements total, too small for
 `EXPLAIN` to prefer an index scan either way) — same reasoning as the
 `pg_trgm` index added ahead of need in the search-performance work.
 
+## Shared messages (follow-up, no phase number)
+
+One room, every signed-in user (any of the four roles, any department) can
+read and post in — a company-wide chat, not scoped by department or role.
+The first live feature in the app: every other screen is request/response
+(submit, then the page refreshes or `router.refresh()`s); `/messages`
+updates for everyone with the tab open, with no refresh, via Supabase
+Realtime.
+
+**Why this needed real RLS, unlike everything else.** Every other table's
+only real access path is `lib/supabase/admin.ts`'s service-role client,
+server-side, which bypasses RLS entirely — the Conventions section's "every
+such action must check the caller's role in application code first" rule is
+what actually protects those tables, not Postgres policy. A Realtime
+subscription is different: it runs in the browser, as the signed-in user's
+own session, through `lib/supabase/client.ts` (anon key), and Postgres RLS
+is what actually gates what that subscription can receive. `messages` has
+exactly one policy, `messages_select`, granting read access to any
+authenticated session — no insert/update/delete policy exists for anyone.
+Writes still go through `postMessage()` (`lib/messages/actions.ts`, the
+usual service-role/admin-client path) — an insert via the service-role
+client still triggers a Realtime broadcast to every subscribed browser
+client, since Realtime listens to Postgres's replication stream, not to
+which client performed the write.
+
+**Denormalized author name/role.** `messages.author_name`/`author_role`
+duplicate what's on `profiles` at the moment of posting, written by
+`postMessage()` alongside the message itself
+(`20260729090100_messages_author_denorm.sql`). This isn't the pattern used
+elsewhere (`movements_detail` joins `profiles` live, so a name change shows
+up on old records too) — it exists because a Realtime `INSERT` payload is
+the raw row only, no join, and `profiles_select`'s RLS (`id = auth.uid() or
+admin`) means a browser session can't look up *another* user's name/role to
+resolve a live-arriving message the normal way. The tradeoff (a later name
+change doesn't retroactively relabel old messages) is accepted as correct
+for a chat log, not worked around.
+
+**Immutable, like movements.** No update or delete policy exists for
+`messages`, for anyone, including admins — once posted, a message is
+permanent, the identical rule `movements` already lives by (see
+Conventions). There is no reversal-equivalent for a message; the closest
+analogue, "post a correction as a new message," is left to the user rather
+than built as a feature.
+
+**No optimistic send.** The composer doesn't render a message locally on
+submit — it waits for the same Realtime event everyone else receives,
+including the sender's own message, so there's one single source of truth
+for what actually got posted rather than a client-side echo that has to be
+reconciled/deduplicated against the real row once it arrives.
+
+**Plain text only.** No attachments — would need Supabase Storage, unused
+anywhere else in this app, and was explicitly out of scope for this pass.
+
 ## Phase 1 scope decisions (asked and answered before building)
 
 - **Currency valuation**: computed now in `get_department_balance`, not

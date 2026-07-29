@@ -51,7 +51,7 @@ export default async function DepartmentsPage({
     >
       <Card title="Departments" extra={`${departments?.length ?? 0} shown`}>
         <div className="px-4 py-2.5 border-b border-n200">
-          <Link href={showInactive ? "/departments" : "/departments?includeInactive=1"} className="text-xs text-teal">
+          <Link href={showInactive ? "/departments" : "/departments?includeInactive=1"} className="text-xs text-graphite">
             {showInactive ? "Hide inactive" : "Include inactive"}
           </Link>
         </div>
@@ -88,7 +88,7 @@ export default async function DepartmentsPage({
                   {departments.map((d) => (
                     <tr key={d.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
                       <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
-                        <Link href={`/departments/${d.id}`} className="text-teal">
+                        <Link href={`/departments/${d.id}`} className="text-graphite">
                           {d.name}
                         </Link>
                       </td>
@@ -102,7 +102,7 @@ export default async function DepartmentsPage({
                       </td>
                       <td className="px-4 h-9 text-[13.5px] text-right whitespace-nowrap">
                         <div className="flex justify-end gap-3">
-                          <Link href={`/departments/${d.id}`} className="text-teal">
+                          <Link href={`/departments/${d.id}`} className="text-graphite">
                             Edit
                           </Link>
                           <DepartmentRowActions id={d.id} name={d.name} isActive={d.is_active} />
@@ -118,7 +118,7 @@ export default async function DepartmentsPage({
               {departments.map((d) => (
                 <div key={d.id} className="p-4">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <Link href={`/departments/${d.id}`} className="text-[15px] text-teal font-medium">
+                    <Link href={`/departments/${d.id}`} className="text-[15px] text-graphite font-medium">
                       {d.name}
                     </Link>
                     {d.is_active ? <Tag variant="ok">Active</Tag> : <Tag variant="mut">Inactive</Tag>}
@@ -129,7 +129,7 @@ export default async function DepartmentsPage({
                     {d.is_central_store ? <Tag variant="acc">Central store</Tag> : null}
                   </div>
                   <div className="flex gap-4 text-sm">
-                    <Link href={`/departments/${d.id}`} className="text-teal">
+                    <Link href={`/departments/${d.id}`} className="text-graphite">
                       Edit
                     </Link>
                     <DepartmentRowActions id={d.id} name={d.name} isActive={d.is_active} />

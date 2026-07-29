@@ -38,7 +38,7 @@ export default async function ReconcilePage() {
               title="Nothing outstanding"
               description="Finish a count from Take stock and, once compared, it will appear here to reconcile."
               action={
-                <Link href="/compare" className="text-teal text-sm">
+                <Link href="/compare" className="text-graphite text-sm">
                   Go to Compare stock →
                 </Link>
               }

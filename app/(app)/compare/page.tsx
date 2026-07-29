@@ -21,7 +21,7 @@ export default async function ComparePage() {
             title="Nothing to compare yet"
             description="Finish a count from Take stock and it will appear here."
             action={
-              <Link href="/count" className="text-teal text-sm">
+              <Link href="/count" className="text-graphite text-sm">
                 Go to Take stock →
               </Link>
             }

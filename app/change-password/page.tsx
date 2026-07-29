@@ -7,7 +7,7 @@ import { ChangePasswordSubmit } from "./ChangePasswordSubmit";
 
 // Top-level route, deliberately outside app/(app) — no sidebar, since this
 // gates entry to the app rather than being part of it. Uses the app's
-// normal Ink/Teal design tokens (not /login's own soft-white treatment,
+// normal Ink/Graphite design tokens (not /login's own soft-white treatment,
 // which SPEC.md's "Login route visual treatment" explicitly scopes to that
 // one route only).
 export default async function ChangePasswordPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {

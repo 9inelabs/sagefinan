@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes } from "react";
 const VARIANTS = {
   default: "bg-white border-n200 hover:bg-n50 hover:border-n400 text-ink",
   pri: "bg-ink border-ink text-white hover:bg-black",
-  acc: "bg-teal border-teal text-white hover:brightness-95",
+  acc: "bg-graphite border-graphite text-white hover:brightness-95",
 } as const;
 
 export function Btn({

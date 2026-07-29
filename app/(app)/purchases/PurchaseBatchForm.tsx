@@ -242,7 +242,7 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
                         {l.currentQty + l.quantity}
                       </td>
                       <td className="px-4 h-9 text-right whitespace-nowrap">
-                        <button type="button" onClick={() => removeLine(l.productId)} className="text-teal text-sm">
+                        <button type="button" onClick={() => removeLine(l.productId)} className="text-graphite text-sm">
                           Remove
                         </button>
                       </td>
@@ -260,7 +260,7 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
                       <div className="text-sm truncate">{l.name}</div>
                       <div className="text-xs text-n600 tabular-nums mt-0.5">{l.code}</div>
                     </div>
-                    <button type="button" onClick={() => removeLine(l.productId)} className="text-teal text-sm flex-none">
+                    <button type="button" onClick={() => removeLine(l.productId)} className="text-graphite text-sm flex-none">
                       Remove
                     </button>
                   </div>

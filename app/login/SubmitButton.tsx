@@ -2,7 +2,7 @@
 
 import { useFormStatus } from "react-dom";
 
-// Login route only — intentionally diverges from the app's ink/teal, 6px-
+// Login route only — intentionally diverges from the app's ink/graphite, 6px-
 // radius design system (see SPEC.md "Login route visual treatment"). Do not
 // copy this pill/near-black styling into any authenticated screen.
 export function SubmitButton() {

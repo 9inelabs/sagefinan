@@ -96,7 +96,7 @@ export function ProductForm({
               <label key={d.id} className="flex items-center gap-2 text-sm cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  className="accent-teal w-4 h-4"
+                  className="accent-graphite w-4 h-4"
                   checked={departmentIds.has(d.id)}
                   onChange={() => toggleDepartment(d.id)}
                   disabled={pending}

@@ -79,7 +79,7 @@ export function CompareTable({
       <Card title={`Variances — ${session.departmentName}`} extra={showAll ? "Showing every product" : "Only products that don't tally are listed"}>
         <div className="px-4 py-2.5 border-b border-n200 flex flex-wrap items-center justify-between gap-2">
           <label className="text-xs text-n600 flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" className="accent-teal w-4 h-4" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
+            <input type="checkbox" className="accent-graphite w-4 h-4" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
             Show all products
           </label>
           <label className="text-xs text-n600 flex items-center gap-1.5">
@@ -149,7 +149,7 @@ export function CompareTable({
                       </td>
                       <td className="px-4 h-9 text-right whitespace-nowrap">
                         {session.status !== "LOCKED" ? (
-                          <button type="button" onClick={() => setEditing(l)} className="text-teal text-sm">
+                          <button type="button" onClick={() => setEditing(l)} className="text-graphite text-sm">
                             Correct
                           </button>
                         ) : null}
@@ -169,7 +169,7 @@ export function CompareTable({
                       <div className="text-xs text-n600 tabular-nums mt-0.5">{l.code}</div>
                     </div>
                     {session.status !== "LOCKED" ? (
-                      <button type="button" onClick={() => setEditing(l)} className="text-teal text-sm flex-none">
+                      <button type="button" onClick={() => setEditing(l)} className="text-graphite text-sm flex-none">
                         Correct
                       </button>
                     ) : null}

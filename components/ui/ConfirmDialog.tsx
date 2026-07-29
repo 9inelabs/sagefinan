@@ -6,7 +6,7 @@ import { Btn } from "./Button";
 // Generic confirmation modal for destructive/consequential admin actions
 // (deactivating a department/user, reassigning the central store). Not part
 // of design/ui-draft.html — the prototype has no admin screens — so this
-// follows the same ink/teal/hairline-border/6px-radius system as everything
+// follows the same ink/graphite/hairline-border/6px-radius system as everything
 // else rather than reproducing a specific prototype element.
 export function ConfirmDialog({
   open,

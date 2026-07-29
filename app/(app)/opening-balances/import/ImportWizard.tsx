@@ -106,7 +106,7 @@ export function ImportWizard() {
               disabled={stage === "checking" || stage === "committing"}
               className="text-sm"
             />
-            <a href="/templates/opening-balance-import-template.csv" download className="text-teal text-sm">
+            <a href="/templates/opening-balance-import-template.csv" download className="text-graphite text-sm">
               Download CSV template
             </a>
           </div>
@@ -133,7 +133,7 @@ export function ImportWizard() {
               <label className="flex items-start gap-2.5 text-sm cursor-pointer">
                 <input
                   type="checkbox"
-                  className="accent-teal w-4 h-4 mt-0.5"
+                  className="accent-graphite w-4 h-4 mt-0.5"
                   checked={replaceExisting}
                   onChange={(e) => setReplaceExisting(e.target.checked)}
                 />

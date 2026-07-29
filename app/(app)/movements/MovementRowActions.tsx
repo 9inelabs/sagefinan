@@ -24,7 +24,7 @@ export function MovementRowActions({ movementId }: { movementId: string }) {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="text-teal text-sm whitespace-nowrap">
+      <button type="button" onClick={() => setOpen(true)} className="text-graphite text-sm whitespace-nowrap">
         Reverse
       </button>
 

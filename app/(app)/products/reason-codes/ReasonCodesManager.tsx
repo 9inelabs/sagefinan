@@ -69,7 +69,7 @@ export function ReasonCodesManager({ initialCodes }: { initialCodes: ReasonCodeR
                       type="button"
                       onClick={() => toggle(c)}
                       disabled={pendingId === c.id}
-                      className="text-teal text-sm disabled:text-n400"
+                      className="text-graphite text-sm disabled:text-n400"
                     >
                       {pendingId === c.id ? "Saving…" : c.isActive ? "Retire" : "Reactivate"}
                     </button>
@@ -154,7 +154,7 @@ function AddDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (ro
             </Select>
           </Field>
           <label className="flex items-center gap-2 text-sm text-n600 cursor-pointer">
-            <input type="checkbox" className="accent-teal w-4 h-4" checked={requiresNote} onChange={(e) => setRequiresNote(e.target.checked)} />
+            <input type="checkbox" className="accent-graphite w-4 h-4" checked={requiresNote} onChange={(e) => setRequiresNote(e.target.checked)} />
             Require a note whenever this reason is chosen (like &quot;Other&quot;)
           </label>
           {error ? <p className="text-sm text-red mt-3">{error}</p> : null}

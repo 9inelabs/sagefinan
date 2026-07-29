@@ -95,7 +95,7 @@ export function ImportWizard() {
               disabled={stage === "checking" || stage === "committing"}
               className="text-sm"
             />
-            <a href="/templates/product-import-template.csv" download className="text-teal text-sm">
+            <a href="/templates/product-import-template.csv" download className="text-graphite text-sm">
               Download CSV template
             </a>
           </div>

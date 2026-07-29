@@ -87,7 +87,7 @@ function TabButton({
       disabled={disabled}
       className={`px-3 py-2 text-sm border-b-2 -mb-px ${
         active
-          ? "border-teal text-teal font-medium"
+          ? "border-graphite text-graphite font-medium"
           : disabled
             ? "border-transparent text-n400 cursor-not-allowed"
             : "border-transparent text-n600 hover:text-ink"
@@ -160,7 +160,7 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
           {session.status !== "LOCKED" ? (
             <>
               Spotted a miscount?{" "}
-              <Link href={`/compare/${session.id}`} className="text-teal">
+              <Link href={`/compare/${session.id}`} className="text-graphite">
                 Correct it from Compare stock
               </Link>
               .
@@ -190,7 +190,7 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
             </span>
           </div>
           <div className="h-[5px] bg-n200 rounded-full overflow-hidden mb-2.5">
-            <div className="h-full bg-teal" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-graphite" style={{ width: `${pct}%` }} />
           </div>
           <Input placeholder="Search product or code" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>

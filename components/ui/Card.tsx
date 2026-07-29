@@ -3,17 +3,17 @@ export function Card({
   extra,
   children,
   className,
-  variant = "default",
+  variant = "premium",
 }: {
   title?: string;
   extra?: string;
   children: React.ReactNode;
   className?: string;
-  // "premium" is the redesign's surface treatment (larger radius, soft
-  // shadow, no hairline border) — additive, only used where a screen has
-  // actually been migrated (currently just the Dashboard). Every other
-  // caller keeps "default" (the original flat/hairline-border look)
-  // unchanged. See CLAUDE.md's follow-up on the premium redesign.
+  // "premium" (larger radius, soft shadow, no hairline border) is the
+  // default surface everywhere now that the redesign has rolled out past
+  // the Dashboard preview — "default" (the original flat/hairline-border
+  // look) is kept only for anything that still needs it explicitly. See
+  // CLAUDE.md's follow-up on the premium redesign.
   variant?: "default" | "premium";
 }) {
   const surface = variant === "premium" ? "bg-white rounded-premium shadow-premium" : "bg-white border border-n200 rounded";

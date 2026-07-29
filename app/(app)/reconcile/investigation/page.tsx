@@ -66,7 +66,7 @@ export default async function UnderInvestigationPage({ searchParams }: { searchP
                     <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{l.variance > 0 ? `+${l.variance}` : l.variance}</td>
                     <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{l.note ?? "—"}</td>
                     <td className="px-0 h-9">
-                      <Link href={`/reconcile/${l.sessionId}`} className="flex items-center h-9 px-4 text-teal text-sm whitespace-nowrap">
+                      <Link href={`/reconcile/${l.sessionId}`} className="flex items-center h-9 px-4 text-graphite text-sm whitespace-nowrap">
                         {l.sessionStatus === "LOCKED" ? "View" : "Reconcile"}
                       </Link>
                     </td>

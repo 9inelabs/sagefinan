@@ -34,7 +34,7 @@ export function OpeningBalanceForm({
           title="No departments yet"
           description="Add a department before setting opening balances."
           action={
-            <Link href="/departments" className="text-teal text-sm">
+            <Link href="/departments" className="text-graphite text-sm">
               Go to Departments →
             </Link>
           }
@@ -173,7 +173,7 @@ function DepartmentForm({ departmentId, screenData }: { departmentId: string; sc
         <div className="px-4 py-2.5 border-b border-n200 flex flex-wrap items-center justify-between gap-2">
           <Input className="flex-1 min-w-[180px]" placeholder="Search product or code" value={search} onChange={(e) => setSearch(e.target.value)} />
           <label className="text-xs text-n600 flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
-            <input type="checkbox" className="accent-teal w-4 h-4" checked={showOnlyMissing} onChange={(e) => setShowOnlyMissing(e.target.checked)} />
+            <input type="checkbox" className="accent-graphite w-4 h-4" checked={showOnlyMissing} onChange={(e) => setShowOnlyMissing(e.target.checked)} />
             Show only missing
           </label>
         </div>

@@ -8,7 +8,9 @@ import type { NavGroup } from "@/lib/nav";
 // Premium redesign (see CLAUDE.md's follow-up): nav only now — brand and
 // signed-in user info moved up into Header.tsx, which is why this no
 // longer needs a `profile` prop at all (nav items are already filtered by
-// role upstream in navForRole()).
+// role upstream in navForRole()). White background with black/grey text,
+// per the reference image — not the dark charcoal this started as (an
+// earlier misreading, corrected once).
 export function Sidebar({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () => void }) {
   const pathname = usePathname();
 
@@ -21,11 +23,11 @@ export function Sidebar({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
   }, [pathname]);
 
   return (
-    <div className="flex flex-col h-full w-[224px] bg-charcoal">
+    <div className="flex flex-col h-full w-[224px] bg-white border-r border-n200">
       <nav className="flex-1 overflow-y-auto py-4">
         {groups.map((group) => (
           <div key={group.title} className="px-3 pb-4">
-            <p className="text-[13px] font-medium text-white/85 px-2.5 pb-2">{group.title}</p>
+            <p className="text-[13px] font-medium text-ink px-2.5 pb-2">{group.title}</p>
             {group.items.map((item) => {
               const currentlyOn = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
               const active = currentlyOn || pendingHref === item.href;
@@ -39,7 +41,7 @@ export function Sidebar({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
                     onNavigate?.();
                   }}
                   className={`flex items-center gap-2.5 px-2.5 py-2.5 rounded-premium text-[13.5px] mb-0.5 transition-colors ${
-                    active ? "bg-charcoal-active text-white font-medium" : "text-charcoal-muted hover:bg-white/[0.06] hover:text-white"
+                    active ? "bg-n100 text-ink font-medium" : "text-n600 hover:bg-n50 hover:text-ink"
                   }`}
                 >
                   <Icon size={17} strokeWidth={1.75} className="flex-none" />

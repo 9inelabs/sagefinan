@@ -29,7 +29,7 @@ after every schema change. Deployed to Vercel (from phase 8).
   which roles see them. Add a route there, not just in `app/(app)/`.
 - **Design tokens**: defined once in `app/globals.css` (`:root` CSS vars +
   Tailwind `@theme inline`). Never hardcode a hex colour, radius, or font
-  size in a component — use the theme tokens (`bg-ink`, `text-teal`,
+  size in a component — use the theme tokens (`bg-ink`, `text-graphite`,
   `border-n200`, `rounded`, `text-xs`/`sm`/`base`/`xl`/`2xl`, `tabular-nums`).
   Never use `font-semibold`/`font-bold` classes — weights are 400/500 only,
   by convention (not build-enforced).
@@ -1579,3 +1579,64 @@ actual review artifact; confirmed unmigrated pages (`/movements`,
 the new shell; confirmed `/login` is pixel-for-pixel unaffected; confirmed
 no console errors. No dependency beyond `lucide-react`; nothing here
 touches the database.
+
+**Premium redesign — phase 2: correction + full rollout (no phase number).**
+Phase 1's preview had two things wrong, corrected directly against the same
+reference screenshot: the sidebar was built dark/charcoal, but the
+reference is a **white background with black text for nav items and grey
+for inactive/secondary text** — a misreading, not a design choice, fixed in
+`Sidebar.tsx` (`bg-white border-r border-n200`, active item `bg-n100
+text-ink font-medium`, inactive `text-n600`). Separately, asked for every
+teal-coloured button to become "slightly grey."
+
+Rather than hunting down every `bg-teal`/`text-teal` usage across the ~45
+files that had them (a direct consequence of this codebase's own
+discipline — CLAUDE.md's Conventions section has always required routing
+every colour through the shared tokens, never a hardcoded hex — which is
+exactly what made this a one-place fix instead of a 45-file one), the
+token itself was renamed and recoloured: `--teal: #0F766E` →
+`--graphite: #6B7280` in `app/globals.css`, then every `text-teal`/
+`bg-teal`/`border-teal`/`border-t-teal`/`outline-teal`/`accent-teal`
+Tailwind utility across `app/`, `components/`, and `lib/` (excluding
+`lib/pdf/theme.ts`, PDF export styling — a genuinely separate system, out
+of scope since the ask was specifically about buttons) mechanically
+renamed to its `-graphite` equivalent via `sed`, verified safe first by
+confirming grep found no other meaning of the substring "teal" anywhere in
+scope. A proper rename rather than just repointing `--teal`'s value was
+deliberate — leaving a variable named "teal" holding a grey hex would be
+exactly the kind of misleading code CLAUDE.md's own quality bar exists to
+prevent. `/login` and `lib/pdf/theme.ts` were excluded from the rename (the
+former has its own separate treatment and doesn't reference the shared
+tokens at all; grep confirmed only its comments mentioned "teal" by name,
+updated for accuracy) — both explicit, unchanged scope boundaries. The now
+fully-unused `--charcoal`/`--charcoal-muted` tokens from phase 1's sidebar
+attempt were deleted rather than left as dead code; `--charcoal-active`
+stays, still used by the header's sign-out pill.
+
+**Full rollout**, achieved the same way: `components/ui/Card.tsx` and
+`Stat.tsx`'s `variant` prop default flipped from `"default"` to
+`"premium"` — a two-line change that put the shadow/rounded-corner
+treatment on every screen's cards and stat tiles at once, no per-page
+edits needed (`"default"` stays available as an explicit escape hatch).
+Combined with the shell (already global since phase 1) and the token
+rename (global by construction), this completed the redesign across all
+~40 screens without touching most of their files at all — confirmed by
+grep: only the Dashboard's own file was edited directly (to drop the now-
+redundant explicit `variant="premium"` props phase 1 had added, since
+premium is the default now), every other page picked the new look up
+automatically through its existing `<Card>`/`<Stat>` calls. SPEC.md's
+Design tokens section rewritten to describe this as the current system
+rather than a preview, and to note `design/ui-draft.html` is now a
+historical reference for anything past `/login`, not the authoritative
+source it was originally.
+
+Verified with a temporary Playwright script (installed, used, removed,
+same pattern as every prior phase): screenshots taken and shown directly
+across six pages (Dashboard, Movements, Products, Users, Departments,
+Sales history) confirming the corrected white/black sidebar and grey
+accent render consistently everywhere, not just where it was hand-edited;
+computed-style checks confirmed the sidebar's background is literally
+`rgb(255, 255, 255)` and `--graphite` resolves to `#6b7280`, not asserted
+by eye alone; 380px checked on Dashboard and Movements; no console errors
+across any page visited; `/login`'s files confirmed to have zero
+functional diff (comment-only changes, verified via `git diff`).

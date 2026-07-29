@@ -61,7 +61,7 @@ export function LedgerFilters({
       <label className="text-xs text-n600 flex items-center gap-1.5 cursor-pointer">
         <input
           type="checkbox"
-          className="accent-teal w-4 h-4"
+          className="accent-graphite w-4 h-4"
           defaultChecked={initial.hasMovement}
           onChange={(e) => navigate({ hasMovement: e.target.checked })}
         />

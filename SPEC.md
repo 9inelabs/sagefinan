@@ -197,7 +197,7 @@ add itself is its own `loading.tsx`.
   version of the same thing, since the App Router has no built-in global
   route-change event to hook — see the library's own README for why that
   approach is what every App-Router top-bar implementation converges on),
-  mounted once in `app/layout.tsx`, coloured `var(--teal)`, 3px, no spinner.
+  mounted once in `app/layout.tsx`, coloured `var(--graphite)`, 3px, no spinner.
   Starts the instant a link is clicked or `router.push` fires, completes when
   the new route's content is ready — independent of whether that route has a
   `loading.tsx`.
@@ -229,11 +229,17 @@ add itself is its own `loading.tsx`.
   the pending highlight self-clears via a `useEffect` keyed on `pathname` once
   the route actually lands.
 
-## Design tokens (extracted from design/ui-draft.html, wired into app/globals.css)
+## Design tokens (app/globals.css)
 
-- Two primary colours only: Ink `#111827` (text, headers, primary buttons,
-  sidebar), Teal `#0F766E` (single accent — active states, links, key actions,
-  selected rows)
+Originally extracted from `design/ui-draft.html`; superseded by the premium
+redesign (see CLAUDE.md's follow-ups) — `design/ui-draft.html` is now a
+historical reference, not the authoritative source, for anything the
+redesign has touched (everywhere except `/login`).
+
+- Two primary colours only: Ink `#111827` (body text, headings), Graphite
+  `#6B7280` (the one accent — buttons, links, focus rings, the sidebar's
+  active-item state; replaced the original Teal `#0F766E` app-wide via a
+  single token rename+recolour, not a per-file edit — see CLAUDE.md)
 - Neutrals: `#F9FAFB` `#F3F4F6` `#E5E7EB` `#9CA3AF` `#4B5563`
 - Semantic colours — **used only on variances** within the authenticated app,
   never for general UI state (e.g. form errors on authenticated screens use a
@@ -247,12 +253,22 @@ add itself is its own `loading.tsx`.
 - Type scale 12/14/16/20/24 — maps directly onto Tailwind's existing
   text-xs/sm/base/xl/2xl, overridden in `@theme` to the exact pixel values
 - Tabular numerals (`tabular-nums`) on every quantity and currency figure
-- Border radius 6px uniformly (`--radius-*` theme keys all point at one
-  `--radius: 6px` var) — 1px hairline borders, no drop shadows, no gradients
+- Two radius/surface systems now coexist deliberately: buttons/inputs/chips/
+  tags keep the original 6px/hairline-border/no-shadow treatment
+  (`--radius: 6px`); `Card`/`Stat` surfaces default to the redesign's
+  `--radius-premium: 12px` + `--shadow-premium` instead (a `variant="default"`
+  escape hatch still exists on both components if a screen genuinely needs
+  the flat look).
+- App shell (`components/app-shell/`): a full-width white top `Header` (logo,
+  hotel name, signed-in user, dark pill sign-out) above a white sidebar —
+  **white background, black text for the active item, grey (`text-n600`)
+  for inactive items** (an earlier dark-charcoal-sidebar version was a
+  misreading of the reference and was corrected once — this is the settled
+  version), one `lucide-react` icon per nav item.
 
 ## Login route visual treatment (deliberate exception to the design system above)
 
-`/login` (`app/login/page.tsx`) does **not** use the ink/teal/6px-radius/
+`/login` (`app/login/page.tsx`) does **not** use the ink/graphite/6px-radius/
 hairline-border system described above. This was an explicit, one-off request
 to give the login screen a softer, more welcoming look; every authenticated
 screen keeps the dense system exactly as documented. Do not let any of the

@@ -42,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
-        <NextTopLoader color="var(--teal)" height={3} showSpinner={false} shadow={false} />
+        <NextTopLoader color="var(--graphite)" height={3} showSpinner={false} shadow={false} />
         <RegisterServiceWorker />
         {children}
       </body>

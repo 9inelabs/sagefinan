@@ -54,25 +54,25 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       }
     >
       <div className="grid grid-cols-2 min-[900px]:grid-cols-5 gap-3 mb-4.5">
-        <Stat variant="premium" label="Counted today" value={String(stats.countedDepartments)} hint={`/ ${stats.activeDepartments}`} />
+        <Stat label="Counted today" value={String(stats.countedDepartments)} hint={`/ ${stats.activeDepartments}`} />
         <Stat
-          variant="premium"
+         
           label="Items with variance"
           value={String(stats.varianceLineCount)}
           colorClassName={stats.varianceLineCount > 0 ? "text-red" : undefined}
         />
         <Stat
-          variant="premium"
+         
           label="Variance value"
           value={stats.varianceValue === 0 ? formatNaira(0) : signedValue(stats.varianceValue)}
           colorClassName={stats.varianceValue < 0 ? "text-red" : stats.varianceValue > 0 ? "text-green" : undefined}
         />
         <Link href="/reconcile">
-          <Stat variant="premium" label="Awaiting reconciliation" value={String(stats.awaitingReconciliation)} hint="sessions" />
+          <Stat label="Awaiting reconciliation" value={String(stats.awaitingReconciliation)} hint="sessions" />
         </Link>
         <Link href="/movements?override=1">
           <Stat
-            variant="premium"
+           
             label="Flagged for review"
             value={String(overrideCount)}
             hint="overrides"
@@ -81,13 +81,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </Link>
       </div>
 
-      <Card variant="premium" title="Today's counts" extra={`as at close of ${formatWeekdayDate(businessDay)}`} className="mb-4">
+      <Card title="Today's counts" extra={`as at close of ${formatWeekdayDate(businessDay)}`} className="mb-4">
         {departmentRows.length === 0 ? (
           <EmptyState
             title="No departments yet"
             description="Add a department before counting can begin."
             action={
-              <Link href="/departments" className="text-teal text-sm">
+              <Link href="/departments" className="text-graphite text-sm">
                 Go to Departments →
               </Link>
             }
@@ -141,7 +141,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                         <Tag variant={statusMeta.variant}>{statusMeta.label}</Tag>
                       </td>
                       <td className="px-4 h-9 text-[13.5px] text-right whitespace-nowrap">
-                        <Link href={statusMeta.href(row)} className="text-teal">
+                        <Link href={statusMeta.href(row)} className="text-graphite">
                           {statusMeta.action}
                         </Link>
                       </td>
@@ -154,7 +154,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         )}
       </Card>
 
-      <Card variant="premium" title="Stock ledger" extra={`All departments · as at ${formatWeekdayDate(businessDay)}`} className="mb-4">
+      <Card title="Stock ledger" extra={`All departments · as at ${formatWeekdayDate(businessDay)}`} className="mb-4">
         {ledgerRows.length === 0 ? (
           <EmptyState title="No departments yet" description="The ledger will populate once departments and movements exist." />
         ) : (
@@ -184,7 +184,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
                     <td className="px-4 h-9 text-[13.5px] text-right font-medium tabular-nums whitespace-nowrap">{formatNaira(row.closingValue)}</td>
                     <td className="px-4 h-9 text-[13.5px] text-right text-n600 tabular-nums whitespace-nowrap">{row.productCount}</td>
                     <td className="px-4 h-9 text-[13.5px] text-right whitespace-nowrap">
-                      <Link href={`/ledger?department=${row.departmentId}`} className="text-teal">
+                      <Link href={`/ledger?department=${row.departmentId}`} className="text-graphite">
                         Open
                       </Link>
                     </td>
@@ -206,7 +206,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </Card>
 
       <div className="grid min-[900px]:grid-cols-[1fr_300px] gap-4 items-start">
-        <Card variant="premium" title="Repeat variances" extra="last 30 days">
+        <Card title="Repeat variances" extra="last 30 days">
           {repeatVariances.length === 0 ? (
             <EmptyState title="No repeat variances" description="No product has shown a variance more than once in the last 30 days." />
           ) : (
@@ -248,7 +248,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           )}
         </Card>
 
-        <Card variant="premium" title="Movements today">
+        <Card title="Movements today">
           {recentMovements.length === 0 ? (
             <EmptyState title="No movements yet" description="Purchases, requisitions and sales will appear here as they're posted." />
           ) : (
@@ -286,14 +286,14 @@ function ScopedHome({ role, departmentName }: { role: "STOREKEEPER" | "DEPARTMEN
 
   return (
     <PageShell title="Sagefinan" subtitle={departmentName ?? undefined}>
-      <Card variant="premium" title="Welcome">
+      <Card title="Welcome">
         <div className="p-4 text-sm text-n600 leading-relaxed">
           <p className="mb-3">
             Signed in for <b className="text-ink font-medium">{departmentName ?? "your department"}</b>.
           </p>
           <div className="flex flex-col gap-2 items-start">
             {shortcuts.map((s) => (
-              <Link key={s.href} href={s.href} className="text-teal">
+              <Link key={s.href} href={s.href} className="text-graphite">
                 {s.label} →
               </Link>
             ))}

@@ -21,7 +21,7 @@ export function Chip({
       disabled={disabled}
       onClick={onClick}
       className={`min-h-11 px-3.5 rounded-full border text-[13px] disabled:opacity-50 ${
-        active ? "bg-teal border-teal text-white" : "bg-white border-n200 text-ink hover:border-n400"
+        active ? "bg-graphite border-graphite text-white" : "bg-white border-n200 text-ink hover:border-n400"
       }`}
     >
       {children}

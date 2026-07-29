@@ -45,8 +45,8 @@ export const CountRow = memo(function CountRow({
         onChange={(e) => onChange(productId, e.target.value)}
         placeholder="—"
         className={`w-20 h-12 flex-none text-center text-[17px] tabular-nums rounded border ${
-          filled ? "border-teal bg-[#F0FAF8] text-teal font-medium" : "border-n200 bg-white"
-        } focus:outline-2 focus:outline-teal focus:-outline-offset-1 disabled:bg-n50 disabled:text-n600 disabled:border-n200`}
+          filled ? "border-graphite bg-[#F0FAF8] text-graphite font-medium" : "border-n200 bg-white"
+        } focus:outline-2 focus:outline-graphite focus:-outline-offset-1 disabled:bg-n50 disabled:text-n600 disabled:border-n200`}
       />
     </div>
   );

@@ -105,7 +105,7 @@ export function ProductsTable({
           <thead>
             <tr>
               <th className="px-4 py-2 border-b border-n200 bg-n50 w-8">
-                <input type="checkbox" className="accent-teal w-4 h-4" checked={allOnPageSelected} onChange={toggleAll} />
+                <input type="checkbox" className="accent-graphite w-4 h-4" checked={allOnPageSelected} onChange={toggleAll} />
               </th>
               {["Code", "Name", "Unit cost", "Departments", "Status", ""].map((h, i) => (
                 <th
@@ -123,11 +123,11 @@ export function ProductsTable({
             {products.map((p) => (
               <tr key={p.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
                 <td className="px-4 h-9">
-                  <input type="checkbox" className="accent-teal w-4 h-4" checked={selected.has(p.id)} onChange={() => toggleOne(p.id)} />
+                  <input type="checkbox" className="accent-graphite w-4 h-4" checked={selected.has(p.id)} onChange={() => toggleOne(p.id)} />
                 </td>
                 <td className="px-4 h-9 text-[13.5px] text-n600 tabular-nums whitespace-nowrap">{p.code}</td>
                 <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
-                  <Link href={`/products/${p.id}`} className="text-teal">
+                  <Link href={`/products/${p.id}`} className="text-graphite">
                     {p.name}
                   </Link>
                 </td>
@@ -140,14 +140,14 @@ export function ProductsTable({
                 </td>
                 <td className="px-4 h-9 text-right whitespace-nowrap">
                   <div className="flex justify-end gap-3">
-                    <Link href={`/products/${p.id}`} className="text-teal text-sm">
+                    <Link href={`/products/${p.id}`} className="text-graphite text-sm">
                       Edit
                     </Link>
                     <button
                       type="button"
                       onClick={() => toggleActive(p.id, p.isActive)}
                       disabled={pendingToggle === p.id}
-                      className="text-teal text-sm disabled:opacity-60"
+                      className="text-graphite text-sm disabled:opacity-60"
                     >
                       {p.isActive ? "Deactivate" : "Reactivate"}
                     </button>
@@ -165,13 +165,13 @@ export function ProductsTable({
             <div className="flex items-start gap-3 mb-2">
               <input
                 type="checkbox"
-                className="accent-teal w-4 h-4 mt-1 flex-none"
+                className="accent-graphite w-4 h-4 mt-1 flex-none"
                 checked={selected.has(p.id)}
                 onChange={() => toggleOne(p.id)}
               />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-2">
-                  <Link href={`/products/${p.id}`} className="text-teal font-medium truncate">
+                  <Link href={`/products/${p.id}`} className="text-graphite font-medium truncate">
                     {p.name}
                   </Link>
                   {p.isActive ? <Tag variant="ok">Active</Tag> : <Tag variant="mut">Inactive</Tag>}
@@ -183,14 +183,14 @@ export function ProductsTable({
               </div>
             </div>
             <div className="flex gap-4 text-sm pl-7">
-              <Link href={`/products/${p.id}`} className="text-teal">
+              <Link href={`/products/${p.id}`} className="text-graphite">
                 Edit
               </Link>
               <button
                 type="button"
                 onClick={() => toggleActive(p.id, p.isActive)}
                 disabled={pendingToggle === p.id}
-                className="text-teal disabled:opacity-60"
+                className="text-graphite disabled:opacity-60"
               >
                 {p.isActive ? "Deactivate" : "Reactivate"}
               </button>

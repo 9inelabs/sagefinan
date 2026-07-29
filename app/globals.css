@@ -1,13 +1,16 @@
 @import "tailwindcss";
 
 /*
-  Design tokens extracted from design/ui-draft.html — the authoritative prototype.
-  Two primary colours only (ink, teal), a fixed neutral ramp, and three semantic
-  colours reserved for variances. Do not add ad-hoc colours outside this set.
+  Design tokens — see CLAUDE.md's "premium redesign" follow-ups for the full
+  history. Two primary colours (ink, graphite — graphite replaced the
+  original teal accent everywhere in the app: buttons, links, focus rings,
+  the active nav state, via this one token, not a per-file edit), a fixed
+  neutral ramp, and three semantic colours reserved for variances. Do not
+  add ad-hoc colours outside this set.
 */
 :root {
   --ink: #111827;
-  --teal: #0f766e;
+  --graphite: #6b7280;
 
   --n50: #f9fafb;
   --n100: #f3f4f6;
@@ -22,25 +25,22 @@
   --radius: 6px;
 
   /*
-    "Premium" redesign tokens (see CLAUDE.md's follow-up on this) — additive,
-    alongside the tokens above, not a replacement. Everything above this
-    point is still what the ~35 not-yet-migrated screens render with;
-    nothing here is wired into `rounded`/`bg-ink`/etc., so adding these
-    can't change any existing page's appearance. Used so far only by the
-    app shell (Header/Sidebar/PageShell, shared chrome, rolled out
-    everywhere at once by necessity) and the Dashboard's premium Card/Stat
-    variant — the one page previewing this system before a wider rollout.
+    "Premium" redesign surface tokens (see CLAUDE.md's follow-up) — used by
+    components/ui/Card.tsx and Stat.tsx's now-default "premium" surface
+    (rounder corners, soft shadow, no hairline border) across every screen.
+    Doesn't touch --radius itself: buttons/inputs/chips/tags stay on the
+    original 6px system, only Card/Stat surfaces use --radius-premium.
+    --charcoal-active is the one dark-surface colour still in use, for the
+    header's sign-out pill.
   */
-  --charcoal: #101012;
   --charcoal-active: #000000;
-  --charcoal-muted: #a1a1aa;
   --radius-premium: 12px;
   --shadow-premium: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 @theme inline {
   --color-ink: var(--ink);
-  --color-teal: var(--teal);
+  --color-graphite: var(--graphite);
 
   --color-n50: var(--n50);
   --color-n100: var(--n100);
@@ -52,9 +52,7 @@
   --color-green: var(--green);
   --color-amber: var(--amber);
 
-  --color-charcoal: var(--charcoal);
   --color-charcoal-active: var(--charcoal-active);
-  --color-charcoal-muted: var(--charcoal-muted);
   --radius-premium: var(--radius-premium);
   --shadow-premium: var(--shadow-premium);
 

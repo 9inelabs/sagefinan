@@ -78,7 +78,7 @@ export default async function UsersPage() {
                   {rows.map((u) => (
                     <tr key={u.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
                       <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
-                        <Link href={`/users/${u.id}`} className="text-teal">
+                        <Link href={`/users/${u.id}`} className="text-graphite">
                           {u.fullName}
                         </Link>
                       </td>
@@ -91,7 +91,7 @@ export default async function UsersPage() {
                       <td className="px-4 h-9 text-[13.5px] text-n600 tabular-nums whitespace-nowrap">{formatLastSignIn(u.lastSignIn)}</td>
                       <td className="px-4 h-9 text-right whitespace-nowrap">
                         <div className="flex justify-end items-center gap-3">
-                          <Link href={`/users/${u.id}`} className="text-teal text-sm">
+                          <Link href={`/users/${u.id}`} className="text-graphite text-sm">
                             Edit
                           </Link>
                           <UserRowActions id={u.id} isActive={u.isActive} />
@@ -107,7 +107,7 @@ export default async function UsersPage() {
               {rows.map((u) => (
                 <div key={u.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <Link href={`/users/${u.id}`} className="text-teal font-medium">
+                    <Link href={`/users/${u.id}`} className="text-graphite font-medium">
                       {u.fullName}
                     </Link>
                     {u.isActive ? <Tag variant="ok">Active</Tag> : <Tag variant="mut">Inactive</Tag>}
@@ -118,7 +118,7 @@ export default async function UsersPage() {
                     {u.departmentName ? ` · ${u.departmentName}` : ""} · last sign-in {formatLastSignIn(u.lastSignIn)}
                   </div>
                   <div className="flex gap-4 text-sm">
-                    <Link href={`/users/${u.id}`} className="text-teal">
+                    <Link href={`/users/${u.id}`} className="text-graphite">
                       Edit
                     </Link>
                     <UserRowActions id={u.id} isActive={u.isActive} />

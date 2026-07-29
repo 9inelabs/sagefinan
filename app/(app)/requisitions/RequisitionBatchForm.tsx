@@ -278,7 +278,7 @@ export function RequisitionBatchForm({
                   <b className="text-ink font-medium">{picked.name}</b> isn&apos;t assigned to this department yet — you can&apos;t
                   requisition something it doesn&apos;t stock.
                 </p>
-                <Link href={`/products/${picked.id}`} className="text-teal">
+                <Link href={`/products/${picked.id}`} className="text-graphite">
                   Go to this product&apos;s assignment screen →
                 </Link>
               </div>
@@ -377,7 +377,7 @@ export function RequisitionBatchForm({
                         </td>
                         <td className="px-4 h-9 whitespace-nowrap">{l.isOverride ? <Tag variant="warn">Override</Tag> : null}</td>
                         <td className="px-4 h-9 text-right whitespace-nowrap">
-                          <button type="button" onClick={() => removeLine(l.productId)} className="text-teal text-sm">
+                          <button type="button" onClick={() => removeLine(l.productId)} className="text-graphite text-sm">
                             Remove
                           </button>
                         </td>
@@ -398,7 +398,7 @@ export function RequisitionBatchForm({
                         <div className="text-sm truncate">{l.name}</div>
                         <div className="text-xs text-n600 tabular-nums mt-0.5">{l.code}</div>
                       </div>
-                      <button type="button" onClick={() => removeLine(l.productId)} className="text-teal text-sm flex-none">
+                      <button type="button" onClick={() => removeLine(l.productId)} className="text-graphite text-sm flex-none">
                         Remove
                       </button>
                     </div>

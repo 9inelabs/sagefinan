@@ -2,7 +2,7 @@ import { signIn } from "./actions";
 import { SubmitButton } from "./SubmitButton";
 
 // This route intentionally uses its own visual treatment — a plain, white,
-// centred page — distinct from the app's dense ink/teal/6px-radius design
+// centred page — distinct from the app's dense ink/graphite/6px-radius design
 // system used everywhere past login. See SPEC.md for why, and for the exact
 // colours/radii recorded there so a future phase doesn't "fix" this into
 // matching the rest of the app.

@@ -237,7 +237,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-2.5 text-sm border-b-2 -mb-px ${active ? "border-teal text-teal" : "border-transparent text-n600 hover:text-ink"}`}
+      className={`px-3 py-2.5 text-sm border-b-2 -mb-px ${active ? "border-graphite text-graphite" : "border-transparent text-n600 hover:text-ink"}`}
     >
       {children}
     </button>
@@ -277,11 +277,11 @@ function ReconcileLineRow({
             </span>
           ) : null}
           {!locked ? (
-            <button type="button" onClick={onCorrect} className="text-teal">
+            <button type="button" onClick={onCorrect} className="text-graphite">
               Correct
             </button>
           ) : (
-            <button type="button" onClick={onAdjust} className="text-teal">
+            <button type="button" onClick={onAdjust} className="text-graphite">
               Raise adjustment
             </button>
           )}
@@ -441,7 +441,7 @@ function ReasonSection({
           />
           <div className="flex items-center gap-3 mt-1.5">
             {dirty ? (
-              <button type="button" onClick={persist} disabled={pending} className="text-teal text-xs">
+              <button type="button" onClick={persist} disabled={pending} className="text-graphite text-xs">
                 {pending ? "Saving…" : "Save reason"}
               </button>
             ) : setByName ? (

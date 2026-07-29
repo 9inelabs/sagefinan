@@ -24,7 +24,7 @@ export function UserRowActions({ id, isActive }: { id: string; isActive: boolean
 
   return (
     <div className="flex flex-col items-end gap-1">
-      <button type="button" onClick={toggle} disabled={pending} className="text-teal text-sm disabled:opacity-60 whitespace-nowrap">
+      <button type="button" onClick={toggle} disabled={pending} className="text-graphite text-sm disabled:opacity-60 whitespace-nowrap">
         {pending ? "Working…" : isActive ? "Deactivate" : "Reactivate"}
       </button>
       {error ? <span className="text-xs text-red text-right max-w-[220px]">{error}</span> : null}

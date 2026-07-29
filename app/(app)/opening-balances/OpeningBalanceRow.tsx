@@ -42,8 +42,8 @@ export const OpeningBalanceRow = memo(function OpeningBalanceRow({
         onChange={(e) => onChange(productId, e.target.value)}
         placeholder="0"
         className={`w-20 h-12 flex-none text-center text-[17px] tabular-nums rounded border ${
-          filled ? "border-teal bg-[#F0FAF8] text-teal font-medium" : "border-n200 bg-white"
-        } focus:outline-2 focus:outline-teal focus:-outline-offset-1`}
+          filled ? "border-graphite bg-[#F0FAF8] text-graphite font-medium" : "border-n200 bg-white"
+        } focus:outline-2 focus:outline-graphite focus:-outline-offset-1`}
       />
     </div>
   );

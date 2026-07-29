@@ -132,7 +132,7 @@ export function SkeletonFormCard({ rows = 4 }: { rows?: number }) {
 export function SkeletonSpinner() {
   return (
     <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 rounded-full border-2 border-n200 border-t-teal animate-spin" aria-label="Loading" />
+      <div className="w-6 h-6 rounded-full border-2 border-n200 border-t-graphite animate-spin" aria-label="Loading" />
     </div>
   );
 }

@@ -285,7 +285,7 @@ export function SalesBatchForm({
           </Field>
         </div>
         {restoredNotice ? (
-          <div className="px-4 pb-4 text-xs text-teal">
+          <div className="px-4 pb-4 text-xs text-graphite">
             An unposted draft for {departmentName} on {businessDay} was restored below.
           </div>
         ) : null}
@@ -466,7 +466,7 @@ export function SalesBatchForm({
                           </div>
                         </td>
                         <td className="px-4 h-9 text-right whitespace-nowrap">
-                          <button type="button" onClick={() => removeLine(l.productId)} className="text-teal text-sm">
+                          <button type="button" onClick={() => removeLine(l.productId)} className="text-graphite text-sm">
                             Remove
                           </button>
                         </td>
@@ -487,7 +487,7 @@ export function SalesBatchForm({
                         <div className="text-sm truncate">{l.name}</div>
                         <div className="text-xs text-n600 tabular-nums mt-0.5">{l.code}</div>
                       </div>
-                      <button type="button" onClick={() => removeLine(l.productId)} className="text-teal text-sm flex-none">
+                      <button type="button" onClick={() => removeLine(l.productId)} className="text-graphite text-sm flex-none">
                         Remove
                       </button>
                     </div>
@@ -509,11 +509,11 @@ export function SalesBatchForm({
         <div className="p-4 border-t border-n200">
           {departmentId && contextProducts.length > 0 ? (
             <div className="text-xs text-n600 mb-3">
-              <button type="button" onClick={() => setShowUntouched((v) => !v)} className="text-teal">
+              <button type="button" onClick={() => setShowUntouched((v) => !v)} className="text-graphite">
                 {lines.length}
               </button>{" "}
               product{lines.length === 1 ? "" : "s"} in this batch · the other{" "}
-              <button type="button" onClick={() => setShowUntouched((v) => !v)} className="text-teal font-medium">
+              <button type="button" onClick={() => setShowUntouched((v) => !v)} className="text-graphite font-medium">
                 {untouched.length}
               </button>{" "}
               product{untouched.length === 1 ? "" : "s"} in {departmentName} will be posted as zero sales for {businessDay}.

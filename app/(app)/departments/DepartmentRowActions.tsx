@@ -26,7 +26,7 @@ export function DepartmentRowActions({ id, name, isActive }: { id: string; name:
 
   if (!isActive) {
     return (
-      <button type="button" onClick={reactivate} disabled={reactivating} className="text-teal disabled:opacity-60">
+      <button type="button" onClick={reactivate} disabled={reactivating} className="text-graphite disabled:opacity-60">
         {reactivating ? "Reactivating…" : "Reactivate"}
       </button>
     );
@@ -34,7 +34,7 @@ export function DepartmentRowActions({ id, name, isActive }: { id: string; name:
 
   return (
     <>
-      <button type="button" onClick={openDeactivate} className="text-teal">
+      <button type="button" onClick={openDeactivate} className="text-graphite">
         Deactivate
       </button>
 

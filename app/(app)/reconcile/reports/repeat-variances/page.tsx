@@ -89,7 +89,7 @@ export default async function RepeatVariancesReportPage({ searchParams }: { sear
                       <td className="px-0 h-9">
                         <Link
                           href={`/reconcile/reports/repeat-variances/${r.productId}?${drillSp.toString()}`}
-                          className="flex items-center h-9 px-4 text-[13.5px] text-teal whitespace-nowrap"
+                          className="flex items-center h-9 px-4 text-[13.5px] text-graphite whitespace-nowrap"
                         >
                           {r.productName} <span className="text-n600 text-xs ml-1.5">{r.productCode}</span>
                         </Link>

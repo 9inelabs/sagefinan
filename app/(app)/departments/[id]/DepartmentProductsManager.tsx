@@ -120,7 +120,7 @@ export function DepartmentProductsManager({
                 <label key={r.id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-n50 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="accent-teal w-4 h-4 flex-none"
+                    className="accent-graphite w-4 h-4 flex-none"
                     checked={selectedToAdd.has(r.id)}
                     onChange={(e) => {
                       setSelectedToAdd((prev) => {
@@ -180,7 +180,7 @@ export function DepartmentProductsManager({
                       <input
                         type="number"
                         inputMode="numeric"
-                        className="w-14 px-2 py-1 border border-n200 rounded text-[13px] tabular-nums focus:outline-2 focus:outline-teal focus:-outline-offset-1"
+                        className="w-14 px-2 py-1 border border-n200 rounded text-[13px] tabular-nums focus:outline-2 focus:outline-graphite focus:-outline-offset-1"
                         value={orderValue(p)}
                         onChange={(e) => setOrderDrafts((d) => ({ ...d, [p.productId]: e.target.value }))}
                         onBlur={() => commitOrder(p.productId)}
@@ -191,7 +191,7 @@ export function DepartmentProductsManager({
                     <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{p.name}</td>
                     <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(p.unitCost)}</td>
                     <td className="px-4 h-9 text-right whitespace-nowrap">
-                      <button type="button" onClick={() => remove(p.productId)} className="text-teal text-sm">
+                      <button type="button" onClick={() => remove(p.productId)} className="text-graphite text-sm">
                         Remove
                       </button>
                     </td>
@@ -215,13 +215,13 @@ export function DepartmentProductsManager({
                   <input
                     type="number"
                     inputMode="numeric"
-                    className="w-16 h-12 px-2 border border-n200 rounded text-center text-[15px] tabular-nums focus:outline-2 focus:outline-teal focus:-outline-offset-1"
+                    className="w-16 h-12 px-2 border border-n200 rounded text-center text-[15px] tabular-nums focus:outline-2 focus:outline-graphite focus:-outline-offset-1"
                     value={orderValue(p)}
                     onChange={(e) => setOrderDrafts((d) => ({ ...d, [p.productId]: e.target.value }))}
                     onBlur={() => commitOrder(p.productId)}
                   />
                 </div>
-                <button type="button" onClick={() => remove(p.productId)} className="text-teal text-sm h-12 px-1 flex-none">
+                <button type="button" onClick={() => remove(p.productId)} className="text-graphite text-sm h-12 px-1 flex-none">
                   Remove
                 </button>
               </div>

@@ -196,7 +196,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
                     ) : null}
                   </Link>
                   <div className="flex gap-4 text-sm mt-3">
-                    <Link href={`/movements/${m.id}`} className="text-teal">
+                    <Link href={`/movements/${m.id}`} className="text-graphite">
                       View details
                     </Link>
                     {canReverse(profile.role, m) ? <MovementRowActions movementId={m.id} /> : null}

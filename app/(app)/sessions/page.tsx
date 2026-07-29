@@ -55,7 +55,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
             title="No sessions match"
             description={totalCount === 0 ? "No counts have been started yet." : "Try different filters."}
             action={
-              <Link href="/count" className="text-teal text-sm">
+              <Link href="/count" className="text-graphite text-sm">
                 Start a count →
               </Link>
             }

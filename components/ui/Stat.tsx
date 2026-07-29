@@ -3,13 +3,13 @@ export function Stat({
   value,
   hint,
   colorClassName,
-  variant = "default",
+  variant = "premium",
 }: {
   label: string;
   value: string;
   hint?: string;
   colorClassName?: string;
-  // See Card.tsx's variant note — same "premium" surface, additive only.
+  // See Card.tsx's variant note — "premium" is now the default everywhere.
   variant?: "default" | "premium";
 }) {
   const surface = variant === "premium" ? "bg-white rounded-premium shadow-premium" : "bg-white border border-n200 rounded";

@@ -1513,3 +1513,69 @@ wasn't acceptable; the script hard-deleted its own two test rows directly
 via the admin client once verification passed (a backend cleanup of the
 script's own fixtures, not a capability the app exposes to any user — the
 table's RLS still grants no one a delete).
+
+**Premium redesign — phase 1: shell + Dashboard (new visual direction, no
+phase number).** User shared a reference screenshot and asked for the
+app's look upgraded to something more premium/classy — a real departure
+from the two-colour (Ink/Teal), icon-free, flat/hairline-border system
+`SPEC.md`'s Design tokens section and `design/ui-draft.html` have governed
+for every screen built so far. Confirmed before building, since it touches
+load-bearing, previously-settled conventions: palette shifts toward the
+reference's darker charcoal tone rather than keeping Teal as the one
+accent; icons added via a new dependency, `lucide-react`; and — given the
+size (every one of ~40 screens) — rolled out as design-system-and-shell
+first, then just the Dashboard as one full-page preview, with every other
+screen's content deliberately left on the old system until that's approved.
+
+New tokens added to `app/globals.css` **alongside** the existing ones, not
+replacing them (`--charcoal`/`--charcoal-active`/`--charcoal-muted`,
+`--radius-premium: 12px`, `--shadow-premium`) — the ~35 unmigrated screens
+still render with the original tokens untouched, so adding these couldn't
+and didn't change anything on those pages. `components/ui/Card.tsx` and
+`Stat.tsx` gained an additive `variant="premium"` prop (default stays the
+original flat look) rather than being rewritten, so every existing call
+site elsewhere in the app is unaffected — only `app/(app)/page.tsx`
+(Dashboard) opts into it.
+
+The app shell changed more structurally than a token swap: the reference
+shows a full-width top bar (brand + signed-in user + sign-out) sitting
+above the sidebar, not the sidebar owning that content in its own top/
+bottom blocks the way it did before. New `components/app-shell/Header.tsx`
+holds all of that now; `Sidebar.tsx` is nav-only (icons — one lucide
+component per `NavItem`, a field added to that type in `lib/nav.ts` —
+charcoal background, solid pill active state, section headers as bold
+dark-on-dark text instead of the old uppercase-tracked treatment).
+`AppShell.tsx` changed from a pure horizontal split to a vertical stack
+(`Header` on top, sidebar+content row below, each of sidebar/content
+scrolling independently within a `h-screen` outer frame) so the sidebar's
+nav stays visible regardless of scroll position without needing to hardcode
+Header's pixel height anywhere. The mobile hamburger moved from
+`PageShell.tsx` into `Header.tsx` along with everything else that's now
+persistent global chrome — which left `components/app-shell/drawer-context.tsx`
+with no remaining caller once `PageShell` stopped needing it (`Header` gets
+`onOpenDrawer` as a plain prop from `AppShell` instead, no longer deeply
+nested the way the old sidebar-embedded hamburger was), so it was deleted
+rather than kept as unreachable code. `PageShell.tsx` itself keeps its
+existing job (title/subtitle/actions) — restyled, not restructured — and
+rolls out to all 40 pages immediately along with the rest of the shell,
+same as the shell inherently has to (can't have "new sidebar on some pages,
+old on others"); only the Dashboard's own inner content (stat tiles,
+tables) is what's actually gated behind the "one page for approval" rule.
+The Dashboard's "Start count" button was deliberately left on the existing
+teal `Btn` — button treatment wasn't in this pass's file list and doesn't
+block reviewing the direction; a premium `Btn` variant is a natural
+addition once/if the wider rollout is approved.
+
+`/login` untouched, per its own already-established separate-treatment
+precedent (see "Login route visual treatment" in SPEC.md) — this redesign
+doesn't apply there any more than the main system ever did.
+
+Verified with a temporary Playwright script (installed, used, removed,
+same pattern as every prior phase): real screenshots taken (not just
+pass/fail assertions, since this is a visual change) at 1440px and 380px
+(including the mobile drawer open) and shown to the user directly as the
+actual review artifact; confirmed unmigrated pages (`/movements`,
+`/products`) still render with the original flat styling correctly inside
+the new shell; confirmed `/login` is pixel-for-pixel unaffected; confirmed
+no console errors. No dependency beyond `lucide-react`; nothing here
+touches the database.

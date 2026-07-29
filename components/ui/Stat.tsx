@@ -3,14 +3,18 @@ export function Stat({
   value,
   hint,
   colorClassName,
+  variant = "default",
 }: {
   label: string;
   value: string;
   hint?: string;
   colorClassName?: string;
+  // See Card.tsx's variant note — same "premium" surface, additive only.
+  variant?: "default" | "premium";
 }) {
+  const surface = variant === "premium" ? "bg-white rounded-premium shadow-premium" : "bg-white border border-n200 rounded";
   return (
-    <div className="bg-white border border-n200 rounded px-[15px] py-[13px]">
+    <div className={`${surface} px-[15px] py-[13px]`}>
       <span className="text-[11.5px] text-n600 tracking-wide uppercase">{label}</span>
       <b className={`block text-2xl font-medium mt-[5px] tracking-tight tabular-nums ${colorClassName ?? "text-ink"}`}>
         {value}

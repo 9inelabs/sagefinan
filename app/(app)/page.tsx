@@ -54,26 +54,34 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       }
     >
       <div className="grid grid-cols-2 min-[900px]:grid-cols-5 gap-3 mb-4.5">
-        <Stat label="Counted today" value={String(stats.countedDepartments)} hint={`/ ${stats.activeDepartments}`} />
+        <Stat variant="premium" label="Counted today" value={String(stats.countedDepartments)} hint={`/ ${stats.activeDepartments}`} />
         <Stat
+          variant="premium"
           label="Items with variance"
           value={String(stats.varianceLineCount)}
           colorClassName={stats.varianceLineCount > 0 ? "text-red" : undefined}
         />
         <Stat
+          variant="premium"
           label="Variance value"
           value={stats.varianceValue === 0 ? formatNaira(0) : signedValue(stats.varianceValue)}
           colorClassName={stats.varianceValue < 0 ? "text-red" : stats.varianceValue > 0 ? "text-green" : undefined}
         />
         <Link href="/reconcile">
-          <Stat label="Awaiting reconciliation" value={String(stats.awaitingReconciliation)} hint="sessions" />
+          <Stat variant="premium" label="Awaiting reconciliation" value={String(stats.awaitingReconciliation)} hint="sessions" />
         </Link>
         <Link href="/movements?override=1">
-          <Stat label="Flagged for review" value={String(overrideCount)} hint="overrides" colorClassName={overrideCount > 0 ? "text-amber" : undefined} />
+          <Stat
+            variant="premium"
+            label="Flagged for review"
+            value={String(overrideCount)}
+            hint="overrides"
+            colorClassName={overrideCount > 0 ? "text-amber" : undefined}
+          />
         </Link>
       </div>
 
-      <Card title="Today's counts" extra={`as at close of ${formatWeekdayDate(businessDay)}`} className="mb-4">
+      <Card variant="premium" title="Today's counts" extra={`as at close of ${formatWeekdayDate(businessDay)}`} className="mb-4">
         {departmentRows.length === 0 ? (
           <EmptyState
             title="No departments yet"
@@ -146,7 +154,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         )}
       </Card>
 
-      <Card title="Stock ledger" extra={`All departments · as at ${formatWeekdayDate(businessDay)}`} className="mb-4">
+      <Card variant="premium" title="Stock ledger" extra={`All departments · as at ${formatWeekdayDate(businessDay)}`} className="mb-4">
         {ledgerRows.length === 0 ? (
           <EmptyState title="No departments yet" description="The ledger will populate once departments and movements exist." />
         ) : (
@@ -198,7 +206,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </Card>
 
       <div className="grid min-[900px]:grid-cols-[1fr_300px] gap-4 items-start">
-        <Card title="Repeat variances" extra="last 30 days">
+        <Card variant="premium" title="Repeat variances" extra="last 30 days">
           {repeatVariances.length === 0 ? (
             <EmptyState title="No repeat variances" description="No product has shown a variance more than once in the last 30 days." />
           ) : (
@@ -240,7 +248,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           )}
         </Card>
 
-        <Card title="Movements today">
+        <Card variant="premium" title="Movements today">
           {recentMovements.length === 0 ? (
             <EmptyState title="No movements yet" description="Purchases, requisitions and sales will appear here as they're posted." />
           ) : (
@@ -278,7 +286,7 @@ function ScopedHome({ role, departmentName }: { role: "STOREKEEPER" | "DEPARTMEN
 
   return (
     <PageShell title="Sagefinan" subtitle={departmentName ?? undefined}>
-      <Card title="Welcome">
+      <Card variant="premium" title="Welcome">
         <div className="p-4 text-sm text-n600 leading-relaxed">
           <p className="mb-3">
             Signed in for <b className="text-ink font-medium">{departmentName ?? "your department"}</b>.

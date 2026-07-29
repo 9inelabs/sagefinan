@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
-import { navForRole } from "@/lib/nav";
 import { AppShell } from "@/components/app-shell/AppShell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -15,11 +14,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/change-password");
   }
 
-  const groups = navForRole(profile.role);
-
-  return (
-    <AppShell profile={profile} groups={groups}>
-      {children}
-    </AppShell>
-  );
+  // navForRole() (and its NAV_GROUPS, which now carry lucide-react icon
+  // component references) is computed inside AppShell itself, not here —
+  // React Server Components can't serialize a component reference across
+  // the server→client prop boundary the way it can plain data, so this
+  // moved client-side. See CLAUDE.md's follow-up on the premium redesign.
+  return <AppShell profile={profile}>{children}</AppShell>;
 }

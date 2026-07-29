@@ -265,18 +265,21 @@ export type Database = {
           is_active: boolean
           is_central_store: boolean
           name: string
+          stocks_products: boolean
         }
         Insert: {
           id?: string
           is_active?: boolean
           is_central_store?: boolean
           name: string
+          stocks_products?: boolean
         }
         Update: {
           id?: string
           is_active?: boolean
           is_central_store?: boolean
           name?: string
+          stocks_products?: boolean
         }
         Relationships: []
       }

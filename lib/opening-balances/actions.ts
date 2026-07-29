@@ -54,12 +54,20 @@ function blockedByLock(lockedDates: string[], businessDay: string): string | nul
 // ON-SCREEN FORM
 // ============================================================================
 
+// A non-stocking department (stocks_products = false) has no ongoing
+// balance to set an opening figure for — excluded here, same reasoning as
+// Take Stock/Ledger (see CLAUDE.md's follow-up).
 export async function listOpeningBalanceDepartments() {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN"]);
 
   const admin = createAdminClient();
-  const { data, error } = await admin.from("departments").select("id, name, is_central_store").eq("is_active", true).order("name");
+  const { data, error } = await admin
+    .from("departments")
+    .select("id, name, is_central_store")
+    .eq("is_active", true)
+    .eq("stocks_products", true)
+    .order("name");
   if (error) throw new Error(error.message);
   return data ?? [];
 }

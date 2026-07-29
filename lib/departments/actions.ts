@@ -8,15 +8,18 @@ function uniqueViolation(error: { code?: string } | null): boolean {
   return error?.code === "23505";
 }
 
-export async function createDepartment(input: { name: string; isCentralStore: boolean }) {
+export async function createDepartment(input: { name: string; isCentralStore: boolean; stocksProducts: boolean }) {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN"]);
 
   const name = input.name.trim();
   if (!name) throw new Error("Name is required.");
+  // The central store is the source of every transfer in the app — it must
+  // always stock products, regardless of what the form submitted.
+  const stocksProducts = input.isCentralStore ? true : input.stocksProducts;
 
   const admin = createAdminClient();
-  const { data, error } = await admin.from("departments").insert({ name }).select("id").single();
+  const { data, error } = await admin.from("departments").insert({ name, stocks_products: stocksProducts }).select("id").single();
   if (error) {
     throw new Error(uniqueViolation(error) ? `A department named "${name}" already exists.` : error.message);
   }
@@ -30,15 +33,16 @@ export async function createDepartment(input: { name: string; isCentralStore: bo
   return { id: data.id as string };
 }
 
-export async function updateDepartment(id: string, input: { name: string; isCentralStore: boolean }) {
+export async function updateDepartment(id: string, input: { name: string; isCentralStore: boolean; stocksProducts: boolean }) {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN"]);
 
   const name = input.name.trim();
   if (!name) throw new Error("Name is required.");
+  const stocksProducts = input.isCentralStore ? true : input.stocksProducts;
 
   const admin = createAdminClient();
-  const { error } = await admin.from("departments").update({ name }).eq("id", id);
+  const { error } = await admin.from("departments").update({ name, stocks_products: stocksProducts }).eq("id", id);
   if (error) {
     throw new Error(uniqueViolation(error) ? `A department named "${name}" already exists.` : error.message);
   }

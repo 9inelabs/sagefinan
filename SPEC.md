@@ -768,6 +768,83 @@ reconciled/deduplicated against the real row once it arrives.
 **Plain text only.** No attachments — would need Supabase Storage, unused
 anywhere else in this app, and was explicitly out of scope for this pass.
 
+## Non-stocking departments (follow-up, no phase number)
+
+`departments.stocks_products` (default `true`) marks a department that
+receives transfers from the central store but never holds an ongoing ledger
+balance — a kitchen is the canonical example: items move in, but nothing is
+counted, reconciled, or given an opening balance there. The central store
+itself can never be flagged this way (`lib/departments/actions.ts` forces
+`stocksProducts = true` whenever `isCentralStore` is true, regardless of
+what the form submitted) — it's the source of every transfer in the app.
+
+**What changes for a non-stocking department:**
+- Requisitioning to it no longer requires the product to be pre-assigned
+  (`product_assignments`) — every active product comes back usable in
+  `searchProductsForRequisition`. This was already a UI-only gate, not a
+  database rule (`validate_movement` has never checked `product_assignments`,
+  only `departments.is_central_store`), so waiving it needed no RPC/trigger
+  changes, only an application-layer check.
+- It's excluded entirely from Take Stock, Compare, Reconcile, Opening
+  balances, the Stock ledger, and Sales entry's department list — none of
+  these have anything meaningful to offer a department with no running
+  balance (`get_department_balance` requires `product_assignments` rows to
+  return anything at all; a non-stocking department may have zero, so
+  there's no "expected" figure to count against, no ledger to display, no
+  opening figure to set).
+- Its own record of what it received **is** its Requisition history,
+  scoped to itself (see below) — not a separate screen. Deliberately not
+  built as its own thing, since Requisition history already is exactly
+  "every transfer in, grouped by day," and a `DEPARTMENT_USER` at a
+  non-stocking department already only sees their own department's groups.
+
+It otherwise behaves like any department — still selectable everywhere
+that isn't balance-dependent (the admin Departments list, Movements'
+filter, Requisitions' destination picker, product-assignment screens,
+where assigning is still technically possible, just never required).
+
+## Grouped history & receipts (follow-up, no phase number)
+
+Sales history and the new Requisition history both show one line per
+**batch** — business day + department + who posted it — instead of one row
+per movement, opening into a compact, receipt-styled detail view. The
+grouping key is a real batch, not an approximation: `post_sales_batch`/
+`post_requisition_batch` each post an entire batch under one `created_by`
+in a single transaction, so business_day+department+created_by reliably
+identifies one real posting event. A second, separate batch hitting the
+same department on the same day (e.g. someone adds more sales later) is
+deliberately its own group/receipt, not merged into the first — confirmed
+before building.
+
+Sales groups by `from_department_id` (the selling department — the only
+side a SALE has); Requisitions groups by `to_department_id` (the
+destination — `from_department_id` is always the central store on every
+row and groups by it would be meaningless). Grouping happens in
+application code (`lib/sales/actions.ts`'s `listSalesHistoryGroups`,
+`lib/requisitions/actions.ts`'s `listRequisitionHistoryGroups`), same "no
+new view for one consumer" precedent every other report in this app
+follows — the underlying `movements_detail` rows are fetched once (same
+filter/scope helper the flat list and CSV export already used, capped like
+the export is), grouped, and **the groups are paginated, not the raw
+rows**, so a batch can never be split across two pages.
+
+**Receipt view** (`components/receipt/ReceiptView.tsx`, shared by both):
+addressed by query string (`?department=&day=&by=`), since a group has no
+single row/id of its own to route by. Deliberately outside this app's usual
+Ink/Teal-now-Graphite system — black-and-white/grey throughout, a dark
+gradient header card (hotel name, batch/entered-by/date, department) above
+a clean white line-items card, `--radius-premium`/`--shadow-premium`. Even
+an override or reversed line gets a small monochrome tag here rather than
+the amber/red used on every other screen — a receipt stays black-and-white,
+no exceptions. A totals row (item count + total quantity) closes out the
+line-items card. Each receipt has a matching PDF export
+(`lib/pdf/ReceiptDocument.tsx`, reusing the font/colour setup every other
+PDF export in the app already shares from `lib/pdf/theme.ts`) — visually
+simpler than the on-screen version (a solid dark header bar, not a
+gradient; react-pdf's gradient primitives were a reliability tradeoff not
+worth taking for a detail that isn't what "match the reference image"
+was actually asking for — that's the on-screen view's job).
+
 ## Phase 1 scope decisions (asked and answered before building)
 
 - **Currency valuation**: computed now in `get_department_balance`, not

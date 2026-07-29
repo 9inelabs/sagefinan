@@ -10,11 +10,12 @@ import { createDepartment, updateDepartment } from "@/lib/departments/actions";
 export function DepartmentForm({
   department,
 }: {
-  department?: { id: string; name: string; isCentralStore: boolean };
+  department?: { id: string; name: string; isCentralStore: boolean; stocksProducts: boolean };
 }) {
   const router = useRouter();
   const [name, setName] = useState(department?.name ?? "");
   const [isCentralStore, setIsCentralStore] = useState(department?.isCentralStore ?? false);
+  const [stocksProducts, setStocksProducts] = useState(department?.stocksProducts ?? true);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,10 +33,10 @@ export function DepartmentForm({
     setError(null);
     try {
       if (department) {
-        await updateDepartment(department.id, { name, isCentralStore });
+        await updateDepartment(department.id, { name, isCentralStore, stocksProducts });
         router.refresh();
       } else {
-        const { id } = await createDepartment({ name, isCentralStore });
+        const { id } = await createDepartment({ name, isCentralStore, stocksProducts });
         router.push(`/departments/${id}`);
       }
     } catch (e) {
@@ -63,6 +64,24 @@ export function DepartmentForm({
         This is the central store
       </label>
       <p className="text-xs text-n600 mb-3.5">{centralStoreNote}</p>
+
+      <label className={`flex items-center gap-2 text-sm mb-1.5 select-none ${isCentralStore ? "opacity-50" : "cursor-pointer"}`}>
+        <input
+          type="checkbox"
+          className="accent-graphite w-4 h-4"
+          checked={stocksProducts}
+          disabled={pending || isCentralStore}
+          onChange={(e) => setStocksProducts(e.target.checked)}
+        />
+        This department stocks products
+      </label>
+      <p className="text-xs text-n600 mb-3.5">
+        {isCentralStore
+          ? "The central store always stocks products — it's the source of every transfer in the app."
+          : stocksProducts
+            ? "Products can be assigned here, counted, reconciled, and given opening balances — the normal stock ledger."
+            : "Turned off: this department has no stock ledger — it's never counted, reconciled, or given an opening balance, and requisitions to it don't require the product to be pre-assigned first. Its only record is its own Requisition history. Good for departments that receive stock but don't track an ongoing balance (e.g. a kitchen)."}
+      </p>
 
       {error ? <p className="text-sm text-red mb-3">{error}</p> : null}
 

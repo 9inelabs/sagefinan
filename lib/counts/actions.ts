@@ -79,12 +79,21 @@ async function loadShelfOrderedLines(admin: AdminClient, sessionId: string, depa
 // too: "closing = opening + purchases − requisitions out" (SPEC.md).
 // ============================================================================
 
+// A non-stocking department has no running balance to count against — no
+// expected_qty is ever computable for it (get_department_balance returns
+// nothing without product_assignments), so it's excluded from Take Stock
+// entirely rather than offering a count that can never be reconciled.
 export async function listCountDepartments() {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN", "AUDITOR"]);
 
   const admin = createAdminClient();
-  const { data, error } = await admin.from("departments").select("id, name, is_central_store").eq("is_active", true).order("name");
+  const { data, error } = await admin
+    .from("departments")
+    .select("id, name, is_central_store")
+    .eq("is_active", true)
+    .eq("stocks_products", true)
+    .order("name");
   if (error) throw new Error(error.message);
   return data ?? [];
 }

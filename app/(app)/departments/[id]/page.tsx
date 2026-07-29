@@ -16,7 +16,7 @@ export default async function DepartmentDetailPage({ params }: { params: Promise
   const admin = createAdminClient();
   const { data: department } = await admin
     .from("departments")
-    .select("id, name, is_central_store, is_active")
+    .select("id, name, is_central_store, is_active, stocks_products")
     .eq("id", id)
     .single();
 
@@ -29,7 +29,12 @@ export default async function DepartmentDetailPage({ params }: { params: Promise
       <div className="flex flex-col gap-4">
         <Card title="Department details">
           <DepartmentForm
-            department={{ id: department.id, name: department.name, isCentralStore: department.is_central_store }}
+            department={{
+              id: department.id,
+              name: department.name,
+              isCentralStore: department.is_central_store,
+              stocksProducts: department.stocks_products,
+            }}
           />
         </Card>
 

@@ -32,7 +32,7 @@ export function RequisitionBatchForm({
   destinations,
 }: {
   initialBusinessDay: string;
-  destinations: { id: string; name: string }[];
+  destinations: { id: string; name: string; stocksProducts: boolean }[];
 }) {
   const [businessDay, setBusinessDay] = useState(initialBusinessDay);
   const [toDepartmentId, setToDepartmentId] = useState("");
@@ -197,6 +197,7 @@ export function RequisitionBatchForm({
 
   const totalBottles = lines.reduce((sum, l) => sum + l.quantity, 0);
   const overrideCount = lines.filter((l) => l.isOverride).length;
+  const destinationStocksProducts = destinations.find((d) => d.id === toDepartmentId)?.stocksProducts ?? true;
 
   return (
     <div className="flex flex-col gap-4">
@@ -247,6 +248,12 @@ export function RequisitionBatchForm({
           <EmptyState title="Choose a destination first" description="Pick the department this requisition is going to before searching products." />
         ) : (
           <div className="p-4">
+            {!destinationStocksProducts ? (
+              <div className="text-xs text-n600 bg-n50 border border-n200 rounded p-3 mb-3.5">
+                This department doesn&apos;t stock products — any central store item can be sent here, no assignment needed. It has no
+                stock ledger; the transfer will show up in its Requisition history instead.
+              </div>
+            ) : null}
             <Field label="Product">
               <div className="relative">
                 <Input placeholder="Search code or name" value={search} onChange={(e) => runSearch(e.target.value)} />

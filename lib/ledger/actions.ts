@@ -15,6 +15,10 @@ type MovementType = Database["public"]["Enums"]["movement_type"];
 
 export type LedgerDepartment = { id: string; name: string; isCentralStore: boolean };
 
+// A department flagged stocks_products = false has no ledger at all (its
+// record is its own Requisition history instead) — excluded here for every
+// role, including a scoped user whose own department is one, per CLAUDE.md's
+// follow-up on non-stocking departments.
 export async function listLedgerDepartments(): Promise<LedgerDepartment[]> {
   const profile = await getCurrentProfile();
   const admin = createAdminClient();
@@ -23,14 +27,19 @@ export async function listLedgerDepartments(): Promise<LedgerDepartment[]> {
     if (!profile.departmentId) return [];
     const { data, error } = await admin
       .from("departments")
-      .select("id, name, is_central_store")
+      .select("id, name, is_central_store, stocks_products")
       .eq("id", profile.departmentId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    return data ? [{ id: data.id, name: data.name, isCentralStore: data.is_central_store }] : [];
+    return data && data.stocks_products ? [{ id: data.id, name: data.name, isCentralStore: data.is_central_store }] : [];
   }
 
-  const { data, error } = await admin.from("departments").select("id, name, is_central_store").eq("is_active", true).order("name");
+  const { data, error } = await admin
+    .from("departments")
+    .select("id, name, is_central_store")
+    .eq("is_active", true)
+    .eq("stocks_products", true)
+    .order("name");
   if (error) throw new Error(error.message);
   return (data ?? []).map((d) => ({ id: d.id, name: d.name, isCentralStore: d.is_central_store }));
 }

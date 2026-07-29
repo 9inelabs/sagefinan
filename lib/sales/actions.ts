@@ -42,6 +42,9 @@ async function assertNotCentralStore(admin: AdminClient, departmentId: string) {
 // DEPARTMENT_USER's department is fixed and never comes from this list)
 // ============================================================================
 
+// Non-stocking departments (e.g. a kitchen) are excluded — with no ledger,
+// there's no opening/received figure to check an oversell against, so Sales
+// entry has nothing meaningful to offer there (see CLAUDE.md's follow-up).
 export async function listSalesDepartments() {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN", "STOREKEEPER"]);
@@ -52,6 +55,7 @@ export async function listSalesDepartments() {
     .select("id, name")
     .eq("is_active", true)
     .eq("is_central_store", false)
+    .eq("stocks_products", true)
     .order("name");
   if (error) throw new Error(error.message);
   return data ?? [];
@@ -416,4 +420,140 @@ export async function listSalesHistoryForExport(filters: SalesHistoryFilters): P
   const { data, error } = await scoped.order("created_at", { ascending: false }).limit(EXPORT_ROW_CAP);
   if (error) throw new Error(error.message);
   return (data ?? []).map(toSalesHistoryRow);
+}
+
+// ============================================================================
+// GROUPED HISTORY + RECEIPTS — one line per batch (business day + department
+// + who entered it) instead of one row per sale, opening into a receipt-
+// styled detail view. post_sales_batch posts a whole batch under one
+// created_by in one transaction, so this grouping key is a real batch, not
+// an approximation — a second, separate batch for the same department/day
+// (e.g. someone adds more sales later) is deliberately its own group/receipt,
+// confirmed before building (see CLAUDE.md's follow-up).
+//
+// Grouping happens in application code, same "no new view for one consumer"
+// reasoning as every other report in this app — the underlying rows are
+// fetched once (same scope/filter helper listSalesHistory already uses,
+// capped like the CSV export is), grouped, then the GROUPS are paginated,
+// not the raw rows, so a batch can never be split across two pages.
+// ============================================================================
+
+const HISTORY_GROUP_PAGE_SIZE = 30;
+
+export type SalesHistoryGroup = {
+  businessDay: string;
+  departmentId: string;
+  departmentName: string;
+  createdBy: string;
+  createdByName: string;
+  lineCount: number;
+  totalQuantity: number;
+  hasOverride: boolean;
+  hasReversal: boolean;
+};
+
+function groupSalesRows(rows: MovementsDetailRow[]): SalesHistoryGroup[] {
+  const map = new Map<string, SalesHistoryGroup>();
+  for (const m of rows) {
+    const key = `${m.business_day}:${m.from_department_id}:${m.created_by}`;
+    const existing = map.get(key);
+    const isOverride = m.is_override ?? false;
+    const isFlagged = m.reversal_of_movement_id != null || m.reversed_by_movement_id != null;
+    if (existing) {
+      existing.lineCount += 1;
+      existing.totalQuantity += m.quantity!;
+      existing.hasOverride = existing.hasOverride || isOverride;
+      existing.hasReversal = existing.hasReversal || isFlagged;
+    } else {
+      map.set(key, {
+        businessDay: m.business_day!,
+        departmentId: m.from_department_id!,
+        departmentName: m.from_department_name ?? "—",
+        createdBy: m.created_by!,
+        createdByName: m.created_by_name!,
+        lineCount: 1,
+        totalQuantity: m.quantity!,
+        hasOverride: isOverride,
+        hasReversal: isFlagged,
+      });
+    }
+  }
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.businessDay !== b.businessDay) return b.businessDay.localeCompare(a.businessDay);
+    return a.departmentName.localeCompare(b.departmentName);
+  });
+}
+
+export async function listSalesHistoryGroups(
+  filters: SalesHistoryFilters,
+  page: number
+): Promise<{ groups: SalesHistoryGroup[]; totalCount: number; page: number; totalPages: number }> {
+  const profile = await getCurrentProfile();
+  const admin = createAdminClient();
+
+  const base = admin.from("movements_detail").select("*");
+  const scoped = applySalesHistoryScope(base, profile, filters);
+  if (!scoped) return { groups: [], totalCount: 0, page: 1, totalPages: 1 };
+
+  const { data, error } = await scoped.order("business_day", { ascending: false }).limit(EXPORT_ROW_CAP);
+  if (error) throw new Error(error.message);
+
+  const groups = groupSalesRows(data ?? []);
+  const totalCount = groups.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / HISTORY_GROUP_PAGE_SIZE));
+  const safePage = Math.max(1, Math.min(page, totalPages));
+  const from = (safePage - 1) * HISTORY_GROUP_PAGE_SIZE;
+
+  return { groups: groups.slice(from, from + HISTORY_GROUP_PAGE_SIZE), totalCount, page: safePage, totalPages };
+}
+
+export type SalesReceiptLine = {
+  id: string;
+  productCode: string;
+  productName: string;
+  quantity: number;
+  isOverride: boolean;
+  isReversal: boolean;
+  isReversed: boolean;
+};
+
+export type SalesReceiptDetail = {
+  businessDay: string;
+  departmentName: string;
+  createdByName: string;
+  lines: SalesReceiptLine[];
+};
+
+export async function getSalesReceiptDetail(departmentId: string, businessDay: string, createdBy: string): Promise<SalesReceiptDetail | null> {
+  const profile = await getCurrentProfile();
+  if (profile.role === "DEPARTMENT_USER" && profile.departmentId !== departmentId) {
+    throw new Error("You don't have access to that department's sales history.");
+  }
+
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("movements_detail")
+    .select("*")
+    .eq("type", "SALE")
+    .eq("from_department_id", departmentId)
+    .eq("business_day", businessDay)
+    .eq("created_by", createdBy)
+    .order("created_at", { ascending: true });
+  if (error) throw new Error(error.message);
+  if (!data || data.length === 0) return null;
+
+  return {
+    businessDay,
+    departmentName: data[0].from_department_name ?? "—",
+    createdByName: data[0].created_by_name!,
+    lines: data.map((m) => ({
+      id: m.id!,
+      productCode: m.product_code!,
+      productName: m.product_name!,
+      quantity: m.quantity!,
+      isOverride: m.is_override ?? false,
+      isReversal: m.reversal_of_movement_id != null,
+      isReversed: m.reversed_by_movement_id != null,
+    })),
+  };
 }

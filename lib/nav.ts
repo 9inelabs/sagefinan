@@ -11,6 +11,7 @@ import {
   ArrowLeftRight,
   ShoppingBag,
   FilePlus,
+  PackageCheck,
   Receipt,
   ReceiptText,
   Building2,
@@ -80,6 +81,13 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { key: "purchases", label: "Purchases", href: "/purchases", roles: ["ADMIN", "STOREKEEPER"], icon: ShoppingBag },
       { key: "req", label: "Requisitions", href: "/requisitions", roles: ["ADMIN", "STOREKEEPER"], icon: FilePlus },
+      {
+        key: "req-history",
+        label: "Requisition history",
+        href: "/requisitions/history",
+        roles: ["ADMIN", "AUDITOR", "STOREKEEPER", "DEPARTMENT_USER"],
+        icon: PackageCheck,
+      },
       {
         key: "sales",
         label: "Sales entry",

@@ -1640,3 +1640,132 @@ computed-style checks confirmed the sidebar's background is literally
 by eye alone; 380px checked on Dashboard and Movements; no console errors
 across any page visited; `/login`'s files confirmed to have zero
 functional diff (comment-only changes, verified via `git diff`).
+
+**Grouped history + receipts, requisition history, non-stocking departments
+(new features, no phase number).** Three related asks, planned and
+confirmed together (see SPEC.md's "Non-stocking departments" and "Grouped
+history & receipts" sections for the settled model): Sales history grouped
+into one line per batch opening into a receipt view matching a reference
+image; the same treatment for Requisitions, which had no history screen at
+all before this; and a department flag for places like a kitchen that
+receive transfers but never hold a ledger.
+
+Researched before planning, not assumed: `RequisitionBatchForm.tsx`'s
+"product must be assigned to the destination" rule turned out to be
+**UI-only** — neither `validate_movement` (the DB trigger) nor
+`post_requisition_batch` (the RPC, which only balance-checks the *source*
+central-store side) reference `product_assignments` at all. This is what
+made waiving it for non-stocking departments a pure application-layer
+change (`searchProductsForRequisition` fetches the destination's
+`stocks_products` flag and marks every result `assignedToDestination: true`
+when it's false) with no migration to the trigger/RPC needed. Similarly,
+`get_department_balance`'s `assigned_products` CTE inner-joins from
+`product_assignments` — a department with zero assignment rows returns
+zero rows, full stop, regardless of real movement history — confirming a
+non-stocking department genuinely can't have a normal ledger and needs its
+record to come from somewhere that doesn't go through that function at all
+(Requisition history, confirmed with the user as sufficient rather than
+building a separate "receipts" screen).
+
+`departments` gained one column, `stocks_products boolean not null default
+true` (`20260729100000_department_stocks_products.sql`) — every existing
+department keeps today's behaviour unchanged. The central store can never
+be flagged non-stocking (`lib/departments/actions.ts` forces it `true`
+whenever `isCentralStore` is true, regardless of what the form submitted —
+it's the source of every transfer in the app). `DepartmentForm.tsx` gained
+a toggle with copy explaining the consequence before it's saved, not after.
+Five department-list call sites (`listLedgerDepartments`,
+`listOpeningBalanceDepartments`, `listCountDepartments`,
+`listDashboardDepartments`/`getDashboardData`, `listSalesDepartments`) each
+gained one `.eq("stocks_products", true)` — confirmed before building that
+this should extend to Sales entry too, same reasoning as Take Stock: no
+ledger means no opening/received figure to check an oversell against, so
+there's nothing for that screen to offer such a department either. Sales
+entry's `DEPARTMENT_USER` path (`app/(app)/sales/page.tsx`) gets its own
+department directly rather than through that list, so it needed its own
+explicit check too — added, with a link to Requisition history instead of
+a broken sales form.
+
+**Grouped history**: `listSalesHistoryGroups`/`listRequisitionHistoryGroups`
+(`lib/sales/actions.ts`, new `lib/requisitions/actions.ts`) reuse each
+screen's existing scope/filter helper unchanged, fetch matching
+`movements_detail` rows once (capped like the CSV export already is), group
+them client-side by business_day+department+created_by, then paginate the
+**groups** — never the raw rows, so a batch can't be split across two
+pages. Sales groups by `from_department_id`; Requisitions groups by
+`to_department_id`, since `from_department_id` is always the central store
+on every requisition row and grouping by it would tell you nothing.
+Confirmed before building: a second, separate batch hitting the same
+department on the same day (a different `created_by`) is its own
+group/receipt, not merged into the first one.
+
+**Receipt view** (`components/receipt/ReceiptView.tsx`): addressed by query
+string (`?department=&day=&by=`) rather than a path segment, since a group
+has no single row/id of its own. Deliberately outside the app's normal
+Ink/Graphite system — black-and-white/grey only, a dark gradient header
+card (`linear-gradient(165deg, var(--ink), #000)`, inline `style` rather
+than a Tailwind gradient utility, to sidestep any Tailwind v4
+gradient-utility-naming uncertainty entirely) above a clean white
+line-items card using the redesign's existing `--radius-premium`/
+`--shadow-premium` tokens. Override/reversed lines get a small monochrome
+tag here, not this app's usual amber/red — a receipt stays black-and-white,
+no exceptions, even where every other screen uses colour for exactly this
+kind of flag. A totals row (item count + total quantity) was added as the
+"make it detailed" ask, beyond what the reference image itself showed.
+Each receipt also gets a matching PDF export
+(`lib/pdf/ReceiptDocument.tsx`) reusing `lib/pdf/theme.ts`'s existing
+font/colour setup — visually simpler than the on-screen version (a solid
+dark bar instead of a gradient; react-pdf's own gradient primitives were a
+reliability tradeoff not worth taking for what's a print/save convenience,
+not the thing that was asked to match the reference image exactly).
+
+Requisitions' CSV export deliberately reuses the existing `/movements/export`
+route (`?type=REQUISITION`, plus whatever filters are active) rather than a
+new duplicate export route — Movements already exports exactly this data,
+filtered.
+
+New "Requisition history" nav item (`lib/nav.ts`), same role set Sales
+history already uses (ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER) — the
+last one scoped to their own department by the existing
+`applyMovementScope`-style pattern, which is what makes this page double as
+a non-stocking department's own record, per the confirmed plan.
+
+Verified with a temporary Playwright script (installed, used, removed,
+same pattern as every prior phase) against real data: flagged a real
+department non-stocking (the script re-derived "a real non-central
+department" fresh on every run via an unordered query — Postgres doesn't
+guarantee row order without `order by`, so this picked a different
+department each run; one early run crashed mid-test on a bad selector
+before its own restore step ran, leaving MINI-MART stuck on
+`stocks_products = false` until the next manual pass caught and fixed it —
+worth remembering for any future script that mutates real rows: restore
+logic must run in a `finally`, not just at the end of the happy path),
+confirmed it disappeared from Take Stock/Compare/Opening balances/Ledger
+department pickers but still appeared as a Requisitions destination;
+requisitioned a product to it that had never been assigned there and
+confirmed it posted with no assignment-gate error; confirmed the transfer
+showed up correctly in its own (query-string-filtered) Requisition history
+receipt; reverted the department back to stocking afterward. Both new
+receipt views screenshotted against real data and shown directly, since
+matching the reference image was the actual point — same verification
+approach as the premium redesign's own screenshots.
+
+**New finding, worth recording for future verification scripts**: a
+throwaway test account that has posted even one movement can never be
+deleted afterward, only deactivated — `movements.created_by` references
+`profiles(id)` with no cascade, and movements are immutable by design (see
+above), so `auth.admin.deleteUser()` fails with a `23503` foreign-key
+violation the moment the account has any movement (including a reversal)
+attributed to it. Earlier phases' test-account cleanups never hit this
+because those test accounts' movements were themselves always reversed
+*and the account deleted before this constraint was ever exercised by a
+script that both posted a real requisition and then tried to delete the
+poster* — this task's script was the first to do both. The correct cleanup
+in that situation is the same one this app already uses for real staff
+offboarding: set `is_active = false` rather than deleting the row. The
+throwaway "History Test" ADMIN account from this verification is left in
+`profiles` deactivated for this reason (id `d164b250-a649-484c-88e2-4b0f731f59ab`) —
+its four requisition/reversal pairs are real, harmless (net-zero, matching
+the balances they had before), and permanently part of the audit trail by
+design, exactly like every other reversed test movement this project's
+phase log already documents keeping.

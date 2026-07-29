@@ -85,6 +85,12 @@ export type RequisitionProductResult = {
 // still surface unassigned matches (flagged, not hidden) so the UI can say so
 // plainly and link to the assignment screen, per SPEC.md.
 //
+// Exception: a department flagged stocks_products = false (e.g. a kitchen —
+// it receives transfers but never holds an ongoing ledger balance, see
+// CLAUDE.md's follow-up) has no meaningful concept of "assigned" at all, so
+// every product comes back usable regardless of product_assignments — the
+// whole point of the flag is to waive this gate, not just hide the warning.
+//
 // Performance note: central-store lookup and the product search are
 // independent, so they run in parallel; the assignment check and the
 // balance figure are both independent of each other once the matched
@@ -106,11 +112,17 @@ export async function searchProductsForRequisition(
   let productsQuery = admin.from("products").select("id, code, name").eq("is_active", true).order("name").limit(20);
   if (trimmed) productsQuery = productsQuery.or(`code.ilike.%${trimmed}%,name.ilike.%${trimmed}%`);
 
-  const [central, { data: products, error }] = await Promise.all([getCentralStoreDepartment(admin), productsQuery]);
+  const [central, destination, { data: products, error }] = await Promise.all([
+    getCentralStoreDepartment(admin),
+    admin.from("departments").select("stocks_products").eq("id", toDepartmentId).single(),
+    productsQuery,
+  ]);
   if (toDepartmentId === central.id) throw new Error("Requisitions cannot target the central store.");
+  if (destination.error) throw new Error(destination.error.message);
   if (error) throw new Error(error.message);
   if (!products || products.length === 0) return [];
 
+  const destinationStocksProducts = destination.data.stocks_products;
   const productIds = products.map((p) => p.id);
   const [{ data: assignments, error: assignError }, { data: balances, error: balanceError }] = await Promise.all([
     admin.from("product_assignments").select("product_id").eq("department_id", toDepartmentId).in("product_id", productIds),
@@ -125,7 +137,7 @@ export async function searchProductsForRequisition(
     id: p.id,
     code: p.code,
     name: p.name,
-    assignedToDestination: assignedIds.has(p.id),
+    assignedToDestination: destinationStocksProducts ? assignedIds.has(p.id) : true,
     availableQty: balanceByProduct.get(p.id) ?? null,
   }));
 }
@@ -137,12 +149,12 @@ export async function listRequisitionDestinations() {
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("departments")
-    .select("id, name")
+    .select("id, name, stocks_products")
     .eq("is_active", true)
     .eq("is_central_store", false)
     .order("name");
   if (error) throw new Error(error.message);
-  return data ?? [];
+  return (data ?? []).map((d) => ({ id: d.id, name: d.name, stocksProducts: d.stocks_products }));
 }
 
 // Only DEPARTMENT_USER profiles can be assigned to a non-central department

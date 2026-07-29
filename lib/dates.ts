@@ -38,3 +38,12 @@ export function formatLongDate(iso: string) {
 export function formatWeekdayDate(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 }
+
+// "27/July/2026" — the Sales/Requisition receipt's own date format, matching
+// the reference image exactly (components/receipt/ReceiptView.tsx).
+export function formatReceiptDate(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  const day = d.getDate();
+  const month = d.toLocaleDateString("en-GB", { month: "long" });
+  return `${day}/${month}/${d.getFullYear()}`;
+}

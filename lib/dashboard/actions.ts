@@ -73,12 +73,16 @@ export type DashboardData = {
 // user-chosen filter (the header select in design/ui-draft.html), narrowing
 // every section below to one department — SPEC.md's "all figures scoped to
 // the selected department filter."
+// Non-stocking departments (stocks_products = false) are excluded here and
+// from getDashboardData below — neither a count-session status nor a
+// balance figure is meaningful for one, same reasoning as Take Stock/Ledger
+// (see CLAUDE.md's follow-up).
 export async function listDashboardDepartments() {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN", "AUDITOR"]);
 
   const admin = createAdminClient();
-  const { data, error } = await admin.from("departments").select("id, name").eq("is_active", true).order("name");
+  const { data, error } = await admin.from("departments").select("id, name").eq("is_active", true).eq("stocks_products", true).order("name");
   if (error) throw new Error(error.message);
   return data ?? [];
 }
@@ -90,7 +94,12 @@ export async function getDashboardData(departmentId?: string): Promise<Dashboard
   const admin = createAdminClient();
   const businessDay = yesterdayIso();
 
-  const { data: departments, error: deptError } = await admin.from("departments").select("id, name").eq("is_active", true).order("name");
+  const { data: departments, error: deptError } = await admin
+    .from("departments")
+    .select("id, name")
+    .eq("is_active", true)
+    .eq("stocks_products", true)
+    .order("name");
   if (deptError) throw new Error(deptError.message);
   const activeDepartments = departmentId ? (departments ?? []).filter((d) => d.id === departmentId) : departments ?? [];
 

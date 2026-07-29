@@ -7,12 +7,8 @@ import { Btn } from "@/components/ui/Button";
 import { Tag } from "@/components/ui/Tag";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { AccessDenied } from "@/components/AccessDenied";
-import { listSalesHistory, type SalesHistoryFilters, type SalesHistoryRow } from "@/lib/sales/actions";
+import { listSalesHistoryGroups, type SalesHistoryFilters, type SalesHistoryGroup } from "@/lib/sales/actions";
 import { SalesHistoryFilters as Filters } from "./SalesHistoryFilters";
-
-function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-}
 
 type SearchParams = {
   q?: string;
@@ -21,6 +17,11 @@ type SearchParams = {
   to?: string;
   page?: string;
 };
+
+function receiptHref(g: SalesHistoryGroup) {
+  const sp = new URLSearchParams({ department: g.departmentId, day: g.businessDay, by: g.createdBy });
+  return `/sales/history/receipt?${sp.toString()}`;
+}
 
 export default async function SalesHistoryPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const profile = await getCurrentProfile();
@@ -40,8 +41,8 @@ export default async function SalesHistoryPage({ searchParams }: { searchParams:
   const canSeeEverything = profile.role === "ADMIN" || profile.role === "AUDITOR" || profile.role === "STOREKEEPER";
 
   const admin = createAdminClient();
-  const [{ rows, totalCount, totalPages }, departments] = await Promise.all([
-    listSalesHistory(filters, page),
+  const [{ groups, totalCount, totalPages }, departments] = await Promise.all([
+    listSalesHistoryGroups(filters, page),
     canSeeEverything
       ? admin
           .from("departments")
@@ -62,14 +63,14 @@ export default async function SalesHistoryPage({ searchParams }: { searchParams:
   return (
     <PageShell
       title="Sales history"
-      subtitle="Every posted sale, with overrides and reversals visually distinguished"
+      subtitle="One line per day's sales for a department — open a line for the full receipt"
       actions={
         <Link href={`/sales/history/export?${exportParams.toString()}`}>
           <Btn>Export CSV</Btn>
         </Link>
       }
     >
-      <Card title="Sales history" extra={`${totalCount} total`}>
+      <Card title="Sales history" extra={`${totalCount} batch${totalCount === 1 ? "" : "es"}`}>
         <Filters
           departments={departments}
           showDepartmentFilter={canSeeEverything}
@@ -81,7 +82,7 @@ export default async function SalesHistoryPage({ searchParams }: { searchParams:
           }}
         />
 
-        {rows.length === 0 ? (
+        {groups.length === 0 ? (
           <EmptyState
             title="No sales match"
             description={totalCount === 0 && !params.q ? "Nothing has been posted yet." : "Try a different search term or clear the filters."}
@@ -92,11 +93,11 @@ export default async function SalesHistoryPage({ searchParams }: { searchParams:
               <table className="w-full border-collapse">
                 <thead>
                   <tr>
-                    {["Business day", "Department", "Product", "Qty", "Entered by", "Time", "Flags"].map((h, i) => (
+                    {["Business day", "Department", "Entered by", "Items", "Total qty", "Flags"].map((h, i) => (
                       <th
                         key={h}
                         className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
-                          i === 3 ? "text-right" : ""
+                          i === 3 || i === 4 ? "text-right" : ""
                         }`}
                       >
                         {h}
@@ -105,16 +106,16 @@ export default async function SalesHistoryPage({ searchParams }: { searchParams:
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
-                    <SalesHistoryDesktopRow key={r.id} row={r} />
+                  {groups.map((g) => (
+                    <SalesHistoryDesktopRow key={`${g.businessDay}:${g.departmentId}:${g.createdBy}`} group={g} />
                   ))}
                 </tbody>
               </table>
             </div>
 
             <div className="min-[900px]:hidden divide-y divide-n200">
-              {rows.map((r) => (
-                <SalesHistoryMobileRow key={r.id} row={r} />
+              {groups.map((g) => (
+                <SalesHistoryMobileRow key={`${g.businessDay}:${g.departmentId}:${g.createdBy}`} group={g} />
               ))}
             </div>
           </>
@@ -140,51 +141,45 @@ export default async function SalesHistoryPage({ searchParams }: { searchParams:
   );
 }
 
-function SalesHistoryDesktopRow({ row: r }: { row: SalesHistoryRow }) {
+function SalesHistoryDesktopRow({ group: g }: { group: SalesHistoryGroup }) {
   return (
-    <tr className={`border-b border-n200 last:border-b-0 hover:bg-n50 ${r.isReversed ? "opacity-60" : ""}`}>
-      <td className="px-4 h-9 text-[13.5px] tabular-nums whitespace-nowrap">{r.businessDay}</td>
-      <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{r.departmentName}</td>
-      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
-        {r.productName} <span className="text-n600 text-xs">{r.productCode}</span>
+    <tr className="border-b border-n200 last:border-b-0 hover:bg-n50">
+      <td className="px-0 h-9">
+        <Link href={receiptHref(g)} className="flex items-center h-9 px-4 text-[13.5px] tabular-nums whitespace-nowrap text-graphite">
+          {g.businessDay}
+        </Link>
       </td>
-      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums font-medium whitespace-nowrap">{r.quantity}</td>
-      <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{r.createdByName}</td>
-      <td className="px-4 h-9 text-[13.5px] text-n600 tabular-nums whitespace-nowrap">{formatTime(r.createdAt)}</td>
+      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{g.departmentName}</td>
+      <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{g.createdByName}</td>
+      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{g.lineCount}</td>
+      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums font-medium whitespace-nowrap">{g.totalQuantity}</td>
       <td className="px-4 h-9 whitespace-nowrap">
         <div className="flex gap-1.5">
-          {r.isOverride ? <Tag variant="warn">Override</Tag> : null}
-          {r.isReversal ? <Tag variant="mut">Reversal</Tag> : null}
-          {r.isReversed ? <Tag variant="bad">Reversed</Tag> : null}
+          {g.hasOverride ? <Tag variant="warn">Override</Tag> : null}
+          {g.hasReversal ? <Tag variant="mut">Reversal</Tag> : null}
         </div>
       </td>
     </tr>
   );
 }
 
-function SalesHistoryMobileRow({ row: r }: { row: SalesHistoryRow }) {
+function SalesHistoryMobileRow({ group: g }: { group: SalesHistoryGroup }) {
   return (
-    <div className={`p-4 ${r.isReversed ? "opacity-60" : ""}`}>
+    <Link href={receiptHref(g)} className="block p-4">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium">{r.productName}</span>
-        <span className="text-sm font-medium tabular-nums">{r.quantity}</span>
+        <span className="text-sm font-medium">{g.departmentName}</span>
+        <span className="text-sm font-medium tabular-nums">{g.totalQuantity}</span>
       </div>
-      <div className="text-xs text-n600 mt-0.5">
-        {r.productCode} · {r.departmentName}
+      <div className="text-xs text-n600 mt-0.5 tabular-nums">
+        {g.businessDay} · {g.lineCount} item{g.lineCount === 1 ? "" : "s"} · by {g.createdByName}
       </div>
-      <div className="flex items-center justify-between mt-2">
-        <span className="text-xs text-n600">
-          {r.businessDay} · {formatTime(r.createdAt)} · by {r.createdByName}
-        </span>
-      </div>
-      {r.isOverride || r.isReversal || r.isReversed ? (
+      {g.hasOverride || g.hasReversal ? (
         <div className="flex gap-1.5 mt-2">
-          {r.isOverride ? <Tag variant="warn">Override</Tag> : null}
-          {r.isReversal ? <Tag variant="mut">Reversal</Tag> : null}
-          {r.isReversed ? <Tag variant="bad">Reversed</Tag> : null}
+          {g.hasOverride ? <Tag variant="warn">Override</Tag> : null}
+          {g.hasReversal ? <Tag variant="mut">Reversal</Tag> : null}
         </div>
       ) : null}
-    </div>
+    </Link>
   );
 }
 

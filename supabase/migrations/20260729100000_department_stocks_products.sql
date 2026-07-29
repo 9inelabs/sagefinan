@@ -1,0 +1,11 @@
+-- Some departments (e.g. a kitchen) receive stock transfers from the central
+-- store but never hold an ongoing ledger balance the way a bar or mart does
+-- — nothing is ever counted, reconciled, or given an opening balance there.
+-- This flag lets an admin mark a department that way. Defaults true so
+-- every existing department keeps today's behaviour unchanged. See
+-- CLAUDE.md's follow-up for the full model — application code (not this
+-- migration) is what actually waives the "product must be assigned before
+-- it can be requisitioned" rule and excludes flagged departments from
+-- Take Stock/Compare/Reconcile/Opening balances/the Stock ledger; nothing
+-- at the database level ever enforced that rule in the first place.
+alter table departments add column stocks_products boolean not null default true;

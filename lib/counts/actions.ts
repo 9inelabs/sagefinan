@@ -141,8 +141,12 @@ export type CountingLine = {
   name: string;
   shelfOrder: number | null;
   physicalQty: number | null;
+  isAutoFilled: boolean;
 };
 
+// is_auto_filled is safe to select here even though expected_qty never is —
+// it's a boolean flag ("was this carried forward instead of counted"), not
+// the hidden figure itself, so surfacing it doesn't weaken blind counting.
 export async function getCountLinesForCounting(sessionId: string): Promise<{ session: SessionMeta; lines: CountingLine[] }> {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN", "AUDITOR"]);
@@ -150,6 +154,14 @@ export async function getCountLinesForCounting(sessionId: string): Promise<{ ses
   const admin = createAdminClient();
   const session = await loadSessionMeta(admin, sessionId);
   const raw = await loadShelfOrderedLines(admin, sessionId, session.departmentId, "physical_qty");
+
+  const { data: autoFilledRows, error: autoFilledError } = await admin
+    .from("count_lines")
+    .select("id, is_auto_filled")
+    .eq("count_session_id", sessionId);
+  if (autoFilledError) throw new Error(autoFilledError.message);
+  const autoFilledById = new Map((autoFilledRows ?? []).map((r) => [r.id, r.is_auto_filled]));
+
   const lines: CountingLine[] = raw.map((l) => ({
     id: l.id,
     productId: l.productId,
@@ -157,6 +169,7 @@ export async function getCountLinesForCounting(sessionId: string): Promise<{ ses
     name: l.name,
     shelfOrder: l.shelfOrder,
     physicalQty: l.value,
+    isAutoFilled: autoFilledById.get(l.id) ?? false,
   }));
   return { session, lines };
 }
@@ -194,14 +207,18 @@ export async function saveCountEntries(sessionId: string, entries: CountEntryInp
   return { savedAt };
 }
 
-export async function finishCountSession(sessionId: string, zeroFillBlanks: boolean) {
+// carryForwardBlanks: any line still blank is recorded at its own expected
+// quantity (get_department_balance's closing_qty for this session's as_at
+// date) rather than zero, flagged is_auto_filled — an uncounted product
+// tallies instead of reading as entirely missing.
+export async function finishCountSession(sessionId: string, carryForwardBlanks: boolean) {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN", "AUDITOR"]);
 
   const admin = createAdminClient();
   const { data, error } = await admin.rpc("finish_count_session", {
     p_session_id: sessionId,
-    p_zero_fill_blanks: zeroFillBlanks,
+    p_carry_forward_blanks: carryForwardBlanks,
     p_finished_by: profile.id,
   });
   if (error) throw new Error(error.message);
@@ -312,6 +329,7 @@ export type CompareLine = {
   value: number;
   flag: CompareFlag;
   bookDiffers: boolean;
+  isAutoFilled: boolean;
 };
 
 export type CompareSummary = {
@@ -333,7 +351,7 @@ export async function getCompareData(sessionId: string): Promise<{ session: Sess
 
   const { data: rows, error } = await admin
     .from("count_lines")
-    .select("id, product_id, expected_qty, physical_qty, ledger_qty, products(code, name, unit_cost)")
+    .select("id, product_id, expected_qty, physical_qty, ledger_qty, is_auto_filled, products(code, name, unit_cost)")
     .eq("count_session_id", sessionId);
   if (error) throw new Error(error.message);
 
@@ -366,11 +384,16 @@ export async function getCompareData(sessionId: string): Promise<{ session: Sess
       value: variance !== 0 ? Math.abs(variance) * unitCost : 0,
       flag,
       bookDiffers,
+      isAutoFilled: l.is_auto_filled,
     };
   });
   lines.sort(sortByShelf);
 
-  const mismatches = lines.filter((l) => l.flag !== "tally" || l.bookDiffers);
+  // A carried-forward line always tallies (physical == expected by
+  // construction), but it's still shown by default — never counted is worth
+  // seeing even though it isn't a variance (SPEC.md: never confuse this with
+  // a real, verified count).
+  const mismatches = lines.filter((l) => l.flag !== "tally" || l.bookDiffers || l.isAutoFilled);
   const netVarianceValue = lines.reduce((sum, l) => sum + l.variance * l.unitCost, 0);
 
   return {
@@ -409,7 +432,7 @@ export async function correctCountEntry(countLineId: string, newQty: number, rea
 
 export async function listCompareRowsForExport(sessionId: string, includeAll: boolean): Promise<CompareLine[]> {
   const { lines } = await getCompareData(sessionId);
-  return includeAll ? lines : lines.filter((l) => l.flag !== "tally" || l.bookDiffers);
+  return includeAll ? lines : lines.filter((l) => l.flag !== "tally" || l.bookDiffers || l.isAutoFilled);
 }
 
 // ============================================================================
@@ -436,6 +459,7 @@ export type CountSessionRow = {
   countedCount: number;
   varianceCount: number | null;
   varianceValue: number | null;
+  notCountedCount: number | null;
 };
 
 const SESSIONS_PAGE_SIZE = 50;
@@ -503,6 +527,7 @@ export async function listCountSessions(
       countedCount: r.counted_count ?? 0,
       varianceCount: r.variance_count,
       varianceValue: r.variance_value,
+      notCountedCount: r.not_counted_count,
     })),
     totalCount,
     page: safePage,
@@ -545,5 +570,6 @@ export async function listCountSessionsForExport(filters: CountSessionFilters): 
     countedCount: r.counted_count ?? 0,
     varianceCount: r.variance_count,
     varianceValue: r.variance_value,
+    notCountedCount: r.not_counted_count,
   }));
 }

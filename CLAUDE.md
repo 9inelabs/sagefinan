@@ -1769,3 +1769,89 @@ its four requisition/reversal pairs are real, harmless (net-zero, matching
 the balances they had before), and permanently part of the audit trail by
 design, exactly like every other reversed test movement this project's
 phase log already documents keeping.
+
+**Carry-forward blanks (requested change, no phase number).** Uncounted
+products finishing a count used to zero-fill; the user wanted them recorded
+at their previous/expected value instead, so an uncounted product doesn't
+read as an entirely missing shortage. Asked four clarifying questions
+before writing anything (which figure exactly; visibly flag it or not; keep
+the confirmation step or finish silently; replace zero-fill or offer both)
+— all four answered with the recommended option, which the design below
+implements literally.
+
+**Migration** (`20260730090000_carry_forward_blanks.sql`): `count_lines`
+gains `is_auto_filled boolean not null default false`. `finish_count
+_session`'s `p_zero_fill_blanks` param is renamed `p_carry_forward_blanks`;
+instead of setting blank `physical_qty` to 0, it's set from `get_department
+_balance(department_id, as_at_date).closing_qty` — the exact same balance
+call the function's next statement already runs to freeze `expected_qty` —
+so "carried forward" and "expected" land on the same number and the line
+tallies. (A line whose product doesn't appear in that balance result at
+all — e.g. deactivated after the session's snapshot — still falls back to
+0, the same edge case the old zero-fill covered.) `record_count
+_adjustment` now also clears `is_auto_filled` on every correction, since a
+correction is always a real, asserted figure, whether the line was
+carried-forward before or not. `count_sessions_summary` gained
+`not_counted_count` (null while `DRAFT`, same convention as
+`variance_count`/`variance_value`).
+
+**Why the fill value is `expected_qty` and not literally "yesterday's
+closing"**: they're the same number for the overwhelming majority of
+products (nothing moved for them on the day being counted), but they can
+diverge if a movement was posted for that specific product on the exact
+business day being counted — using `expected_qty` (which already includes
+that movement) means the uncounted product still tallies against the books
+as they stand today; using a literal prior-day figure while ignoring
+today's own recorded movement would instead manufacture a variance on
+exactly the products nobody checked, the opposite of the ask.
+
+**Visibility** (the second confirmed question — never let this be confused
+with a real physical count): `getCountLinesForCounting` now also selects
+`is_auto_filled` (safe — a boolean flag, not the hidden figure itself,
+always `false` during `DRAFT` since nothing's been carried forward yet).
+Take Stock shows "Not counted — carried forward" under any such line once
+finished; the value itself is never guessed client-side and shown
+optimistically (phase 5's blind-counting rule means the client doesn't
+know it) — `doFinish` re-fetches `getCountLinesForCounting` after a
+carry-forward finish (session is no longer `DRAFT`, so this is safe) rather
+than locally setting blanks to a guessed string the way the old zero-fill
+path used to. Compare stock's "only shows what doesn't tally" filter
+becomes `flag !== 'tally' || bookDiffers || isAutoFilled` (both the live
+table and `CorrectDialog`'s local recompute, and the CSV export), tagged
+"Not counted" — shown *instead of* "Tally", not alongside it, since "tally"
+implies verified and this explicitly isn't. `/sessions` gained a "Not
+counted" column. The session audit trail's "finished" event now states how
+many products were carried forward. Reconcile shows a small note on the
+rare line that's both carried-forward *and* has a book difference (its
+physical figure was never actually verified, which matters context for
+whoever's explaining the book-side discrepancy) — carried-forward lines
+otherwise never appear in Reconcile at all, since `variance = 0` by
+construction means there's nothing to reason about unless a book
+difference is also present.
+
+**Third confirmed question** (keep the confirmation step, reworded): the
+"N products not yet counted" `ConfirmDialog` is otherwise unchanged, only
+its copy ("carry forward their expected values" instead of "record all of
+the following as zero") and its button label ("Carry forward expected
+values" instead of "Record all as zero"). **Fourth**: zero-fill is gone
+outright, not offered alongside carry-forward — `finish_count_session`
+still rejects finishing with blanks unless the caller opts into
+carry-forward, same shape as the old zero-fill guard, just renamed.
+
+Verified with a throwaway RPC script before touching any application code
+(count a couple of lines, leave the rest blank, finish with carry-forward,
+confirm blank lines' `physical_qty` equals `expected_qty` exactly with
+`variance = 0` and `is_auto_filled = true`, confirm finishing without
+carry-forward is still rejected, confirm correcting a carried-forward line
+clears the flag, confirm `count_sessions_summary.not_counted_count` matches
+exactly), then a temporary Playwright script (installed, used, removed,
+same pattern as every prior phase) against real data: started a real count
+via the actual `/count` picker on a 142-product department, counted 2
+products through the real inputs, finished via "Carry forward expected
+values," confirmed the take-stock screen's "Carried forward" note appears
+on the real (now safe to reveal) figures, confirmed Compare stock shows
+"Not counted" by default without toggling "Show all," confirmed `/sessions`
+shows the new column with the exact right count (140 = 142 − 2), and
+confirmed 380px renders both screens with no horizontal overflow. Test
+session deleted afterward (count sessions carry no immutability
+requirement, per every prior phase's own convention).

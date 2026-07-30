@@ -21,13 +21,18 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
     variance: l.variance,
     value: l.value,
     flag:
-      [l.flag === "short" ? "Short" : l.flag === "excess" ? "Excess" : null, l.bookDiffers ? "Book differs" : null]
+      [
+        l.flag === "short" ? "Short" : l.flag === "excess" ? "Excess" : null,
+        l.bookDiffers ? "Book differs" : null,
+        l.isAutoFilled ? "Not counted" : null,
+      ]
         .filter(Boolean)
         .join(" + ") || "Tally",
+    not_counted: l.isAutoFilled ? "yes" : "",
   }));
 
   const csv = Papa.unparse(csvRows, {
-    columns: ["product_code", "product_name", "expected_qty", "counted_qty", "ledger_qty", "variance", "value", "flag"],
+    columns: ["product_code", "product_name", "expected_qty", "counted_qty", "ledger_qty", "variance", "value", "flag", "not_counted"],
   });
 
   return new Response(csv, {

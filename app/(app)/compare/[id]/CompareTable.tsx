@@ -26,11 +26,14 @@ function recomputeLine(l: CompareLine, newQty: number): CompareLine {
     value: variance !== 0 ? Math.abs(variance) * l.unitCost : 0,
     flag: computeFlag(variance),
     bookDiffers,
+    // A correction is always a real, asserted figure — matches
+    // record_count_adjustment clearing is_auto_filled server-side.
+    isAutoFilled: false,
   };
 }
 
 function recomputeSummary(lines: CompareLine[]): CompareSummary {
-  const mismatches = lines.filter((l) => l.flag !== "tally" || l.bookDiffers);
+  const mismatches = lines.filter((l) => l.flag !== "tally" || l.bookDiffers || l.isAutoFilled);
   return {
     productsCounted: lines.length,
     tallyCount: lines.length - mismatches.length,
@@ -55,7 +58,7 @@ export function CompareTable({
   const [editing, setEditing] = useState<CompareLine | null>(null);
 
   const visibleLines = useMemo(() => {
-    const base = showAll ? lines : lines.filter((l) => l.flag !== "tally" || l.bookDiffers);
+    const base = showAll ? lines : lines.filter((l) => l.flag !== "tally" || l.bookDiffers || l.isAutoFilled);
     const sorted = [...base];
     if (sortKey === "value") sorted.sort((a, b) => b.value - a.value);
     else if (sortKey === "quantity") sorted.sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance));
@@ -76,7 +79,10 @@ export function CompareTable({
         <Stat label="Net value" value={`${netSign}${formatNaira(summary.netVarianceValue)}`} colorClassName={netColor} />
       </div>
 
-      <Card title={`Variances — ${session.departmentName}`} extra={showAll ? "Showing every product" : "Only products that don't tally are listed"}>
+      <Card
+        title={`Variances — ${session.departmentName}`}
+        extra={showAll ? "Showing every product" : "Products that don't tally, or weren't counted, are listed"}
+      >
         <div className="px-4 py-2.5 border-b border-n200 flex flex-wrap items-center justify-between gap-2">
           <label className="text-xs text-n600 flex items-center gap-1.5 cursor-pointer">
             <input type="checkbox" className="accent-graphite w-4 h-4" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
@@ -144,7 +150,11 @@ export function CompareTable({
                           {l.flag === "short" ? <Tag variant="bad">Short</Tag> : null}
                           {l.flag === "excess" ? <Tag variant="ok">Excess</Tag> : null}
                           {l.bookDiffers ? <Tag variant="warn">Book differs</Tag> : null}
-                          {l.flag === "tally" && !l.bookDiffers ? <Tag variant="mut">Tally</Tag> : null}
+                          {l.isAutoFilled ? (
+                            <Tag variant="warn">Not counted</Tag>
+                          ) : l.flag === "tally" && !l.bookDiffers ? (
+                            <Tag variant="mut">Tally</Tag>
+                          ) : null}
                         </div>
                       </td>
                       <td className="px-4 h-9 text-right whitespace-nowrap">
@@ -187,7 +197,11 @@ export function CompareTable({
                     {l.flag === "short" ? <Tag variant="bad">Short</Tag> : null}
                     {l.flag === "excess" ? <Tag variant="ok">Excess</Tag> : null}
                     {l.bookDiffers ? <Tag variant="warn">Book differs</Tag> : null}
-                    {l.flag === "tally" && !l.bookDiffers ? <Tag variant="mut">Tally</Tag> : null}
+                    {l.isAutoFilled ? (
+                      <Tag variant="warn">Not counted</Tag>
+                    ) : l.flag === "tally" && !l.bookDiffers ? (
+                      <Tag variant="mut">Tally</Tag>
+                    ) : null}
                   </div>
                 </div>
               ))}

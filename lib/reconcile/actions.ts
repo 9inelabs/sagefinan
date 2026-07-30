@@ -55,6 +55,7 @@ export type ReconcileLine = {
   bookDiffReasonSetAt: string | null;
   isVarianceReasoned: boolean;
   isBookDiffReasoned: boolean;
+  isAutoFilled: boolean;
   adjustments: PostLockAdjustment[];
 };
 
@@ -88,7 +89,7 @@ export async function getReconcileData(
   const { data: rows, error } = await admin
     .from("count_lines")
     .select(
-      "id, product_id, expected_qty, physical_qty, ledger_qty, reason_code_id, note, reason_set_by, reason_set_at, book_diff_reason_code_id, book_diff_note, book_diff_reason_set_by, book_diff_reason_set_at, products(code, name, unit_cost)"
+      "id, product_id, expected_qty, physical_qty, ledger_qty, is_auto_filled, reason_code_id, note, reason_set_by, reason_set_at, book_diff_reason_code_id, book_diff_note, book_diff_reason_set_by, book_diff_reason_set_at, products(code, name, unit_cost)"
     )
     .eq("count_session_id", sessionId);
   if (error) throw new Error(error.message);
@@ -181,6 +182,7 @@ export async function getReconcileData(
       bookDiffReasonSetAt: r.book_diff_reason_set_at,
       isVarianceReasoned: variance === 0 || (!!r.reason_code_id && (!varianceReasonRequiresNote || !!r.note?.trim())),
       isBookDiffReasoned: !bookDiffers || (!!r.book_diff_reason_code_id && (!bookDiffReasonRequiresNote || !!r.book_diff_note?.trim())),
+      isAutoFilled: r.is_auto_filled,
       adjustments: adjustmentsByLine.get(r.id) ?? [],
     };
   });
@@ -356,7 +358,7 @@ export async function getSessionAuditTrail(sessionId: string): Promise<AuditEven
   const { data: lines } = await admin
     .from("count_lines")
     .select(
-      "id, reason_code_id, reason_set_by, reason_set_at, note, book_diff_reason_code_id, book_diff_reason_set_by, book_diff_reason_set_at, book_diff_note, products(code, name)"
+      "id, is_auto_filled, reason_code_id, reason_set_by, reason_set_at, note, book_diff_reason_code_id, book_diff_reason_set_by, book_diff_reason_set_at, book_diff_note, products(code, name)"
     )
     .eq("count_session_id", sessionId);
 
@@ -398,11 +400,17 @@ export async function getSessionAuditTrail(sessionId: string): Promise<AuditEven
   ];
 
   if (session.finished_at) {
+    const autoFilledCount = (lines ?? []).filter((l) => l.is_auto_filled).length;
     events.push({
       at: session.finished_at,
       actorName: session.finished_by ? nameById.get(session.finished_by) ?? null : null,
       kind: "finished",
-      description: "Count finished — expected figures frozen.",
+      description:
+        autoFilledCount > 0
+          ? `Count finished — expected figures frozen. ${autoFilledCount} product${autoFilledCount === 1 ? "" : "s"} not physically counted ${
+              autoFilledCount === 1 ? "was" : "were"
+            } carried forward at ${autoFilledCount === 1 ? "its" : "their"} expected value.`
+          : "Count finished — expected figures frozen.",
     });
   }
 

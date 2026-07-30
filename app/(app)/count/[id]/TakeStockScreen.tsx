@@ -12,6 +12,7 @@ import {
   saveCountEntries,
   saveLedgerEntries,
   finishCountSession,
+  getCountLinesForCounting,
   getLedgerLinesForRecording,
   type SessionMeta,
   type CountingLine,
@@ -103,7 +104,7 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
   const router = useRouter();
   const isDraft = session.status === "DRAFT";
   const initial = useMemo(() => toEntryLines(initialLines.map((l) => ({ ...l, value: l.physicalQty }))), [initialLines]);
-  const { lines, handleChange, flush, setAll, lastSavedAt, saving, saveError } = useLineEntries(initial, (entries) =>
+  const { lines, setLines, handleChange, flush, lastSavedAt, saving, saveError } = useLineEntries(initial, (entries) =>
     saveCountEntries(
       session.id,
       entries.map((e) => ({ productId: e.productId, physicalQty: e.value }))
@@ -114,6 +115,13 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
   const [blankPrompt, setBlankPrompt] = useState<EntryLine[] | null>(null);
   const [finishing, setFinishing] = useState(false);
   const [finishError, setFinishError] = useState<string | null>(null);
+  // Which products were carried forward rather than actually counted — set
+  // once finish succeeds with blanks remaining, never guessed client-side
+  // (blind counting means the real carried-forward figure isn't known here
+  // until the session is no longer DRAFT and it's safe to re-fetch it).
+  const [autoFilledIds, setAutoFilledIds] = useState<Set<string>>(
+    () => new Set(initialLines.filter((l) => l.isAutoFilled).map((l) => l.productId))
+  );
 
   const counted = lines.filter((l) => l.value.trim() !== "").length;
   const total = lines.length;
@@ -135,14 +143,22 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
     }
   }
 
-  async function doFinish(zeroFillBlanks: boolean) {
+  async function doFinish(carryForwardBlanks: boolean) {
     setFinishing(true);
     setFinishError(null);
     try {
-      if (zeroFillBlanks) {
-        setAll((l) => (l.value.trim() === "" ? { ...l, value: "0" } : l));
+      await finishCountSession(session.id, carryForwardBlanks);
+      if (carryForwardBlanks) {
+        // The carried-forward figure is each blank's expected quantity —
+        // never known client-side while the session was DRAFT (blind
+        // counting), so re-fetch now that it's safe: the session is no
+        // longer DRAFT, and getCountLinesForCounting still never returns
+        // expected_qty itself, only the real physical_qty that was just
+        // recorded and the is_auto_filled flag.
+        const fresh = await getCountLinesForCounting(session.id);
+        setLines(toEntryLines(fresh.lines.map((l) => ({ ...l, value: l.physicalQty }))));
+        setAutoFilledIds(new Set(fresh.lines.filter((l) => l.isAutoFilled).map((l) => l.productId)));
       }
-      await finishCountSession(session.id, zeroFillBlanks);
       setBlankPrompt(null);
       router.refresh();
     } catch (e) {
@@ -210,6 +226,7 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
                 shelfOrder={l.shelfOrder}
                 value={l.value}
                 disabled={!isDraft}
+                isAutoFilled={autoFilledIds.has(l.productId)}
                 onChange={handleChange}
               />
             ))}
@@ -235,7 +252,10 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
         title={`${blankPrompt?.length ?? 0} product${(blankPrompt?.length ?? 0) === 1 ? "" : "s"} not yet counted`}
         description={
           <div>
-            <p className="mb-3">Go back and count them, or record all of the following as zero:</p>
+            <p className="mb-3">
+              Go back and count them, or carry forward their expected values — each will be recorded at what the books already say
+              it should be, so it reads as no variance, and clearly flagged as not actually counted:
+            </p>
             <div className="border border-n200 rounded max-h-48 overflow-y-auto bg-n50">
               {(blankPrompt ?? []).map((l) => (
                 <div key={l.productId} className="px-3 py-1.5 text-xs border-b border-n200 last:border-b-0 flex gap-2">
@@ -246,7 +266,7 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
             </div>
           </div>
         }
-        confirmLabel="Record all as zero"
+        confirmLabel="Carry forward expected values"
         onConfirm={() => doFinish(true)}
         onCancel={() => setBlankPrompt(null)}
       />

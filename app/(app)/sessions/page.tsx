@@ -65,11 +65,11 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
             <table className="w-full border-collapse">
               <thead>
                 <tr>
-                  {["As at", "Department", "Counted by", "Products", "Counted", "Variances", "Value", "Status"].map((h, i) => (
+                  {["As at", "Department", "Counted by", "Products", "Counted", "Not counted", "Variances", "Value", "Status"].map((h, i) => (
                     <th
                       key={h}
                       className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
-                        i > 2 && i < 7 ? "text-right" : ""
+                        i > 2 && i < 8 ? "text-right" : ""
                       }`}
                     >
                       {h}
@@ -93,6 +93,13 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
                       <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{r.countedByName}</td>
                       <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{r.productCount}</td>
                       <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{r.countedCount}</td>
+                      <td
+                        className={`px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap ${
+                          (r.notCountedCount ?? 0) > 0 ? "text-amber font-medium" : ""
+                        }`}
+                      >
+                        {r.notCountedCount ?? "—"}
+                      </td>
                       <td
                         className={`px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap ${
                           (r.varianceCount ?? 0) > 0 ? "text-red font-medium" : ""

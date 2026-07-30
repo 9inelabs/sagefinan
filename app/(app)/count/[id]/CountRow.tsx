@@ -16,6 +16,7 @@ export const CountRow = memo(function CountRow({
   shelfOrder,
   value,
   disabled,
+  isAutoFilled,
   onChange,
 }: {
   productId: string;
@@ -24,6 +25,7 @@ export const CountRow = memo(function CountRow({
   shelfOrder: number | null;
   value: string;
   disabled: boolean;
+  isAutoFilled?: boolean;
   onChange: (productId: string, value: string) => void;
 }) {
   const filled = value.trim() !== "";
@@ -34,6 +36,7 @@ export const CountRow = memo(function CountRow({
         <div className="text-xs text-n400 tabular-nums truncate">
           {code}
           {shelfOrder != null ? ` · Shelf ${shelfOrder}` : ""}
+          {isAutoFilled ? <span className="text-amber"> · Not counted — carried forward</span> : null}
         </div>
       </div>
       <input

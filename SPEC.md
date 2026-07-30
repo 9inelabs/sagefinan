@@ -502,6 +502,14 @@ run until a session is `COMPLETED` or `LOCKED`. There is no "hide it in the
 UI" step to forget, because the value is structurally absent from the
 DRAFT-time response.
 
+`getCountLinesForCounting` does also select `count_lines.is_auto_filled` —
+safe, since it's a boolean ("was this carried forward instead of counted"),
+not the hidden figure itself. It's always `false` for every line while a
+session is `DRAFT` (nothing has been carried forward yet), so this changes
+nothing about blind counting; it only lets the take-stock screen show
+"Carried forward" once the session is finished and the real figure is safe
+to reveal — see "Carry-forward blanks" below.
+
 ## Frozen expected quantity (phase 5)
 
 `expected_qty` is computed once, at the moment a count is finished
@@ -516,6 +524,52 @@ a backdated requisition), the balance function's *live* answer for that date
 changes, but the count session's stored `expected_qty` — and therefore its
 variance report — does not. A count taken this morning must keep meaning
 what it meant this morning, even if the books catch up later in the day.
+
+## Carry-forward blanks (follow-up, no phase number)
+
+Finishing a count with products still uncounted no longer zero-fills them.
+Each blank is recorded at its own `expected_qty` for the same as-at date —
+the same `get_department_balance` closing figure the very next statement
+already computes to freeze `expected_qty` — so an uncounted product tallies
+(reads as no variance) instead of showing as entirely missing. This
+replaced zero-fill outright; there is no remaining "record as zero" choice.
+
+`count_lines.is_auto_filled` marks exactly which lines were carried forward
+rather than physically counted, so this is never confused with a real,
+verified count (this app's whole point is a demonstrable figure, not an
+assumed one):
+
+- Take Stock shows "Not counted — carried forward" under any such line once
+  the session is finished (never while `DRAFT` — the carried-forward figure
+  is exactly the hidden expected figure, so revealing it early would be the
+  same blind-counting leak as showing `expected_qty` itself).
+- Compare stock tags it "Not counted" and lists it by default even though it
+  tallies (the "only shows what doesn't tally" filter is `flag !== 'tally'
+  || bookDiffers || isAutoFilled`), in both the on-screen table and the CSV
+  export.
+- The session list (`/sessions`) has a "Not counted" column
+  (`count_sessions_summary.not_counted_count`, same null-while-`DRAFT`
+  convention as `variance_count`/`variance_value`).
+- The session audit trail's "finished" event states how many products were
+  carried forward.
+- Correcting a carried-forward line (pre-lock, from Compare, or a post-lock
+  adjustment) always clears `is_auto_filled` — a correction is a real,
+  asserted figure, never itself a carry-forward.
+- It does **not** need a reconciliation reason: `lock_count_session`'s
+  precondition is unchanged (every line with `variance <> 0`, or with
+  `ledger_qty` disagreeing with `expected_qty`, needs a reason) — a
+  carried-forward line has `variance = 0` by construction, so there's
+  nothing to explain *unless* it also happens to have a book difference,
+  in which case Reconcile shows a small note that the physical figure on
+  that line was never actually verified, alongside the usual book-diff
+  reasoning.
+
+Finishing with blanks still requires an explicit choice: `finish_count
+_session`'s `p_carry_forward_blanks` parameter (renamed from
+`p_zero_fill_blanks`) still raises rather than silently proceeding if
+blanks remain and the caller didn't opt in — the "N products not yet
+counted" confirmation step is unchanged, only its wording and its one
+button ("Carry forward expected values") changed.
 
 ## Three-figure comparison (phase 5)
 

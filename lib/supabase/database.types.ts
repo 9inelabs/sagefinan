@@ -93,6 +93,7 @@ export type Database = {
           count_session_id: string
           expected_qty: number
           id: string
+          is_auto_filled: boolean
           ledger_qty: number | null
           note: string | null
           physical_qty: number | null
@@ -110,6 +111,7 @@ export type Database = {
           count_session_id: string
           expected_qty?: number
           id?: string
+          is_auto_filled?: boolean
           ledger_qty?: number | null
           note?: string | null
           physical_qty?: number | null
@@ -127,6 +129,7 @@ export type Database = {
           count_session_id?: string
           expected_qty?: number
           id?: string
+          is_auto_filled?: boolean
           ledger_qty?: number | null
           note?: string | null
           physical_qty?: number | null
@@ -612,6 +615,7 @@ export type Database = {
           department_name: string | null
           id: string | null
           locked_at: string | null
+          not_counted_count: number | null
           product_count: number | null
           status: Database["public"]["Enums"]["session_status"] | null
           updated_at: string | null
@@ -740,9 +744,9 @@ export type Database = {
       }
       finish_count_session: {
         Args: {
+          p_carry_forward_blanks: boolean
           p_finished_by: string
           p_session_id: string
-          p_zero_fill_blanks: boolean
         }
         Returns: {
           as_at_date: string
@@ -859,6 +863,7 @@ export type Database = {
           count_session_id: string
           expected_qty: number
           id: string
+          is_auto_filled: boolean
           ledger_qty: number | null
           note: string | null
           physical_qty: number | null

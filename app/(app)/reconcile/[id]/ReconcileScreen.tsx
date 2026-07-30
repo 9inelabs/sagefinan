@@ -208,6 +208,7 @@ export function ReconcileScreen({
               value: variance !== 0 ? Math.abs(variance) * correcting.unitCost : 0,
               flag: variance < 0 ? "short" : "excess",
               isVarianceReasoned: variance === 0,
+              isAutoFilled: false,
             });
             removeIfTallies(correcting.id, variance, bookDiffers);
             setCorrecting(null);
@@ -266,6 +267,9 @@ function ReconcileLineRow({
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <b className="font-medium text-sm">{line.name}</b> <span className="text-n600 text-xs">{line.code}</span>
+          {line.isAutoFilled ? (
+            <div className="text-xs text-amber mt-0.5">Not physically counted — the count figure was carried forward from expected.</div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2 tabular-nums text-xs">
           <span className="text-n600">

@@ -1855,3 +1855,48 @@ shows the new column with the exact right count (140 = 142 − 2), and
 confirmed 380px renders both screens with no horizontal overflow. Test
 session deleted afterward (count sessions carry no immutability
 requirement, per every prior phase's own convention).
+
+**Correct a miscount from Reconcile (requested change, no phase number).**
+User reported no way to fix a miscount from the Reconcile screen. Asked
+before touching anything, since reading the code first showed this control
+already existed (same "Correct" button/dialog/`record_count_adjustment`
+flow Compare stock uses, wired into `ReconcileScreen.tsx` since phase 6) —
+turned out the real issue was discoverability, not a missing feature: a
+small text link easy to miss on a screen full of reason chips. Two
+follow-up questions nailed the actual ask: (1) make the control impossible
+to miss — turned "Correct"/"Raise adjustment" from bare text links into
+real bordered `Btn`s (`min-h-11`, matching this screen's existing 44px
+touch-target rule); (2) a real gap found while reading the code — clear a
+stale reason code when a correction now makes the line tally.
+
+**Reason-clearing** (`20260730120000_clear_reason_on_correction.sql`):
+`record_count_adjustment` now clears `reason_code_id`/`note` (and the
+`reason_set_by`/`reason_set_at` stamps) whenever the corrected quantity
+exactly equals `expected_qty` — a reason that no longer explains anything
+real shouldn't linger in the database, invisibly, until someone notices
+it's stale (or worse, keeps an `UNDER_INVESTIGATION` line stuck open on
+that report forever after the underlying miscount was fixed). Deliberately
+scoped: only the *variance* reason is touched; `book_diff_reason_code_id`
+is a separate, independent fact (a ledger discrepancy, not a physical
+count) and a physical correction has no bearing on it. A correction that
+changes the figure but leaves a real variance (doesn't hit an exact tally)
+leaves any existing reason exactly as it was — this only fires on the
+"now tallies" case, confirmed explicitly before building rather than
+assumed. `ReconcileScreen.tsx`'s local-state recompute after a correction
+mirrors this (clears `reasonCodeId`/`note`/`reasonSetByName`/`reasonSetAt`
+when the new variance is exactly 0), though in practice the line is
+usually removed from view entirely at that point anyway
+(`removeIfTallies`) — the local clear is for correctness in the one case
+where the line stays visible despite tallying physically (it still has a
+book difference).
+
+Verified with a throwaway RPC script before touching the UI: corrected a
+line to exactly match expected with a reason previously attached — reason
+cleared; corrected a *different* line to a new, still-nonzero variance
+with a reason previously attached — reason untouched. Then a temporary
+Playwright script (installed, used, removed) against a real department:
+confirmed "Correct" renders as an actual bordered button element (not a
+bare text link), used it through the real dialog to fix a genuine miscount,
+confirmed the line disappears from Reconcile's outstanding list the moment
+it tallies, and confirmed server-side that the stale reason was cleared
+alongside the corrected figure.

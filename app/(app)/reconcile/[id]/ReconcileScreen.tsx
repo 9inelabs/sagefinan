@@ -202,13 +202,18 @@ export function ReconcileScreen({
           onSaved={(newQty) => {
             const variance = newQty - correcting.expectedQty;
             const bookDiffers = correcting.ledgerQty != null && correcting.ledgerQty !== correcting.expectedQty;
+            // Matches record_count_adjustment: a variance reason that no
+            // longer describes anything real (the corrected figure now
+            // tallies exactly) is cleared, not left stale.
+            const nowTallies = variance === 0;
             updateLine(correcting.id, {
               countedQty: newQty,
               variance,
               value: variance !== 0 ? Math.abs(variance) * correcting.unitCost : 0,
               flag: variance < 0 ? "short" : "excess",
-              isVarianceReasoned: variance === 0,
+              isVarianceReasoned: nowTallies,
               isAutoFilled: false,
+              ...(nowTallies ? { reasonCodeId: null, note: null, reasonSetByName: null, reasonSetAt: null } : {}),
             });
             removeIfTallies(correcting.id, variance, bookDiffers);
             setCorrecting(null);
@@ -281,13 +286,13 @@ function ReconcileLineRow({
             </span>
           ) : null}
           {!locked ? (
-            <button type="button" onClick={onCorrect} className="text-graphite">
+            <Btn type="button" onClick={onCorrect} className="min-h-11 px-3.5 text-xs">
               Correct
-            </button>
+            </Btn>
           ) : (
-            <button type="button" onClick={onAdjust} className="text-graphite">
+            <Btn type="button" onClick={onAdjust} className="min-h-11 px-3.5 text-xs">
               Raise adjustment
-            </button>
+            </Btn>
           )}
         </div>
       </div>

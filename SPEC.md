@@ -650,6 +650,36 @@ action anywhere in the codebase for this table, so "never delete a code
 that's been used" holds structurally, not by a runtime guard someone could
 forget.
 
+## Correcting a miscount from Reconcile (follow-up, no phase number)
+
+Reconcile's per-line "Correct" control (same `record_count_adjustment` RPC
+and dialog Compare stock's own "Correct" already used) lets a genuine
+miscount be fixed without leaving the Reconcile screen — type the real
+figure, give a reason, and if the corrected quantity now exactly equals
+`expected_qty` (and there's no book difference), the line drops out of the
+outstanding list immediately, same as Compare. This existed since phase 6
+but was a small, easy-to-miss text link; it's now a real bordered button
+(`min-h-11`, matching this screen's existing 44px-minimum-touch-target
+rule) so it isn't mistaken for absent.
+
+**Correcting to a tally clears the stale variance reason.** If a line had
+already been tagged with a reason (e.g. "Breakage" for a shortage) and a
+later correction brings it to match `expected_qty` exactly,
+`record_count_adjustment` now also clears `reason_code_id`/`note` — a
+reason that no longer describes any real discrepancy shouldn't linger in
+the database, and leaving it would incorrectly keep an `UNDER_INVESTIGATION`
+line "open" on that report forever even after the miscount was fixed. Only
+the *variance* reason is cleared this way; `book_diff_reason_code_id` is
+untouched, since a book/ledger discrepancy has nothing to do with the
+physical figure. A correction that changes the quantity but *doesn't* bring
+it to an exact tally leaves any existing reason in place unchanged.
+
+Post-lock adjustments (`raisePostLockAdjustment`, the append-only "Raise
+adjustment" path) are a deliberately different mechanism — see "Post-lock
+adjustments" below — and were left as-is: they never remove a line or touch
+`reason_code_id`, since a locked line's certified figures and reasons are
+permanent by design.
+
 ## Locking (phase 6)
 
 **Locking is only permitted when every non-tallying line has a reason** —

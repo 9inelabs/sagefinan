@@ -1900,3 +1900,69 @@ bare text link), used it through the real dialog to fix a genuine miscount,
 confirmed the line disappears from Reconcile's outstanding list the moment
 it tallies, and confirmed server-side that the stale reason was cleared
 alongside the corrected figure.
+
+**Unread messages badge (new feature, no phase number).** Requested: a
+badge count on the sidebar's Messages entry so an unread message is visible
+without opening the room. One new column, `profiles.messages_last_read_at`
+(`20260731090000_messages_unread.sql`, `not null default now()` — a
+STABLE function evaluated once per statement, so every existing profile
+backfills to the migration's own run time, not per-row; nobody sees months
+of already-seen chat history suddenly flagged unread the moment this
+shipped, and a brand-new profile gets the same "nothing before I existed"
+baseline). One timestamp per user, not a per-message read-receipt table —
+this is a single shared room (phase-less "Shared messages" feature above),
+not per-thread messaging, so "everything after this moment, from someone
+else" is all any screen needs. `getUnreadMessageCount()`/`markMessagesRead()`
+(`lib/messages/actions.ts`) go through the service-role client, same as
+`postMessage()` — `profiles_update` RLS is ADMIN-only (phase 1), so this is
+the same "privileged write, permission checked in application code" shape
+as the password-change flow's own `must_change_password` clear.
+
+**Lives in `AppShell.tsx`, not a per-page component**: it wraps every route
+under `(app)` and stays mounted across client-side navigation within that
+layout, which is what lets a single Realtime subscription (`messages-
+unread-badge`, separate from `MessagesPanel.tsx`'s own `messages-feed`
+channel — two independent subscriptions to the same table, not a shared
+one; simpler than threading live messages through context for a component
+that already works standalone) keep the badge live no matter what screen
+the user is on, without them ever opening `/messages`. `app/(app)/layout.tsx`
+seeds the initial count server-side via `getUnreadMessageCount()`; from
+there AppShell owns it as client state, incremented by the Realtime handler
+(skipped entirely for the sender's own messages) and passed down to
+`Sidebar.tsx` as a small `unreadCounts` map keyed by nav item — chosen over
+a bare number prop so a future badge on a different nav item can reuse the
+same shape without a second prop.
+
+**Marking read**: entering `/messages` clears the badge and marks read
+immediately; leaving marks read again (belt-and-suspenders). Neither of
+those is actually load-bearing on its own for a message that arrives
+*while the user is already sitting on `/messages`* — the first real
+implementation relied only on that pair, and a throwaway two-account
+Playwright test caught the gap: a message sent while the counterpart was
+viewing the panel correctly never bumped the client-side badge, but the
+"leaving" call is a fire-and-forget promise, and a hard navigation (a real
+`page.goto()`, not a same-app `<Link>` click) can abort it before it
+completes — so the server-side marker never actually advanced past that
+message, and it read back as unread again after a reload. Fixed by having
+the Realtime handler itself call `markMessagesRead()` immediately for
+every message received while `onMessagesPage` is true, not just at the
+entry/exit boundary — the read marker now advances in real time alongside
+whatever the user is actually seeing, so no single fire-and-forget call
+leaving `/messages` is load-bearing for correctness anymore (kept anyway,
+as a redundant safety net).
+
+Verified with a temporary Playwright script (installed, used, removed, same
+pattern as every prior phase), two throwaway accounts in separate browser
+contexts (created and deleted afterward, along with every message they
+posted — this table has no delete policy for any real user, but a direct
+service-role cleanup of the script's own fixtures is the same pattern the
+Shared-messages feature's own verification already used): a message posted
+by one account incremented the other's badge live with no navigation;
+the sender never saw their own message as unread; opening `/messages`
+cleared the badge immediately and a message arriving while already there
+never bumped it; leaving afterward and both a soft and a hard reload all
+still read back 0; a further message sent while away incremented the badge
+again and that count survived a hard reload (the server-computed value,
+not leftover client state). 380px was not re-checked separately — the
+badge reuses the sidebar's existing nav-item layout and mobile drawer,
+neither of which this change restructured.

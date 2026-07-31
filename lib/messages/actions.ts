@@ -66,3 +66,44 @@ export async function postMessage(body: string) {
   // the page open), but keeps a fresh server-rendered load consistent.
   revalidatePath("/messages");
 }
+
+// ============================================================================
+// UNREAD BADGE — one timestamp per user (profiles.messages_last_read_at),
+// not a per-message read-receipt table: this is a single shared room, so
+// "everything from someone else after this moment" is all any screen needs.
+// Own messages never count as unread (you already know what you said).
+// ============================================================================
+
+export async function getUnreadMessageCount(): Promise<number> {
+  const profile = await getCurrentProfile();
+  const admin = createAdminClient();
+
+  const { data: row, error: profileError } = await admin
+    .from("profiles")
+    .select("messages_last_read_at")
+    .eq("id", profile.id)
+    .single();
+  if (profileError) throw new Error(profileError.message);
+
+  const { count, error } = await admin
+    .from("messages")
+    .select("id", { count: "exact", head: true })
+    .neq("author_id", profile.id)
+    .gt("created_at", row.messages_last_read_at);
+  if (error) throw new Error(error.message);
+
+  return count ?? 0;
+}
+
+// Called when the current user opens (or leaves, to catch anything that
+// arrived live while they were there) /messages. profiles_update RLS is
+// ADMIN-only (see initial schema), so this goes through the service-role
+// client — the check that it's the caller's own row is what application
+// code is responsible for here, same shape as every other privileged write.
+export async function markMessagesRead() {
+  const profile = await getCurrentProfile();
+  const admin = createAdminClient();
+
+  const { error } = await admin.from("profiles").update({ messages_last_read_at: new Date().toISOString() }).eq("id", profile.id);
+  if (error) throw new Error(error.message);
+}

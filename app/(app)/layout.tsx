@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
+import { getUnreadMessageCount } from "@/lib/messages/actions";
 import { AppShell } from "@/components/app-shell/AppShell";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -14,10 +15,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect("/change-password");
   }
 
+  // Seeds the sidebar's unread-messages badge (AppShell keeps it live from
+  // here via Realtime — see its own comment). This layout persists across
+  // client-side navigations within (app), so this only re-fetches on a hard
+  // navigation/reload, same as every other value read here.
+  const initialUnreadMessages = await getUnreadMessageCount();
+
   // navForRole() (and its NAV_GROUPS, which now carry lucide-react icon
   // component references) is computed inside AppShell itself, not here —
   // React Server Components can't serialize a component reference across
   // the server→client prop boundary the way it can plain data, so this
   // moved client-side. See CLAUDE.md's follow-up on the premium redesign.
-  return <AppShell profile={profile}>{children}</AppShell>;
+  return (
+    <AppShell profile={profile} initialUnreadMessages={initialUnreadMessages}>
+      {children}
+    </AppShell>
+  );
 }

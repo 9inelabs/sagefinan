@@ -11,7 +11,15 @@ import type { NavGroup } from "@/lib/nav";
 // role upstream in navForRole()). White background with black/grey text,
 // per the reference image — not the dark charcoal this started as (an
 // earlier misreading, corrected once).
-export function Sidebar({ groups, onNavigate }: { groups: NavGroup[]; onNavigate?: () => void }) {
+export function Sidebar({
+  groups,
+  unreadCounts,
+  onNavigate,
+}: {
+  groups: NavGroup[];
+  unreadCounts?: Record<string, number>;
+  onNavigate?: () => void;
+}) {
   const pathname = usePathname();
 
   // The clicked item highlights the instant it's tapped, not once the new route has
@@ -23,7 +31,7 @@ export function Sidebar({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
   }, [pathname]);
 
   return (
-    <div className="flex flex-col h-full w-[224px] bg-white border-r border-n200">
+    <div className="flex flex-col h-full w-56 bg-white border-r border-n200">
       <nav className="flex-1 overflow-y-auto py-4">
         {groups.map((group) => (
           <div key={group.title} className="px-3 pb-4">
@@ -32,6 +40,7 @@ export function Sidebar({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
               const currentlyOn = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
               const active = currentlyOn || pendingHref === item.href;
               const Icon = item.icon;
+              const unread = unreadCounts?.[item.key] ?? 0;
               return (
                 <Link
                   key={item.key}
@@ -45,7 +54,12 @@ export function Sidebar({ groups, onNavigate }: { groups: NavGroup[]; onNavigate
                   }`}
                 >
                   <Icon size={17} strokeWidth={1.75} className="flex-none" />
-                  <span className="truncate">{item.label}</span>
+                  <span className="truncate flex-1">{item.label}</span>
+                  {unread > 0 ? (
+                    <span className="flex-none min-w-4.5 h-4.5 px-1 rounded-full bg-graphite text-white text-[10.5px] font-medium leading-4.5 text-center tabular-nums">
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  ) : null}
                 </Link>
               );
             })}

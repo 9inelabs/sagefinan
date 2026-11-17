@@ -12,19 +12,19 @@ export function SkeletonIn({ children }: { children: React.ReactNode }) {
   return <div className="skeleton-in">{children}</div>;
 }
 
-// Mirrors PageShell's header chrome (title/subtitle block + optional action
+// Mirrors PageShell's title block (title/subtitle + optional action
 // buttons) so swapping from skeleton to real content never shifts layout.
 export function SkeletonPageHeader({ actions = 0 }: { actions?: number }) {
   return (
-    <header className="bg-white border-b border-n200 px-4 min-[900px]:px-6 py-3 sticky top-0 z-10 flex items-center justify-between gap-4">
+    <header className="px-4 min-[900px]:px-7 pt-5 min-[900px]:pt-6.5 pb-4 min-[900px]:pb-5 flex flex-col min-[700px]:flex-row min-[700px]:items-end justify-between gap-3 min-[700px]:gap-4 max-w-[1320px] w-full">
       <div className="min-w-0">
-        <SkeletonBlock className="h-5 w-36" />
-        <SkeletonBlock className="h-3 w-56 mt-2.5" />
+        <SkeletonBlock className="h-6 min-[900px]:h-7 w-40" />
+        <SkeletonBlock className="h-3 w-56 mt-2" />
       </div>
       {actions > 0 ? (
         <div className="flex items-center gap-2 flex-none">
           {Array.from({ length: actions }).map((_, i) => (
-            <SkeletonBlock key={i} className="h-8 w-24" />
+            <SkeletonBlock key={i} className="h-9 w-28" />
           ))}
         </div>
       ) : null}
@@ -34,7 +34,7 @@ export function SkeletonPageHeader({ actions = 0 }: { actions?: number }) {
 
 // The scrollable body area PageShell wraps children in — same padding/max-width.
 export function SkeletonPageBody({ children }: { children: React.ReactNode }) {
-  return <div className="px-4 min-[900px]:px-6 py-5.5 pb-10 max-w-[1180px] w-full">{children}</div>;
+  return <div className="px-4 min-[900px]:px-7 pb-10 max-w-[1320px] w-full">{children}</div>;
 }
 
 // Full-page skeleton: header chrome + body, faded in after a short delay.
@@ -51,7 +51,7 @@ export function SkeletonStatRow({ count = 4 }: { count?: number }) {
   return (
     <div className="grid grid-cols-2 min-[900px]:grid-cols-4 gap-3 mb-4.5">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="bg-white border border-n200 rounded px-[15px] py-[13px]">
+        <div key={i} className="bg-white rounded-premium shadow-premium px-[15px] py-[13px]">
           <SkeletonBlock className="h-3 w-20 mb-2.5" />
           <SkeletonBlock className="h-6 w-16" />
         </div>
@@ -71,13 +71,13 @@ export function SkeletonTable({
   rows?: number;
 }) {
   return (
-    <div className="bg-white border border-n200 rounded overflow-hidden">
+    <div className="bg-white rounded-premium shadow-premium overflow-hidden">
       {title ? (
-        <div className="px-4 py-3 border-b border-n200">
+        <div className="px-4.5 pt-4 pb-2.5">
           <SkeletonBlock className="h-4 w-32" />
         </div>
       ) : null}
-      <div className="border-b border-n200 bg-n50 flex items-center px-4 h-8 gap-4">
+      <div className="border-b border-n200 flex items-center px-4 h-8 gap-4">
         {Array.from({ length: columns }).map((_, i) => (
           <SkeletonBlock key={i} className="h-2.5 flex-1" />
         ))}
@@ -97,7 +97,7 @@ export function SkeletonTable({
 // than a full data table, one label + one input-shaped block per row.
 export function SkeletonListRows({ rows = 10 }: { rows?: number }) {
   return (
-    <div className="bg-white border border-n200 rounded overflow-hidden">
+    <div className="bg-white rounded-premium shadow-premium overflow-hidden">
       {Array.from({ length: rows }).map((_, r) => (
         <div key={r} className="border-b border-n200 last:border-b-0 flex items-center justify-between px-4 h-12 gap-4">
           <SkeletonBlock className="h-3 w-40" />
@@ -111,8 +111,8 @@ export function SkeletonListRows({ rows = 10 }: { rows?: number }) {
 // A Card-shaped form skeleton for create/edit screens and batch-entry pages.
 export function SkeletonFormCard({ rows = 4 }: { rows?: number }) {
   return (
-    <div className="bg-white border border-n200 rounded overflow-hidden">
-      <div className="px-4 py-3 border-b border-n200">
+    <div className="bg-white rounded-premium shadow-premium overflow-hidden">
+      <div className="px-4.5 pt-4 pb-2.5">
         <SkeletonBlock className="h-4 w-28" />
       </div>
       <div className="p-4 flex flex-col gap-4">
@@ -132,7 +132,7 @@ export function SkeletonFormCard({ rows = 4 }: { rows?: number }) {
 export function SkeletonSpinner() {
   return (
     <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 rounded-full border-2 border-n200 border-t-graphite animate-spin" aria-label="Loading" />
+      <div className="w-6 h-6 rounded-full border-2 border-n200 border-t-brand animate-spin" aria-label="Loading" />
     </div>
   );
 }

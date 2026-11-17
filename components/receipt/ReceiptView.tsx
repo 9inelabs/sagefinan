@@ -40,7 +40,7 @@ export function ReceiptView({
   return (
     <div className="max-w-[480px] mx-auto w-full">
       <div className="flex items-center justify-between mb-4 print:hidden">
-        <Link href={backHref} className="text-sm text-graphite">
+        <Link href={backHref} className="text-sm text-n600">
           ← Back to history
         </Link>
         <Link href={pdfHref} className="text-sm px-3 py-1.5 rounded-premium border border-n200 bg-white shadow-premium hover:bg-n50">

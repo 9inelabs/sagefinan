@@ -1,14 +1,15 @@
+// Soft, borderless status pills — tinted background + matching text colour.
 const VARIANTS = {
-  ok: "text-green border-[#A7E0BE] bg-[#F0FDF4]",
-  bad: "text-red border-[#F3B9B4] bg-[#FEF3F2]",
-  warn: "text-amber border-[#F5CFA0] bg-[#FFFAEB]",
-  mut: "text-n600 border-n200 bg-n50",
-  acc: "text-graphite border-[#8FCFC7] bg-[#F0FAF8]",
+  ok: "text-green bg-green-soft",
+  bad: "text-red bg-red-soft",
+  warn: "text-amber bg-amber-soft",
+  mut: "text-n600 bg-n100",
+  acc: "text-brand bg-brand-soft",
 } as const;
 
 export function Tag({ variant, children }: { variant: keyof typeof VARIANTS; children: React.ReactNode }) {
   return (
-    <span className={`inline-block text-[11.5px] px-[7px] py-0.5 rounded border leading-normal ${VARIANTS[variant]}`}>
+    <span className={`inline-block text-[11px] font-medium px-2 py-[3px] rounded-sm leading-normal whitespace-nowrap ${VARIANTS[variant]}`}>
       {children}
     </span>
   );

@@ -56,7 +56,7 @@ export function DepartmentForm({
       <label className="flex items-center gap-2 text-sm mb-1.5 cursor-pointer select-none">
         <input
           type="checkbox"
-          className="accent-graphite w-4 h-4"
+          className="accent-brand w-4 h-4"
           checked={isCentralStore}
           disabled={pending}
           onChange={(e) => setIsCentralStore(e.target.checked)}
@@ -68,7 +68,7 @@ export function DepartmentForm({
       <label className={`flex items-center gap-2 text-sm mb-1.5 select-none ${isCentralStore ? "opacity-50" : "cursor-pointer"}`}>
         <input
           type="checkbox"
-          className="accent-graphite w-4 h-4"
+          className="accent-brand w-4 h-4"
           checked={stocksProducts}
           disabled={pending || isCentralStore}
           onChange={(e) => setStocksProducts(e.target.checked)}

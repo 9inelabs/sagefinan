@@ -69,7 +69,7 @@ export default async function RepeatVariancesReportPage({ searchParams }: { sear
                   {["Product", "Department", "Occurrences", "Total", "Value"].map((h, i) => (
                     <th
                       key={h}
-                      className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                      className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                         i > 1 ? "text-right" : ""
                       }`}
                     >
@@ -89,21 +89,21 @@ export default async function RepeatVariancesReportPage({ searchParams }: { sear
                       <td className="px-0 h-9">
                         <Link
                           href={`/reconcile/reports/repeat-variances/${r.productId}?${drillSp.toString()}`}
-                          className="flex items-center h-9 px-4 text-[13.5px] text-graphite whitespace-nowrap"
+                          className="flex items-center h-9 px-4 text-[12.5px] text-brand whitespace-nowrap"
                         >
                           {r.productName} <span className="text-n600 text-xs ml-1.5">{r.productCode}</span>
                         </Link>
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{r.departmentName}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{r.occurrences}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{r.departmentName}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{r.occurrences}</td>
                       <td
-                        className={`px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap ${
+                        className={`px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap ${
                           r.totalVariance < 0 ? "text-red font-medium" : "text-green font-medium"
                         }`}
                       >
                         {r.totalVariance > 0 ? `+${r.totalVariance}` : r.totalVariance}
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(r.totalValue)}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(r.totalValue)}</td>
                     </tr>
                   );
                 })}

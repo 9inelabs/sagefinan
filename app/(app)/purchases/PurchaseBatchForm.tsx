@@ -155,7 +155,7 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-n600">Searching…</span>
               ) : null}
               {results.length > 0 ? (
-                <div className="absolute z-10 mt-1 w-full bg-white border border-n200 rounded max-h-64 overflow-y-auto shadow-sm">
+                <div className="absolute z-10 mt-1 w-full bg-white rounded border border-n200 shadow-premium max-h-64 overflow-y-auto shadow-sm">
                   {results.map((r) => (
                     <button
                       key={r.id}
@@ -220,7 +220,7 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
                     {["Product", "Code", "Current qty", "Adding", "Resulting qty", ""].map((h, i) => (
                       <th
                         key={h + i}
-                        className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                        className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                           i > 1 ? "text-right" : ""
                         }`}
                       >
@@ -232,17 +232,17 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
                 <tbody>
                   {lines.map((l) => (
                     <tr key={l.productId} className="border-b border-n200 last:border-b-0 hover:bg-n50">
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{l.name}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-n600 tabular-nums whitespace-nowrap">{l.code}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-right text-n600 tabular-nums whitespace-nowrap">{l.currentQty}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-right text-green font-medium tabular-nums whitespace-nowrap">
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{l.name}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-n600 tabular-nums whitespace-nowrap">{l.code}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right text-n600 tabular-nums whitespace-nowrap">{l.currentQty}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right text-green font-medium tabular-nums whitespace-nowrap">
                         +{l.quantity}
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] text-right font-medium tabular-nums whitespace-nowrap">
+                      <td className="px-4 h-9 text-[12.5px] text-right font-medium tabular-nums whitespace-nowrap">
                         {l.currentQty + l.quantity}
                       </td>
                       <td className="px-4 h-9 text-right whitespace-nowrap">
-                        <button type="button" onClick={() => removeLine(l.productId)} className="text-graphite text-sm">
+                        <button type="button" onClick={() => removeLine(l.productId)} className="text-brand text-sm">
                           Remove
                         </button>
                       </td>
@@ -260,7 +260,7 @@ export function PurchaseBatchForm({ initialBusinessDay }: { initialBusinessDay: 
                       <div className="text-sm truncate">{l.name}</div>
                       <div className="text-xs text-n600 tabular-nums mt-0.5">{l.code}</div>
                     </div>
-                    <button type="button" onClick={() => removeLine(l.productId)} className="text-graphite text-sm flex-none">
+                    <button type="button" onClick={() => removeLine(l.productId)} className="text-brand text-sm flex-none">
                       Remove
                     </button>
                   </div>

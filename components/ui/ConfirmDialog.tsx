@@ -6,8 +6,8 @@ import { Btn } from "./Button";
 // Generic confirmation modal for destructive/consequential admin actions
 // (deactivating a department/user, reassigning the central store). Not part
 // of design/ui-draft.html — the prototype has no admin screens — so this
-// follows the same ink/graphite/hairline-border/6px-radius system as everything
-// else rather than reproducing a specific prototype element.
+// follows the app's shared card/button system rather than reproducing a
+// specific prototype element.
 export function ConfirmDialog({
   open,
   title,
@@ -43,16 +43,16 @@ export function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-black/30" onClick={pending ? undefined : onCancel} />
-      <div className="relative bg-white border border-n200 rounded max-w-[440px] w-full" role="dialog" aria-modal="true">
-        <div className="p-4 border-b border-n200">
-          <h2 className="text-sm font-medium">{title}</h2>
+      <div className="absolute inset-0 bg-frame/50 backdrop-blur-[2px]" onClick={pending ? undefined : onCancel} />
+      <div className="relative bg-white rounded-premium shadow-lift max-w-[440px] w-full" role="dialog" aria-modal="true">
+        <div className="px-5 pt-5 pb-1">
+          <h2 className="text-[15px] font-medium tracking-[-0.01em]">{title}</h2>
         </div>
-        <div className="p-4 text-sm text-n600 leading-relaxed">
+        <div className="px-5 py-3 text-sm text-n600 leading-relaxed">
           {description}
           {error ? <p className="text-red mt-3">{error}</p> : null}
         </div>
-        <div className="p-4 border-t border-n200 flex justify-end gap-2">
+        <div className="px-5 pt-2 pb-5 flex justify-end gap-2">
           <Btn type="button" onClick={onCancel} disabled={pending}>
             Cancel
           </Btn>

@@ -34,7 +34,7 @@ export function OpeningBalanceForm({
           title="No departments yet"
           description="Add a department before setting opening balances."
           action={
-            <Link href="/departments" className="text-graphite text-sm">
+            <Link href="/departments" className="text-brand text-sm">
               Go to Departments →
             </Link>
           }
@@ -157,13 +157,13 @@ function DepartmentForm({ departmentId, screenData }: { departmentId: string; sc
   return (
     <>
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-white border border-n200 rounded px-[15px] py-[13px]">
-          <span className="text-[11.5px] text-n600 tracking-wide uppercase">Still need an opening balance</span>
+        <div className="bg-white rounded-premium shadow-premium px-[15px] py-[13px]">
+          <span className="text-[11px] text-n600 tracking-wide uppercase">Still need an opening balance</span>
           <b className={`block text-2xl font-medium mt-[5px] tracking-tight tabular-nums ${missingCount > 0 ? "text-amber" : "text-green"}`}>
             {missingCount} <i className="not-italic text-xs text-n600 font-normal">/ {lines.length}</i>
           </b>
         </div>
-        <div className="bg-white border border-n200 rounded px-[15px] py-[13px] flex flex-col justify-center">
+        <div className="bg-white rounded-premium shadow-premium px-[15px] py-[13px] flex flex-col justify-center">
           <label className="text-xs text-n600 mb-1.5 block">As-at date</label>
           <Input type="date" value={asAtDate} onChange={(e) => setAsAtDate(e.target.value)} />
         </div>
@@ -173,7 +173,7 @@ function DepartmentForm({ departmentId, screenData }: { departmentId: string; sc
         <div className="px-4 py-2.5 border-b border-n200 flex flex-wrap items-center justify-between gap-2">
           <Input className="flex-1 min-w-[180px]" placeholder="Search product or code" value={search} onChange={(e) => setSearch(e.target.value)} />
           <label className="text-xs text-n600 flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
-            <input type="checkbox" className="accent-graphite w-4 h-4" checked={showOnlyMissing} onChange={(e) => setShowOnlyMissing(e.target.checked)} />
+            <input type="checkbox" className="accent-brand w-4 h-4" checked={showOnlyMissing} onChange={(e) => setShowOnlyMissing(e.target.checked)} />
             Show only missing
           </label>
         </div>

@@ -18,7 +18,7 @@ export function ReportsTabs({ active }: { active: (typeof TABS)[number]["href"] 
           key={t.href}
           href={t.href}
           className={`px-3 py-2.5 text-sm whitespace-nowrap border-b-2 -mb-px ${
-            t.href === active ? "border-graphite text-graphite" : "border-transparent text-n600 hover:text-ink"
+            t.href === active ? "border-brand text-brand" : "border-transparent text-n600 hover:text-ink"
           }`}
         >
           {t.label}

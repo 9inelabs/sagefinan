@@ -20,7 +20,7 @@ export default async function ChangePasswordPage({ searchParams }: { searchParam
 
   return (
     <div className="min-h-screen bg-n100 flex items-center justify-center px-4">
-      <div className="w-full max-w-[400px] bg-white border border-n200 rounded p-6">
+      <div className="w-full max-w-[400px] bg-white rounded-premium shadow-premium p-6">
         <h1 className="text-xl font-medium text-ink tracking-tight mb-1.5">Set a new password</h1>
         <p className="text-sm text-n600 mb-5 leading-relaxed">
           You&apos;re signed in with a temporary password. Choose your own before continuing — nobody else will know it.

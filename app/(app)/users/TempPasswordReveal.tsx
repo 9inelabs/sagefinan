@@ -38,7 +38,7 @@ export function TempPasswordReveal({
         shown again. They&apos;ll be asked to set their own password the first time they sign in.
       </p>
       <div className="flex items-center gap-2 mb-4">
-        <code className="flex-1 bg-n50 border border-n200 rounded px-3 py-2.5 text-[15px] tabular-nums select-all">{tempPassword}</code>
+        <code className="flex-1 bg-n50 border border-n200 rounded px-3 py-2.5 text-[14px] tabular-nums select-all">{tempPassword}</code>
         <Btn
           type="button"
           onClick={() => {

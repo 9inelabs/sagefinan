@@ -63,7 +63,7 @@ export default async function RepeatVarianceProductPage({
                   {["As at", "Expected", "Counted", "Variance", "Value", "Status"].map((h, i) => (
                     <th
                       key={h}
-                      className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                      className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                         i > 0 && i < 5 ? "text-right" : ""
                       }`}
                     >
@@ -76,20 +76,20 @@ export default async function RepeatVarianceProductPage({
                 {rows.map((r) => (
                   <tr key={r.sessionId} className="border-b border-n200 last:border-b-0 hover:bg-n50">
                     <td className="px-0 h-9">
-                      <Link href={`/reconcile/${r.sessionId}`} className="flex items-center h-9 px-4 text-[13.5px] tabular-nums whitespace-nowrap">
+                      <Link href={`/reconcile/${r.sessionId}`} className="flex items-center h-9 px-4 text-[12.5px] tabular-nums whitespace-nowrap">
                         {r.asAtDate}
                       </Link>
                     </td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{r.expectedQty}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{r.countedQty}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{r.expectedQty}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{r.countedQty}</td>
                     <td
-                      className={`px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap ${
+                      className={`px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap ${
                         r.variance < 0 ? "text-red font-medium" : "text-green font-medium"
                       }`}
                     >
                       {r.variance > 0 ? `+${r.variance}` : r.variance}
                     </td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(r.value)}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(r.value)}</td>
                     <td className="px-4 h-9 whitespace-nowrap">
                       <Tag variant={r.status === "LOCKED" ? "mut" : "warn"}>{r.status === "LOCKED" ? "Locked" : "Needs reconciling"}</Tag>
                     </td>

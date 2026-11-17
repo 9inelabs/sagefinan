@@ -115,12 +115,12 @@ export function DepartmentProductsManager({
         <div className="flex-1 min-w-[220px] relative">
           <Input placeholder="Search product by code or name to add" value={search} onChange={(e) => runSearch(e.target.value)} />
           {results.length > 0 ? (
-            <div className="absolute z-10 mt-1 w-full bg-white border border-n200 rounded max-h-64 overflow-y-auto">
+            <div className="absolute z-10 mt-1 w-full bg-white rounded border border-n200 shadow-premium max-h-64 overflow-y-auto">
               {results.map((r) => (
                 <label key={r.id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-n50 cursor-pointer">
                   <input
                     type="checkbox"
-                    className="accent-graphite w-4 h-4 flex-none"
+                    className="accent-brand w-4 h-4 flex-none"
                     checked={selectedToAdd.has(r.id)}
                     onChange={(e) => {
                       setSelectedToAdd((prev) => {
@@ -154,7 +154,7 @@ export function DepartmentProductsManager({
                   {["", "Order", "Code", "Name", "Unit cost", ""].map((h, i) => (
                     <th
                       key={h + i}
-                      className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                      className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                         i === 4 ? "text-right" : ""
                       }`}
                     >
@@ -180,18 +180,18 @@ export function DepartmentProductsManager({
                       <input
                         type="number"
                         inputMode="numeric"
-                        className="w-14 px-2 py-1 border border-n200 rounded text-[13px] tabular-nums focus:outline-2 focus:outline-graphite focus:-outline-offset-1"
+                        className="w-14 px-2 py-1 border border-n200 rounded text-[12.5px] tabular-nums focus:outline-2 focus:outline-brand focus:-outline-offset-1"
                         value={orderValue(p)}
                         onChange={(e) => setOrderDrafts((d) => ({ ...d, [p.productId]: e.target.value }))}
                         onBlur={() => commitOrder(p.productId)}
                         onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
                       />
                     </td>
-                    <td className="px-4 h-9 text-[13.5px] text-n600 tabular-nums whitespace-nowrap">{p.code}</td>
-                    <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{p.name}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(p.unitCost)}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-n600 tabular-nums whitespace-nowrap">{p.code}</td>
+                    <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{p.name}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(p.unitCost)}</td>
                     <td className="px-4 h-9 text-right whitespace-nowrap">
-                      <button type="button" onClick={() => remove(p.productId)} className="text-graphite text-sm">
+                      <button type="button" onClick={() => remove(p.productId)} className="text-brand text-sm">
                         Remove
                       </button>
                     </td>
@@ -215,13 +215,13 @@ export function DepartmentProductsManager({
                   <input
                     type="number"
                     inputMode="numeric"
-                    className="w-16 h-12 px-2 border border-n200 rounded text-center text-[15px] tabular-nums focus:outline-2 focus:outline-graphite focus:-outline-offset-1"
+                    className="w-16 h-12 px-2 border border-n200 rounded text-center text-[14px] tabular-nums focus:outline-2 focus:outline-brand focus:-outline-offset-1"
                     value={orderValue(p)}
                     onChange={(e) => setOrderDrafts((d) => ({ ...d, [p.productId]: e.target.value }))}
                     onBlur={() => commitOrder(p.productId)}
                   />
                 </div>
-                <button type="button" onClick={() => remove(p.productId)} className="text-graphite text-sm h-12 px-1 flex-none">
+                <button type="button" onClick={() => remove(p.productId)} className="text-brand text-sm h-12 px-1 flex-none">
                   Remove
                 </button>
               </div>

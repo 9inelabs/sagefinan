@@ -29,8 +29,10 @@ after every schema change. Deployed to Vercel (from phase 8).
   which roles see them. Add a route there, not just in `app/(app)/`.
 - **Design tokens**: defined once in `app/globals.css` (`:root` CSS vars +
   Tailwind `@theme inline`). Never hardcode a hex colour, radius, or font
-  size in a component — use the theme tokens (`bg-ink`, `text-graphite`,
-  `border-n200`, `rounded`, `text-xs`/`sm`/`base`/`xl`/`2xl`, `tabular-nums`).
+  size in a component — use the theme tokens (`bg-ink`, `text-brand`,
+  `bg-brand-bright`, `border-n200`, `rounded`, `rounded-premium`,
+  `text-xs`/`sm`/`base`/`xl`/`2xl`, `tabular-nums`) — see SPEC.md's Design
+  tokens section for the current dark + green system.
   Never use `font-semibold`/`font-bold` classes — weights are 400/500 only,
   by convention (not build-enforced).
 - **Movements are immutable**: no code should ever UPDATE or DELETE a
@@ -1966,3 +1968,67 @@ again and that count survived a hard reload (the server-computed value,
 not leftover client state). 380px was not re-checked separately — the
 badge reuses the sidebar's existing nav-item layout and mobile drawer,
 neither of which this change restructured.
+
+**Dark + green redesign (no phase number).** User shared a reference
+dashboard (dark sidebar, light inset content panel, green accents, a dark
+hero stat tile, a tinted summary card, a dark feature card) and asked for
+the whole app redesigned in that direction — same content, more premium,
+everything a little smaller. A static HTML sketch of the dashboard
+(desktop + phone, real department names, sample figures) was shown and
+approved before any code changed; it listed five small additions (business-
+day card, "Jump to…" nav filter, messages shortcut with unread dot, "Full
+report" link on Repeat variances, a status filter on Today's counts), all
+built.
+
+Global by construction, same levers as the premium redesign: one token
+rename (`graphite` → `brand`, now green — a `sed` over `app/`,
+`components/`, `lib/`, excluding `/login`, `lib/pdf/` and
+`components/receipt/`, whose one `text-graphite` link became `text-n600`
+to stay black-and-white); the theme type scale shrunk to 11.5/13/15/18/22;
+the common arbitrary sizes shrunk one step (13.5→12.5, 13→12.5, 12.5→12,
+11.5→11, 15→14, 17→16px); every table's uppercase, filled header row
+restyled to small sentence-case grey labels by replacing its shared class
+string; inline `bg-white border border-n200 rounded` panels moved onto the
+card surface. `/login`'s one theme-dependent class (`text-sm`) was pinned
+to `text-[14px]` so it renders pixel-identically under the smaller scale.
+
+Shell rebuilt (`AppShell`/`Sidebar`/`PageShell`; `Header.tsx` deleted — its
+brand and user/sign-out moved back into the sidebar, its hamburger into a
+mobile-only dark top bar). New `components/app-shell/shell-context.tsx`
+exposes AppShell's live unread count to page-level client components
+(`MessagesButton`) without prop-drilling through server components; the
+business-day label is computed server-side in `app/(app)/layout.tsx`
+(`formatShortDate(yesterdayIso())`) to avoid a client/server date mismatch.
+Sidebar active-state matching now prefers the most specific item, so
+`/requisitions/history` no longer also highlights Requisitions (the old
+`startsWith` check lit both). `Card` gained `actions` and `dark`/`tint`
+variants; `Stat` gained `hero`, `bars`, `icon`, `footer`; `Tag` became
+borderless soft pills; `Btn`'s primary variants became dark Ink;
+`ConfirmDialog` and the other modals got the card surface and a blurred
+dark backdrop. No hardcoded hex in components — every new colour is a
+token (`--red-on-dark`, `--shadow-btn`, `--radius-panel` etc.).
+
+Dashboard (`app/(app)/page.tsx` now only fetches; rendering moved to
+`app/(app)/_dashboard/DashboardView.tsx` — a page file can't export
+anything but its default, and the split also made the view previewable
+with sample data): same data from `getDashboardData()`, nothing new
+queried. The stock ledger is a grouped bar chart (opening/received/issued/
+closing per department, hover/tap tooltip) with a Chart/Table switch back
+to the full table (`LedgerChart.tsx`); its totals row became the green
+"Total closing value" card; Today's counts (`CountsTable.tsx`) gained
+progress bars and a client-side status filter; Movements today became the
+dark card. Tables reflow to stacked cards under 700px.
+
+Verified with a temporary Playwright run against a **local preview route
+with sample data** (an uncommitted `app/login-redesign-preview/` page —
+`/login*` is public in `middleware.ts` — rendering the real `AppShell`,
+`DashboardView` and shared primitives, deleted afterward), not against the
+signed-in app: creating a throwaway admin account in the live project was
+blocked this session, so real-data screens weren't screenshotted. Checked
+at 1440/1024/390px: no page or panel overflow (a 1024px overflow from
+grid items' default `min-width: auto` was caught and fixed with
+`grid-cols-1`/`minmax(0,1fr)` tracks), no console errors, empty states
+(including an all-zero ledger, which now shows a message instead of a
+₦0–₦1 axis), and `/login` visually unchanged. `npx tsc`, `npx eslint .` and
+`npm run build` all clean.
+

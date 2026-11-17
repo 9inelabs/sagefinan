@@ -20,8 +20,8 @@ export function Chip({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`min-h-11 px-3.5 rounded-full border text-[13px] disabled:opacity-50 ${
-        active ? "bg-graphite border-graphite text-white" : "bg-white border-n200 text-ink hover:border-n400"
+      className={`min-h-11 px-3.5 rounded-full border text-[12.5px] disabled:opacity-50 ${
+        active ? "bg-brand border-brand text-white" : "bg-white border-n200 text-ink hover:border-n400"
       }`}
     >
       {children}

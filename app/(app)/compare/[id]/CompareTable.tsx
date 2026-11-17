@@ -85,7 +85,7 @@ export function CompareTable({
       >
         <div className="px-4 py-2.5 border-b border-n200 flex flex-wrap items-center justify-between gap-2">
           <label className="text-xs text-n600 flex items-center gap-1.5 cursor-pointer">
-            <input type="checkbox" className="accent-graphite w-4 h-4" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
+            <input type="checkbox" className="accent-brand w-4 h-4" checked={showAll} onChange={(e) => setShowAll(e.target.checked)} />
             Show all products
           </label>
           <label className="text-xs text-n600 flex items-center gap-1.5">
@@ -113,7 +113,7 @@ export function CompareTable({
                     {["Product", "Expected", "Counted", "Ledger", "Variance", "Value", "Flag", ""].map((h, i) => (
                       <th
                         key={h}
-                        className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                        className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                           i > 0 && i < 6 ? "text-right" : ""
                         }`}
                       >
@@ -125,21 +125,21 @@ export function CompareTable({
                 <tbody>
                   {visibleLines.map((l) => (
                     <tr key={l.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                         {l.name} <span className="text-n600 text-xs">{l.code}</span>
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{l.expectedQty}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{l.countedQty}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{l.ledgerQty ?? "—"}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{l.expectedQty}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{l.countedQty}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{l.ledgerQty ?? "—"}</td>
                       <td
-                        className={`px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap ${
+                        className={`px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap ${
                           l.variance < 0 ? "text-red font-medium" : l.variance > 0 ? "text-green font-medium" : ""
                         }`}
                       >
                         {l.variance > 0 ? `+${l.variance}` : l.variance}
                       </td>
                       <td
-                        className={`px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap ${
+                        className={`px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap ${
                           l.variance < 0 ? "text-red font-medium" : l.variance > 0 ? "text-green font-medium" : ""
                         }`}
                       >
@@ -159,7 +159,7 @@ export function CompareTable({
                       </td>
                       <td className="px-4 h-9 text-right whitespace-nowrap">
                         {session.status !== "LOCKED" ? (
-                          <button type="button" onClick={() => setEditing(l)} className="text-graphite text-sm">
+                          <button type="button" onClick={() => setEditing(l)} className="text-brand text-sm">
                             Correct
                           </button>
                         ) : null}
@@ -179,7 +179,7 @@ export function CompareTable({
                       <div className="text-xs text-n600 tabular-nums mt-0.5">{l.code}</div>
                     </div>
                     {session.status !== "LOCKED" ? (
-                      <button type="button" onClick={() => setEditing(l)} className="text-graphite text-sm flex-none">
+                      <button type="button" onClick={() => setEditing(l)} className="text-brand text-sm flex-none">
                         Correct
                       </button>
                     ) : null}
@@ -274,8 +274,8 @@ function CorrectDialog({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-black/30" onClick={pending ? undefined : onClose} />
-      <div className="relative bg-white border border-n200 rounded max-w-[440px] w-full" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-frame/50 backdrop-blur-[2px]" onClick={pending ? undefined : onClose} />
+      <div className="relative bg-white rounded-premium shadow-premium max-w-[440px] w-full" role="dialog" aria-modal="true">
         <div className="p-4 border-b border-n200">
           <h2 className="text-sm font-medium">Correct {line.name}</h2>
           <p className="text-xs text-n600 mt-1">

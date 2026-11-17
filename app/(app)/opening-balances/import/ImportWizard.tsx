@@ -106,7 +106,7 @@ export function ImportWizard() {
               disabled={stage === "checking" || stage === "committing"}
               className="text-sm"
             />
-            <a href="/templates/opening-balance-import-template.csv" download className="text-graphite text-sm">
+            <a href="/templates/opening-balance-import-template.csv" download className="text-brand text-sm">
               Download CSV template
             </a>
           </div>
@@ -133,7 +133,7 @@ export function ImportWizard() {
               <label className="flex items-start gap-2.5 text-sm cursor-pointer">
                 <input
                   type="checkbox"
-                  className="accent-graphite w-4 h-4 mt-0.5"
+                  className="accent-brand w-4 h-4 mt-0.5"
                   checked={replaceExisting}
                   onChange={(e) => setReplaceExisting(e.target.checked)}
                 />
@@ -154,7 +154,7 @@ export function ImportWizard() {
                   <thead>
                     <tr>
                       {["Row", "Department", "Product", "Current", "New"].map((h) => (
-                        <th key={h} className="text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide">
+                        <th key={h} className="text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200">
                           {h}
                         </th>
                       ))}
@@ -165,15 +165,15 @@ export function ImportWizard() {
                       .filter((r) => r.existingMovementId)
                       .map((r) => (
                         <tr key={r.row} className="border-b border-n200 last:border-b-0">
-                          <td className="px-4 h-8 text-[13px] tabular-nums whitespace-nowrap">{r.row}</td>
-                          <td className="px-4 h-8 text-[13px] whitespace-nowrap">{r.departmentName}</td>
-                          <td className="px-4 h-8 text-[13px] whitespace-nowrap">
+                          <td className="px-4 h-8 text-[12.5px] tabular-nums whitespace-nowrap">{r.row}</td>
+                          <td className="px-4 h-8 text-[12.5px] whitespace-nowrap">{r.departmentName}</td>
+                          <td className="px-4 h-8 text-[12.5px] whitespace-nowrap">
                             {r.productName} <span className="text-n600 text-xs">{r.productCode}</span>
                           </td>
-                          <td className="px-4 h-8 text-[13px] tabular-nums text-n600 whitespace-nowrap">
+                          <td className="px-4 h-8 text-[12.5px] tabular-nums text-n600 whitespace-nowrap">
                             {r.existingQuantity} (as at {r.existingBusinessDay})
                           </td>
-                          <td className="px-4 h-8 text-[13px] tabular-nums font-medium whitespace-nowrap">
+                          <td className="px-4 h-8 text-[12.5px] tabular-nums font-medium whitespace-nowrap">
                             {r.quantity} (as at {r.businessDay})
                           </td>
                         </tr>
@@ -193,8 +193,8 @@ export function ImportWizard() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
-                      <th className="text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide">Row</th>
-                      <th className="text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide">
+                      <th className="text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200">Row</th>
+                      <th className="text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200">
                         Reason
                       </th>
                     </tr>
@@ -202,8 +202,8 @@ export function ImportWizard() {
                   <tbody>
                     {result.errors.map((e, i) => (
                       <tr key={i} className="border-b border-n200 last:border-b-0">
-                        <td className="px-4 h-8 text-[13px] tabular-nums text-red whitespace-nowrap">{e.row}</td>
-                        <td className="px-4 h-8 text-[13px] text-n600">{e.reason}</td>
+                        <td className="px-4 h-8 text-[12.5px] tabular-nums text-red whitespace-nowrap">{e.row}</td>
+                        <td className="px-4 h-8 text-[12.5px] text-n600">{e.reason}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#111827",
+  themeColor: "#0a100c",
   width: "device-width",
   initialScale: 1,
 };
@@ -42,7 +42,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} antialiased`}>
-        <NextTopLoader color="var(--graphite)" height={3} showSpinner={false} shadow={false} />
+        <NextTopLoader color="var(--brand-bright)" height={3} showSpinner={false} shadow={false} />
         <RegisterServiceWorker />
         {children}
       </body>

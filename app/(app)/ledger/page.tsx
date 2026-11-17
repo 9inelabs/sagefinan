@@ -104,7 +104,7 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                   {["Product", "Opening", receivedLabel, issuedLabel, "Closing", "Unit cost", "Closing value"].map((h, i) => (
                     <th
                       key={h + i}
-                      className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                      className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                         i > 0 ? "text-right" : "sticky left-0 z-1"
                       }`}
                     >
@@ -119,31 +119,31 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
                     <td className="px-0 h-9 sticky left-0 z-1 bg-white group-hover:bg-n50">
                       <Link
                         href={`/ledger/${r.productId}?${exportSp.toString()}`}
-                        className="flex items-center h-9 px-4 text-[13.5px] whitespace-nowrap"
+                        className="flex items-center h-9 px-4 text-[12.5px] whitespace-nowrap"
                       >
                         {r.name} <span className="text-n600 text-xs ml-1.5">{r.code}</span>
                       </Link>
                     </td>
-                    <td className="px-4 h-9 text-[13.5px] text-right text-n600 tabular-nums whitespace-nowrap">{r.openingQty}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right text-green tabular-nums whitespace-nowrap">
+                    <td className="px-4 h-9 text-[12.5px] text-right text-n600 tabular-nums whitespace-nowrap">{r.openingQty}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right text-green tabular-nums whitespace-nowrap">
                       {r.receivedQty !== 0 ? `+${r.receivedQty}` : 0}
                     </td>
-                    <td className="px-4 h-9 text-[13.5px] text-right text-red tabular-nums whitespace-nowrap">
+                    <td className="px-4 h-9 text-[12.5px] text-right text-red tabular-nums whitespace-nowrap">
                       {r.issuedQty !== 0 ? `−${r.issuedQty}` : 0}
                     </td>
-                    <td className="px-4 h-9 text-[13.5px] text-right font-medium tabular-nums whitespace-nowrap">{r.closingQty}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right text-n600 tabular-nums whitespace-nowrap">{formatNaira(r.unitCost)}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(r.closingValue)}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right font-medium tabular-nums whitespace-nowrap">{r.closingQty}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right text-n600 tabular-nums whitespace-nowrap">{formatNaira(r.unitCost)}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{formatNaira(r.closingValue)}</td>
                   </tr>
                 ))}
                 <tr className="bg-n50">
-                  <td className="px-4 h-9 text-[13.5px] font-medium sticky left-0 z-1 bg-n50 whitespace-nowrap">Total</td>
+                  <td className="px-4 h-9 text-[12.5px] font-medium sticky left-0 z-1 bg-n50 whitespace-nowrap">Total</td>
                   <td className="px-4 h-9" />
                   <td className="px-4 h-9" />
                   <td className="px-4 h-9" />
                   <td className="px-4 h-9" />
                   <td className="px-4 h-9" />
-                  <td className="px-4 h-9 text-[13.5px] font-medium text-right tabular-nums whitespace-nowrap">
+                  <td className="px-4 h-9 text-[12.5px] font-medium text-right tabular-nums whitespace-nowrap">
                     {formatNaira(data.totalClosingValue)}
                   </td>
                 </tr>

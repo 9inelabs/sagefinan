@@ -48,7 +48,7 @@ export function ReasonCodesManager({ initialCodes }: { initialCodes: ReasonCodeR
                 {["Label", "Applies to", "Note required", "Status", ""].map((h) => (
                   <th
                     key={h}
-                    className="text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap"
+                    className="text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap"
                   >
                     {h}
                   </th>
@@ -58,9 +58,9 @@ export function ReasonCodesManager({ initialCodes }: { initialCodes: ReasonCodeR
             <tbody>
               {codes.map((c) => (
                 <tr key={c.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
-                  <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{c.label}</td>
-                  <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{APPLIES_LABEL[c.appliesTo]}</td>
-                  <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{c.requiresNote ? "Yes" : "—"}</td>
+                  <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{c.label}</td>
+                  <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{APPLIES_LABEL[c.appliesTo]}</td>
+                  <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{c.requiresNote ? "Yes" : "—"}</td>
                   <td className="px-4 h-9 whitespace-nowrap">
                     <Tag variant={c.isActive ? "acc" : "mut"}>{c.isActive ? "Active" : "Retired"}</Tag>
                   </td>
@@ -69,7 +69,7 @@ export function ReasonCodesManager({ initialCodes }: { initialCodes: ReasonCodeR
                       type="button"
                       onClick={() => toggle(c)}
                       disabled={pendingId === c.id}
-                      className="text-graphite text-sm disabled:text-n400"
+                      className="text-brand text-sm disabled:text-n400"
                     >
                       {pendingId === c.id ? "Saving…" : c.isActive ? "Retire" : "Reactivate"}
                     </button>
@@ -137,8 +137,8 @@ function AddDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (ro
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-black/30" onClick={pending ? undefined : onClose} />
-      <div className="relative bg-white border border-n200 rounded max-w-[440px] w-full" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-frame/50 backdrop-blur-[2px]" onClick={pending ? undefined : onClose} />
+      <div className="relative bg-white rounded-premium shadow-premium max-w-[440px] w-full" role="dialog" aria-modal="true">
         <div className="p-4 border-b border-n200">
           <h2 className="text-sm font-medium">Add a reason code</h2>
         </div>
@@ -154,7 +154,7 @@ function AddDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (ro
             </Select>
           </Field>
           <label className="flex items-center gap-2 text-sm text-n600 cursor-pointer">
-            <input type="checkbox" className="accent-graphite w-4 h-4" checked={requiresNote} onChange={(e) => setRequiresNote(e.target.checked)} />
+            <input type="checkbox" className="accent-brand w-4 h-4" checked={requiresNote} onChange={(e) => setRequiresNote(e.target.checked)} />
             Require a note whenever this reason is chosen (like &quot;Other&quot;)
           </label>
           {error ? <p className="text-sm text-red mt-3">{error}</p> : null}

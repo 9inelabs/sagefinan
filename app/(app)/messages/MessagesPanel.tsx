@@ -108,7 +108,7 @@ export function MessagesPanel({ initialMessages, currentUserId }: { initialMessa
                   {isMe ? "You" : m.authorName} <span className="text-n400">· {roleLabel(m.authorRole)}</span>{" "}
                   <span className="tabular-nums">· {formatTime(m.createdAt)}</span>
                 </div>
-                <div className={`rounded px-3 py-2 text-sm whitespace-pre-wrap break-words ${isMe ? "bg-graphite text-white" : "bg-n50 border border-n200 text-ink"}`}>
+                <div className={`rounded px-3 py-2 text-sm whitespace-pre-wrap break-words ${isMe ? "bg-brand text-white" : "bg-n50 border border-n200 text-ink"}`}>
                   {m.body}
                 </div>
               </div>
@@ -134,7 +134,7 @@ export function MessagesPanel({ initialMessages, currentUserId }: { initialMessa
             placeholder="Message everyone…"
             rows={1}
             maxLength={2000}
-            className="flex-1 resize-none px-[11px] py-[7px] border border-n200 rounded text-[13.5px] text-ink placeholder:text-n400 bg-white focus:outline-2 focus:outline-graphite focus:-outline-offset-1 focus:border-graphite disabled:bg-n50"
+            className="flex-1 resize-none px-[11px] py-[7px] border border-n200 rounded text-[12.5px] text-ink placeholder:text-n400 bg-white focus:outline-2 focus:outline-brand focus:-outline-offset-1 focus:border-brand disabled:bg-n50"
           />
           <Btn type="button" variant="acc" onClick={send} disabled={sending || !draft.trim()}>
             Send

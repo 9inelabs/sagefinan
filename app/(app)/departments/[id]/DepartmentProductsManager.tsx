@@ -117,7 +117,7 @@ export function DepartmentProductsManager({
           {results.length > 0 ? (
             <div className="absolute z-10 mt-1 w-full bg-white rounded border border-n200 shadow-premium max-h-64 overflow-y-auto">
               {results.map((r) => (
-                <label key={r.id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-n50 cursor-pointer">
+                <label key={r.id} className="flex items-center gap-2 px-3 py-2 text-sm hover:bg-brand-hover cursor-pointer">
                   <input
                     type="checkbox"
                     className="accent-brand w-4 h-4 flex-none"
@@ -171,7 +171,7 @@ export function DepartmentProductsManager({
                     onDragStart={() => (dragIndex.current = i)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => onDrop(i)}
-                    className="border-b border-n200 last:border-b-0 hover:bg-n50"
+                    className="border-b border-n200 last:border-b-0 hover:bg-brand-hover"
                   >
                     <td className="pl-4 h-9 w-6 text-n400 cursor-grab select-none" title="Drag to reorder">
                       ⠿

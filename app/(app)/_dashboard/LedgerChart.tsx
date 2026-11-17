@@ -161,7 +161,7 @@ export function LedgerChart({ rows, totals, extra }: { rows: LedgerRow[]; totals
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.departmentId} className="border-b border-n200 hover:bg-n50">
+                <tr key={row.departmentId} className="border-b border-n200 hover:bg-brand-hover">
                   <td className={TD}>{row.departmentName}</td>
                   <td className={`${TD} text-right`}>{formatNaira(row.openingValue)}</td>
                   <td className={`${TD} text-right text-green`}>+{formatNaira(row.receivedValue)}</td>

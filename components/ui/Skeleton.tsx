@@ -1,9 +1,11 @@
+import { LoadingPill, Spinner } from "./Spinner";
+
 // Shared building blocks for route-level loading.tsx files. Kept dependency-free
 // (plain CSS animation, no client JS) — see the "Loading & navigation feedback"
 // section of CLAUDE.md for how these compose per screen.
 
 export function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div className={`bg-n100 rounded animate-pulse ${className}`} />;
+  return <div className={`bg-n100 rounded-sm animate-pulse ${className}`} />;
 }
 
 // Wraps a loading.tsx's content so it fades in only after a short delay —
@@ -16,7 +18,7 @@ export function SkeletonIn({ children }: { children: React.ReactNode }) {
 // buttons) so swapping from skeleton to real content never shifts layout.
 export function SkeletonPageHeader({ actions = 0 }: { actions?: number }) {
   return (
-    <header className="px-4 min-[900px]:px-7 pt-5 min-[900px]:pt-6.5 pb-4 min-[900px]:pb-5 flex flex-col min-[700px]:flex-row min-[700px]:items-end justify-between gap-3 min-[700px]:gap-4 max-w-[1320px] w-full">
+    <header className="px-4 min-[900px]:px-7 pt-5 min-[900px]:pt-6.5 pb-4 min-[900px]:pb-5 flex flex-col min-[700px]:flex-row min-[700px]:items-end justify-between gap-3 min-[700px]:gap-4 w-full">
       <div className="min-w-0">
         <SkeletonBlock className="h-6 min-[900px]:h-7 w-40" />
         <SkeletonBlock className="h-3 w-56 mt-2" />
@@ -34,13 +36,14 @@ export function SkeletonPageHeader({ actions = 0 }: { actions?: number }) {
 
 // The scrollable body area PageShell wraps children in — same padding/max-width.
 export function SkeletonPageBody({ children }: { children: React.ReactNode }) {
-  return <div className="px-4 min-[900px]:px-7 pb-10 max-w-[1320px] w-full">{children}</div>;
+  return <div className="px-4 min-[900px]:px-7 pb-10 w-full">{children}</div>;
 }
 
 // Full-page skeleton: header chrome + body, faded in after a short delay.
 export function SkeletonPage({ actions = 0, children }: { actions?: number; children: React.ReactNode }) {
   return (
     <SkeletonIn>
+      <LoadingPill visible />
       <SkeletonPageHeader actions={actions} />
       <SkeletonPageBody>{children}</SkeletonPageBody>
     </SkeletonIn>
@@ -132,7 +135,7 @@ export function SkeletonFormCard({ rows = 4 }: { rows?: number }) {
 export function SkeletonSpinner() {
   return (
     <div className="flex items-center justify-center py-20">
-      <div className="w-6 h-6 rounded-full border-2 border-n200 border-t-brand animate-spin" aria-label="Loading" />
+      <Spinner size={28} label="Loading" />
     </div>
   );
 }

@@ -13,7 +13,7 @@ export function MessagesButton({ dark = false }: { dark?: boolean }) {
       href="/messages"
       aria-label={unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages"}
       className={`relative w-9.5 h-9.5 rounded-full grid place-items-center flex-none ${
-        dark ? "bg-frame-2 border border-frame-line text-on-dark" : "bg-white shadow-premium text-ink hover:bg-n50"
+        dark ? "bg-frame-2 border border-frame-line text-on-dark" : "bg-white shadow-premium text-ink hover:bg-brand-hover"
       }`}
     >
       <MessageSquare size={16} strokeWidth={1.75} />

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Menu } from "lucide-react";
 import { MessagesButton } from "./MessagesButton";
 import { ShellContext } from "./shell-context";
+import { LoadingPill } from "@/components/ui/Spinner";
 import { Sidebar } from "./Sidebar";
 import { navForRole } from "@/lib/nav";
 import type { CurrentProfile } from "@/lib/auth/profile";
@@ -101,6 +102,8 @@ export function AppShell({
   return (
     <ShellContext.Provider value={{ unreadMessages }}>
       <div className="app-frame h-dvh flex">
+        {/* Shown from the moment a navigation starts until it lands (see .loading-pill). */}
+        <LoadingPill />
         <aside className="hidden min-[900px]:block flex-none h-full">
           <Sidebar groups={groups} profile={profile} businessDayLabel={businessDayLabel} unreadCounts={{ messages: unreadMessages }} />
         </aside>

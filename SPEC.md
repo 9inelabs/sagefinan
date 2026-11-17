@@ -283,6 +283,22 @@ reference implementation of the current system.
   `PageShell` renders each page's title/subtitle/actions inside the canvas
   (not sticky); actions wrap under the title on narrow screens.
 
+- **Loading feedback**: `components/ui/Spinner.tsx` — a gradient ring
+  spinner (`.spinner`, conic gradient into brand-bright), a floating
+  "Loading…" pill (`LoadingPill`) and `LoadingBlock`. The pill shows during
+  every navigation (driven by `nextjs-toploader`'s `nprogress-busy` class on
+  `<html>`; client components navigate with `useRouter` from
+  `nextjs-toploader/app` so filter changes count too) and on every
+  `loading.tsx` skeleton. `Btn` shows the spinner automatically when its
+  label is a pending string ending in "…" (or with `loading`); product
+  searches show it in the search field.
+- **Hover**: rows, list items and quiet buttons hover to a light-green wash
+  (`bg-brand-hover`), never grey.
+- **Width**: pages fill the canvas — `PageShell` has no max width.
+- **Motion**: `.animate-rise` / `.animate-pop` / `.animate-check-pop` — one
+  long, soft ease-out curve for anything that enters or confirms; disabled
+  under `prefers-reduced-motion`. Sales entry is the reference screen.
+
 ## Login route visual treatment (deliberate exception to the design system above)
 
 `/login` (`app/login/page.tsx`) does **not** use the ink/graphite/6px-radius/

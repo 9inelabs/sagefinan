@@ -163,7 +163,7 @@ function PageLink({
   if (params.status) sp.set("status", params.status);
   sp.set("page", String(page));
   return (
-    <Link href={`/products?${sp.toString()}`} className="px-3 py-1.5 rounded border border-n200 hover:bg-n50 hover:border-n400">
+    <Link href={`/products?${sp.toString()}`} className="px-3 py-1.5 rounded border border-n200 hover:bg-brand-hover hover:border-n400">
       {children}
     </Link>
   );

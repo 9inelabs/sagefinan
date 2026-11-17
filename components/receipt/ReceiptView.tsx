@@ -43,7 +43,7 @@ export function ReceiptView({
         <Link href={backHref} className="text-sm text-n600">
           ← Back to history
         </Link>
-        <Link href={pdfHref} className="text-sm px-3 py-1.5 rounded-premium border border-n200 bg-white shadow-premium hover:bg-n50">
+        <Link href={pdfHref} className="text-sm px-3 py-1.5 rounded-premium border border-n200 bg-white shadow-premium hover:bg-brand-hover">
           Export PDF
         </Link>
       </div>

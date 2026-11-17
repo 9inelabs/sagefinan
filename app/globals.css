@@ -18,6 +18,7 @@
   --brand-bright: #3cc15f;
   --brand-soft: #e2ede2;
   --brand-soft-2: #d5e6d6;
+  --brand-hover: #edf6ee; /* light-green hover wash for rows, list items and quiet buttons */
 
   /* Green-tinted neutral ramp. */
   --canvas: #f2f4f1;
@@ -52,6 +53,9 @@
   --shadow-premium: 0 1px 2px rgba(15, 23, 18, 0.04), 0 8px 24px rgba(15, 23, 18, 0.05);
   --shadow-lift: 0 10px 28px rgba(10, 16, 12, 0.28);
   --shadow-btn: 0 6px 16px rgba(15, 23, 18, 0.18);
+  --shadow-glow: 0 8px 28px rgba(60, 193, 95, 0.35); /* bright-green primary on dark */
+  --shadow-glow-lg: 0 0 40px rgba(60, 193, 95, 0.45);
+  --shadow-focus: 0 0 0 4px rgba(60, 193, 95, 0.12); /* soft focus halo on large inputs */
 }
 
 @theme inline {
@@ -60,6 +64,7 @@
   --color-brand-bright: var(--brand-bright);
   --color-brand-soft: var(--brand-soft);
   --color-brand-soft-2: var(--brand-soft-2);
+  --color-brand-hover: var(--brand-hover);
 
   --color-canvas: var(--canvas);
   --color-n50: var(--n50);
@@ -89,6 +94,9 @@
   --shadow-premium: var(--shadow-premium);
   --shadow-lift: var(--shadow-lift);
   --shadow-btn: var(--shadow-btn);
+  --shadow-glow: var(--shadow-glow);
+  --shadow-glow-lg: var(--shadow-glow-lg);
+  --shadow-focus: var(--shadow-focus);
 
   --font-sans: var(--font-inter);
 
@@ -175,4 +183,114 @@ body {
 }
 .skeleton-in {
   animation: skeleton-in 160ms ease-out 120ms backwards;
+}
+
+/*
+  Gradient spinner (components/ui/Spinner.tsx): a conic gradient fading from
+  transparent to brand-bright to a pale mint tip, masked down to a ring.
+  Size and ring thickness come from --spinner-size / --spinner-ring.
+*/
+@keyframes spin-smooth {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.spinner {
+  width: var(--spinner-size, 18px);
+  height: var(--spinner-size, 18px);
+  border-radius: 9999px;
+  flex: none;
+  background: conic-gradient(from 90deg, rgba(60, 193, 95, 0) 0deg, rgba(60, 193, 95, 0.35) 140deg, var(--brand-bright) 290deg, #c9f5d5 360deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - var(--spinner-ring, 2.5px)), #000 calc(100% - var(--spinner-ring, 2.5px) + 0.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - var(--spinner-ring, 2.5px)), #000 calc(100% - var(--spinner-ring, 2.5px) + 0.5px));
+  animation: spin-smooth 0.75s linear infinite;
+}
+
+/*
+  Floating "Loading…" pill (components/ui/Spinner.tsx's LoadingPill). In the
+  shell it is driven by nextjs-toploader's `nprogress-busy` class on <html>,
+  which is present from the moment a navigation starts until it commits;
+  loading.tsx skeletons render a forced-visible copy that covers the rest
+  of the wait. Appears after 150ms so quick navigations never flash it.
+*/
+.loading-pill {
+  position: fixed;
+  z-index: 60;
+  left: 50%;
+  top: 18px;
+  opacity: 0;
+  transform: translate(-50%, -8px) scale(0.96);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+@media (max-width: 899px) {
+  .loading-pill {
+    top: auto;
+    bottom: 22px;
+    transform: translate(-50%, 8px) scale(0.96);
+  }
+}
+html.nprogress-busy .loading-pill,
+.loading-pill[data-visible] {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+  transition-delay: 150ms;
+}
+
+/*
+  Apple-style motion: one ease-out curve with a long, soft tail, used for
+  everything that enters (rise), pops open (pop) or confirms (check-pop).
+*/
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes check-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.animate-rise {
+  animation: rise 520ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.animate-pop {
+  animation: pop 260ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+  transform-origin: top center;
+}
+.animate-check-pop {
+  animation: check-pop 560ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-pop,
+  .animate-check-pop {
+    animation: none;
+  }
+  .spinner {
+    animation-duration: 1.6s;
+  }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
@@ -26,7 +26,10 @@ export function StartCountForm({
     setPending(true);
     setError(null);
     try {
-      const { id, status } = await startOrOpenCountSession(departmentId, asAtDate);
+      const { id, status } = await startOrOpenCountSession(
+        departmentId,
+        asAtDate,
+      );
       router.push(status === "DRAFT" ? `/count/${id}` : `/compare/${id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not start this count.");
@@ -36,27 +39,46 @@ export function StartCountForm({
 
   return (
     <Card title="Start or open a count">
-      <div className="p-4 max-w-md">
-        <Field label="Department">
-          <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className="w-full">
-            <option value="">Select a department…</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-                {d.is_central_store ? " (central store)" : ""}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field label="As at date" hint="Physical stock is compared as at close of business on this date.">
-          <Input type="date" value={asAtDate} onChange={(e) => setAsAtDate(e.target.value)} />
-        </Field>
+      <div className="p-4 pt-1">
+        <div className="grid grid-cols-1 min-[800px]:grid-cols-[1fr_1fr_220px] gap-x-4 items-start">
+          <Field label="Department">
+            <Select
+              value={departmentId}
+              onChange={(e) => setDepartmentId(e.target.value)}
+              className="w-full"
+            >
+              <option value="">Select a department…</option>
+              {departments.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                  {d.is_central_store ? " (central store)" : ""}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field
+            label="As at date"
+            hint="Physical stock is compared as at close of business on this date."
+          >
+            <Input
+              type="date"
+              value={asAtDate}
+              onChange={(e) => setAsAtDate(e.target.value)}
+            />
+          </Field>
+          <Btn
+            variant="acc"
+            onClick={start}
+            disabled={!departmentId || !asAtDate || pending}
+            className="w-full h-[34px] min-[800px]:mt-[22px] mb-3.5"
+          >
+            {pending ? "Opening…" : "Start / open count"}
+          </Btn>
+        </div>
         {error ? <p className="text-sm text-red mb-3">{error}</p> : null}
-        <Btn variant="acc" onClick={start} disabled={!departmentId || !asAtDate || pending} className="w-full h-10">
-          {pending ? "Opening…" : "Start / open count"}
-        </Btn>
-        <p className="text-xs text-n600 mt-3">
-          If a count for this department and date is already in progress, it opens instead of starting a duplicate.
+        <p className="text-xs text-n600">
+          If a count for this department and date is already in progress, it
+          opens instead of starting a duplicate.
         </p>
       </div>
     </Card>

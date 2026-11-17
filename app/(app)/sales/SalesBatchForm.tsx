@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/Card";
+import { Check, ChevronDown, History, Minus, Plus, Search, ShoppingBag, Store, X } from "lucide-react";
 import { Btn } from "@/components/ui/Button";
+import { LoadingBlock, Spinner } from "@/components/ui/Spinner";
 import { Input } from "@/components/ui/Input";
-import { Select } from "@/components/ui/Select";
-import { Field } from "@/components/ui/Field";
-import { EmptyState } from "@/components/ui/EmptyState";
 import { Tag } from "@/components/ui/Tag";
+import { formatWeekdayDate } from "@/lib/dates";
 import {
   getSalesContext,
   getSalesDraft,
@@ -242,287 +241,378 @@ export function SalesBatchForm({
 
   if (posted) {
     return (
-      <Card title="Sales posted">
-        <div className="p-6 text-sm leading-relaxed">
-          <p className="mb-4">
-            Recorded <b className="font-medium">{posted.lineCount}</b> line{posted.lineCount === 1 ? "" : "s"} totalling{" "}
-            <b className="font-medium tabular-nums">{posted.totalBottles}</b> bottles sold at{" "}
-            <b className="font-medium">{posted.departmentName}</b> for business day{" "}
-            <b className="font-medium tabular-nums">{posted.businessDay}</b>.
-          </p>
-          <Btn variant="acc" onClick={startNewBatch}>
-            Start a new batch
-          </Btn>
+      <div className="surface-hero rounded-premium px-6 py-10 min-[900px]:py-14 text-center animate-rise">
+        <div className="mx-auto w-16 h-16 rounded-full grid place-items-center bg-brand-bright text-frame shadow-glow-lg animate-check-pop">
+          <Check size={30} strokeWidth={2.4} />
         </div>
-      </Card>
+        <h2 className="mt-5 text-[24px] font-medium tracking-[-0.025em] animate-rise [animation-delay:120ms]">Sales posted</h2>
+        <p className="mt-2 text-[13px] text-on-dark-2 animate-rise [animation-delay:180ms]">
+          {posted.departmentName} · business day {formatWeekdayDate(posted.businessDay)}
+        </p>
+        <div className="mt-6 inline-grid grid-cols-2 divide-x divide-white/10 rounded-[16px] bg-white/[0.06] ring-1 ring-inset ring-white/10 animate-rise [animation-delay:240ms]">
+          <HeroStat label="Lines" value={posted.lineCount} />
+          <HeroStat label="Bottles sold" value={posted.totalBottles} />
+        </div>
+        <div className="mt-7 animate-rise [animation-delay:300ms]">
+          <button
+            type="button"
+            onClick={startNewBatch}
+            className="inline-flex items-center gap-2 h-11 px-6 rounded-full bg-brand-bright text-frame text-[13px] font-medium transition-transform duration-200 hover:brightness-105 active:scale-[0.97]"
+          >
+            <Plus size={16} strokeWidth={2.2} />
+            Start a new batch
+          </button>
+        </div>
+      </div>
     );
   }
 
   const touchedIds = new Set(lines.map((l) => l.productId));
   const untouched = contextProducts.filter((p) => !touchedIds.has(p.id));
   const totalBottles = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const pickedInBatch = picked ? lines.some((l) => l.productId === picked.id) : false;
+  const canEnterQty = !!picked && picked.assignedToDepartment && !pickedInBatch && (!picked.existingSale || correctionMode);
+  const available = picked ? picked.openingQty + picked.receivedQty : 0;
+  const qtyNum = qty.trim() === "" ? null : Number(qty);
+  const closingPreview = qtyNum != null && Number.isFinite(qtyNum) ? available - qtyNum : null;
+
+  function stepQty(delta: number) {
+    const current = qtyNum != null && Number.isFinite(qtyNum) ? qtyNum : 0;
+    setQty(String(Math.max(0, Math.trunc(current) + delta)));
+    setAddError(null);
+    setInsufficientStock(false);
+  }
+
+  const glassField =
+    "w-full h-11 rounded-[12px] bg-white/[0.06] border border-white/10 px-3.5 text-[13px] text-on-dark outline-none transition-colors focus:border-brand-bright/60 focus:bg-white/[0.09] [color-scheme:dark]";
 
   return (
-    <div className="flex flex-col gap-4">
-      <Card title="Sales details">
-        <div className="p-4 grid grid-cols-1 min-[600px]:grid-cols-2 gap-3.5">
-          <Field label="Business day">
-            <Input type="date" value={businessDay} onChange={(e) => setBusinessDay(e.target.value)} />
-          </Field>
-          <Field label="Department">
-            {fixedDepartment ? (
-              <Input value={fixedDepartment.name} disabled />
-            ) : (
-              <Select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} className="w-full">
-                <option value="">Select a department…</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </Select>
-            )}
-          </Field>
-        </div>
-        {restoredNotice ? (
-          <div className="px-4 pb-4 text-xs text-brand">
-            An unposted draft for {departmentName} on {businessDay} was restored below.
+    <div className="grid grid-cols-1 min-[1100px]:grid-cols-[minmax(0,1fr)_380px] gap-3 items-start">
+      <div className="grid grid-cols-1 gap-3 min-w-0">
+        {/* Session hero — department, business day and running totals. */}
+        <section className="surface-hero rounded-premium p-5 min-[900px]:p-6 animate-rise">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11.5px] text-on-dark-mut">Recording sales for</p>
+              <h2 className="mt-1 text-[22px] min-[900px]:text-[26px] font-medium tracking-[-0.03em] leading-tight truncate">
+                {departmentName || "Choose a department"}
+              </h2>
+              <p className="mt-1 text-[12px] text-on-dark-mut">Business day {formatWeekdayDate(businessDay)}</p>
+            </div>
+            {restoredNotice ? (
+              <span className="flex-none inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-brand-bright/15 text-brand-bright ring-1 ring-inset ring-brand-bright/25 animate-pop">
+                <History size={12} strokeWidth={2} />
+                Draft restored
+              </span>
+            ) : lines.length > 0 ? (
+              <span className="flex-none inline-flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full bg-white/[0.06] text-on-dark-2 ring-1 ring-inset ring-white/10">
+                <i className="w-1.5 h-1.5 rounded-full bg-brand-bright" />
+                Draft autosaved
+              </span>
+            ) : null}
           </div>
-        ) : null}
-      </Card>
 
-      <Card title="Add sale">
-        {!departmentId ? (
-          <EmptyState title="Choose a department first" description="Pick the department this sale belongs to before searching products." />
-        ) : (
-          <div className="p-4">
-            <Field label="Product">
+          <div className="mt-5 grid grid-cols-1 min-[600px]:grid-cols-2 gap-3">
+            <label className="block">
+              <span className="block text-[11px] text-on-dark-mut mb-1.5">Business day</span>
+              <input type="date" value={businessDay} onChange={(e) => setBusinessDay(e.target.value)} className={glassField} />
+            </label>
+            <label className="block">
+              <span className="block text-[11px] text-on-dark-mut mb-1.5">Department</span>
+              {fixedDepartment ? (
+                <div className={`${glassField} flex items-center text-on-dark-2`}>{fixedDepartment.name}</div>
+              ) : (
+                <div className="relative">
+                  <select
+                    value={departmentId}
+                    onChange={(e) => setDepartmentId(e.target.value)}
+                    className={`${glassField} appearance-none pr-9 cursor-pointer`}
+                  >
+                    <option value="">Select a department…</option>
+                    {departments.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown size={15} strokeWidth={1.75} className="absolute right-3 top-1/2 -translate-y-1/2 text-on-dark-mut pointer-events-none" />
+                </div>
+              )}
+            </label>
+          </div>
+
+          <div className="mt-5 grid grid-cols-3 divide-x divide-white/10 rounded-[16px] bg-white/[0.04] ring-1 ring-inset ring-white/[0.08]">
+            <HeroStat label="Products" value={departmentId ? (draftLoaded ? contextProducts.length : null) : "—"} />
+            <HeroStat label="In batch" value={lines.length} />
+            <HeroStat label="Bottles" value={totalBottles} />
+          </div>
+        </section>
+
+        {/* Add a sale */}
+        <section className="bg-white rounded-premium shadow-premium p-5 min-[900px]:p-6 animate-rise [animation-delay:60ms]">
+          <div className="flex items-end justify-between gap-3 mb-4">
+            <div>
+              <h2 className="text-[15px] font-medium tracking-[-0.01em]">Add a sale</h2>
+              <p className="text-[11.5px] text-n600 mt-0.5">Find a product, enter bottles sold, add it to the batch.</p>
+            </div>
+          </div>
+
+          {!departmentId ? (
+            <div className="flex flex-col items-center text-center py-10">
+              <span className="w-12 h-12 rounded-full grid place-items-center bg-brand-soft text-brand">
+                <Store size={20} strokeWidth={1.6} />
+              </span>
+              <p className="mt-3 text-[13px] font-medium">Choose a department first</p>
+              <p className="mt-1 text-[12px] text-n600">Pick the department above, then search its products here.</p>
+            </div>
+          ) : !draftLoaded ? (
+            <LoadingBlock label="Loading products…" />
+          ) : (
+            <>
               <div className="relative">
-                <Input placeholder="Search code or name" value={search} onChange={(e) => runSearch(e.target.value)} />
+                <Search size={17} strokeWidth={1.75} className="absolute left-4 top-1/2 -translate-y-1/2 text-n400 pointer-events-none" />
+                <input
+                  placeholder="Search by product code or name"
+                  value={search}
+                  onChange={(e) => runSearch(e.target.value)}
+                  className={`w-full h-12 rounded-[14px] bg-n50 border border-transparent pl-11 ${searching ? "pr-32" : "pr-4"} text-[13.5px] text-ink placeholder:text-n400 outline-none transition-[background-color,border-color,box-shadow] duration-200 focus:bg-white focus:border-brand-bright/50 focus:shadow-focus`}
+                />
                 {searching ? (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-n600">Searching…</span>
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-[11.5px] text-n600" role="status">
+                    <Spinner size={16} />
+                    Searching…
+                  </span>
                 ) : null}
                 {results.length > 0 ? (
-                  <div className="absolute z-10 mt-1 w-full bg-white rounded border border-n200 shadow-premium max-h-64 overflow-y-auto shadow-sm">
+                  <div className="absolute z-20 mt-2 w-full bg-white rounded-[14px] shadow-lift ring-1 ring-n200 max-h-72 overflow-y-auto p-1.5 animate-pop">
                     {results.map((r) => (
                       <button
                         key={r.id}
                         type="button"
                         onClick={() => pick(r)}
-                        className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm hover:bg-n50"
+                        className="w-full text-left flex items-center gap-3 px-3 py-2.5 rounded-[10px] text-[13px] transition-colors hover:bg-brand-hover"
                       >
-                        <span className="text-n600 tabular-nums text-xs flex-none">{r.code}</span>
+                        <span className="flex-none text-[11px] tabular-nums text-n600 bg-n100 rounded-sm px-1.5 py-0.5">{r.code}</span>
                         <span className="truncate flex-1">{r.name}</span>
-                        {!r.assignedToDepartment ? <span className="text-xs text-amber flex-none">Not assigned</span> : null}
-                        {r.assignedToDepartment && r.existingSale ? <span className="text-xs text-amber flex-none">Already posted</span> : null}
+                        {!r.assignedToDepartment ? <Tag variant="warn">Not assigned</Tag> : null}
+                        {r.assignedToDepartment && r.existingSale ? <Tag variant="warn">Already posted</Tag> : null}
                       </button>
                     ))}
                   </div>
                 ) : null}
               </div>
-            </Field>
 
-            {picked && !picked.assignedToDepartment ? (
-              <p className="text-sm text-n600">
-                <b className="text-ink font-medium">{picked.name}</b> isn&apos;t assigned to this department — you can&apos;t record a
-                sale for something it doesn&apos;t stock.
-              </p>
-            ) : null}
-
-            {picked && picked.assignedToDepartment && lines.some((l) => l.productId === picked.id) ? (
-              <p className="text-sm text-n600">
-                <b className="text-ink font-medium">{picked.name}</b> is already in this batch — remove it in the table below to
-                change its figure.
-              </p>
-            ) : null}
-
-            {picked &&
-            picked.assignedToDepartment &&
-            !lines.some((l) => l.productId === picked.id) &&
-            picked.existingSale &&
-            !correctionMode ? (
-              <div className="border border-[#F5CFA0] bg-[#FFFAEB] rounded p-3">
-                <p className="text-sm text-amber mb-3">
-                  <b className="font-medium tabular-nums">{picked.existingSale.quantity}</b> bottles already posted for this product
-                  on {businessDay}.
-                </p>
-                <div className="flex gap-2">
-                  <Btn type="button" onClick={skipPicked}>
-                    Skip
-                  </Btn>
-                  <Btn type="button" variant="pri" onClick={() => setCorrectionMode(true)}>
-                    Reverse &amp; correct
-                  </Btn>
-                </div>
-              </div>
-            ) : null}
-
-            {picked && picked.assignedToDepartment && !lines.some((l) => l.productId === picked.id) && (!picked.existingSale || correctionMode) ? (
-              <>
-                <div className="text-xs text-n600 mb-3 mt-3">
-                  Opening <b className="text-ink font-medium tabular-nums">{picked.openingQty}</b> · received{" "}
-                  <b className="text-ink font-medium tabular-nums">{picked.receivedQty}</b>. Sales cannot exceed{" "}
-                  {picked.openingQty + picked.receivedQty} without an override.
-                </div>
-
-                {correctionMode ? (
-                  <Field label="Reason for reversing the existing figure (required)">
-                    <Input
-                      value={correctionReason}
-                      onChange={(e) => setCorrectionReason(e.target.value)}
-                      placeholder="e.g. stock received but never entered, corrected after review"
-                      autoFocus
-                    />
-                  </Field>
-                ) : null}
-
-                <div className="flex flex-wrap items-end gap-3">
-                  <Field label="Bottles sold">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      className="w-28"
-                      value={qty}
-                      onChange={(e) => {
-                        setQty(e.target.value);
-                        setAddError(null);
-                        setInsufficientStock(false);
-                      }}
-                      placeholder="0"
-                    />
-                  </Field>
-                  <Btn type="button" variant="acc" onClick={addToBatch} className="h-9">
-                    Add to batch
-                  </Btn>
-                </div>
-
-                {insufficientStock ? (
-                  <div className="mt-3 border border-[#F5CFA0] bg-[#FFFAEB] rounded p-3">
-                    <p className="text-sm text-amber mb-2">Not enough stock to cover this without an override.</p>
-                    <Field label="Override reason (required to proceed anyway)">
-                      <Input
-                        value={overrideReason}
-                        onChange={(e) => setOverrideReason(e.target.value)}
-                        placeholder="e.g. physical stock confirmed, ledger not yet updated"
-                      />
-                    </Field>
-                    <Btn type="button" variant="pri" onClick={addToBatch} disabled={!overrideReason.trim()}>
-                      Add anyway (flags for auditor review)
-                    </Btn>
+              {picked ? (
+                <div key={picked.id} className="mt-4 rounded-[16px] ring-1 ring-n200 p-4 min-[900px]:p-5 animate-rise">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-medium tracking-[-0.01em] truncate">{picked.name}</p>
+                      <p className="text-[11.5px] text-n600 tabular-nums mt-0.5">{picked.code}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={skipPicked}
+                      aria-label="Clear selection"
+                      className="w-8 h-8 rounded-full grid place-items-center text-n600 transition-colors hover:bg-brand-hover hover:text-ink"
+                    >
+                      <X size={16} strokeWidth={1.75} />
+                    </button>
                   </div>
-                ) : null}
-              </>
-            ) : null}
 
-            {addError && !insufficientStock ? <p className="text-sm text-red mt-3">{addError}</p> : null}
-          </div>
-        )}
-      </Card>
+                  {!picked.assignedToDepartment ? (
+                    <p className="mt-3 text-[12.5px] text-n600">
+                      This product isn&apos;t assigned to {departmentName} — you can&apos;t record a sale for something it doesn&apos;t stock.
+                    </p>
+                  ) : null}
 
-      <Card
-        title="Batch"
-        extra={`${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalBottles} bottles`}
-      >
-        {lines.length === 0 ? (
-          <EmptyState title="No lines yet" description="Search a product above and add it to this batch to get started." />
-        ) : (
-          <>
-            <div className="hidden min-[900px]:block overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr>
-                    {["Product", "Code", "Opening", "Received", "Sales", "Expected closing", "", ""].map((h, i) => (
-                      <th
-                        key={h + i}
-                        className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
-                          i > 1 && i < 6 ? "text-right" : ""
-                        }`}
-                      >
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((l) => {
-                    const closing = l.openingQty + l.receivedQty - l.quantity;
-                    return (
-                      <tr key={l.productId} className="border-b border-n200 last:border-b-0 hover:bg-n50">
-                        <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{l.name}</td>
-                        <td className="px-4 h-9 text-[12.5px] text-n600 tabular-nums whitespace-nowrap">{l.code}</td>
-                        <td className="px-4 h-9 text-[12.5px] text-right text-n600 tabular-nums whitespace-nowrap">{l.openingQty}</td>
-                        <td className="px-4 h-9 text-[12.5px] text-right text-n600 tabular-nums whitespace-nowrap">{l.receivedQty}</td>
-                        <td className="px-4 h-9 text-[12.5px] text-right font-medium tabular-nums whitespace-nowrap">{l.quantity}</td>
-                        <td
-                          className={`px-4 h-9 text-[12.5px] text-right font-medium tabular-nums whitespace-nowrap ${closing < 0 ? "text-red" : ""}`}
-                        >
-                          {closing}
-                        </td>
-                        <td className="px-4 h-9 whitespace-nowrap">
-                          <div className="flex gap-1.5">
-                            {l.isOverride ? <Tag variant="warn">Override</Tag> : null}
-                            {l.correctionOfMovementId ? <Tag variant="mut">Correction</Tag> : null}
-                          </div>
-                        </td>
-                        <td className="px-4 h-9 text-right whitespace-nowrap">
-                          <button type="button" onClick={() => removeLine(l.productId)} className="text-brand text-sm">
-                            Remove
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                  {picked.assignedToDepartment && pickedInBatch ? (
+                    <p className="mt-3 text-[12.5px] text-n600">Already in this batch — remove it from the batch to change its figure.</p>
+                  ) : null}
 
-            <div className="min-[900px]:hidden divide-y divide-n200">
-              {lines.map((l) => {
-                const closing = l.openingQty + l.receivedQty - l.quantity;
-                return (
-                  <div key={l.productId} className="p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="text-sm truncate">{l.name}</div>
-                        <div className="text-xs text-n600 tabular-nums mt-0.5">{l.code}</div>
+                  {picked.assignedToDepartment && !pickedInBatch && picked.existingSale && !correctionMode ? (
+                    <div className="mt-4 rounded-[12px] bg-amber-soft p-4 animate-rise">
+                      <p className="text-[12.5px] text-amber">
+                        <b className="font-medium tabular-nums">{picked.existingSale.quantity}</b> bottles are already posted for this product
+                        on {formatWeekdayDate(businessDay)}.
+                      </p>
+                      <div className="flex gap-2 mt-3">
+                        <Btn type="button" onClick={skipPicked}>
+                          Skip
+                        </Btn>
+                        <Btn type="button" variant="pri" onClick={() => setCorrectionMode(true)}>
+                          Reverse &amp; correct
+                        </Btn>
                       </div>
-                      <button type="button" onClick={() => removeLine(l.productId)} className="text-brand text-sm flex-none">
-                        Remove
-                      </button>
                     </div>
-                    <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-n600 tabular-nums items-center">
-                      <span>Opening {l.openingQty}</span>
-                      <span>Received {l.receivedQty}</span>
-                      <span className="text-ink font-medium">Sold {l.quantity}</span>
-                      <span className={`font-medium ${closing < 0 ? "text-red" : "text-ink"}`}>→ {closing}</span>
-                      {l.isOverride ? <Tag variant="warn">Override</Tag> : null}
-                      {l.correctionOfMovementId ? <Tag variant="mut">Correction</Tag> : null}
-                    </div>
+                  ) : null}
+
+                  {canEnterQty ? (
+                    <>
+                      <div className="mt-4 grid grid-cols-3 gap-2">
+                        <Metric label="Opening" value={picked.openingQty} />
+                        <Metric label="Received" value={picked.receivedQty} />
+                        <Metric label="Available" value={available} strong />
+                      </div>
+
+                      {correctionMode ? (
+                        <label className="block mt-4 animate-rise">
+                          <span className="block text-[11.5px] text-n600 mb-1.5">Reason for reversing the existing figure (required)</span>
+                          <Input
+                            value={correctionReason}
+                            onChange={(e) => setCorrectionReason(e.target.value)}
+                            placeholder="e.g. stock received but never entered, corrected after review"
+                            autoFocus
+                          />
+                        </label>
+                      ) : null}
+
+                      <div className="mt-5 flex flex-col min-[600px]:flex-row min-[600px]:items-end gap-4">
+                        <div>
+                          <span className="block text-[11.5px] text-n600 mb-1.5">Bottles sold</span>
+                          <div className="inline-flex items-center gap-2 rounded-full bg-n50 p-1.5">
+                            <StepButton label="One fewer" onClick={() => stepQty(-1)}>
+                              <Minus size={16} strokeWidth={2} />
+                            </StepButton>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              value={qty}
+                              placeholder="0"
+                              aria-label="Bottles sold"
+                              onChange={(e) => {
+                                setQty(e.target.value);
+                                setAddError(null);
+                                setInsufficientStock(false);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") addToBatch();
+                              }}
+                              className="w-20 bg-transparent text-center text-[26px] font-medium tracking-[-0.02em] tabular-nums outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                            />
+                            <StepButton label="One more" onClick={() => stepQty(1)}>
+                              <Plus size={16} strokeWidth={2} />
+                            </StepButton>
+                          </div>
+                        </div>
+                        <div className="flex-1 min-[600px]:pb-2.5 text-[12px] text-n600">
+                          {closingPreview != null ? (
+                            <span>
+                              Closing after this sale{" "}
+                              <b className={`font-medium tabular-nums ${closingPreview < 0 ? "text-red" : "text-ink"}`}>{closingPreview}</b>
+                            </span>
+                          ) : (
+                            <span>Up to {available} without an override.</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={addToBatch}
+                          className="inline-flex items-center justify-center gap-2 h-12 px-6 rounded-[14px] bg-ink text-white text-[13px] font-medium shadow-btn transition-[transform,background-color] duration-200 hover:bg-frame active:scale-[0.97]"
+                        >
+                          <Plus size={16} strokeWidth={2.2} className="text-brand-bright" />
+                          Add to batch
+                        </button>
+                      </div>
+
+                      {insufficientStock ? (
+                        <div className="mt-4 rounded-[12px] bg-amber-soft p-4 animate-rise">
+                          <p className="text-[12.5px] text-amber mb-3">
+                            Only {available} available as at {formatWeekdayDate(businessDay)} — {qty} entered. Add an override reason to
+                            record it anyway; it will be flagged for the auditor.
+                          </p>
+                          <Input
+                            value={overrideReason}
+                            onChange={(e) => setOverrideReason(e.target.value)}
+                            placeholder="e.g. physical stock confirmed, ledger not yet updated"
+                          />
+                          <Btn type="button" variant="pri" onClick={addToBatch} disabled={!overrideReason.trim()} className="mt-3">
+                            Add anyway
+                          </Btn>
+                        </div>
+                      ) : null}
+                    </>
+                  ) : null}
+
+                  {addError && !insufficientStock ? <p className="text-[12.5px] text-red mt-3 animate-pop">{addError}</p> : null}
+                </div>
+              ) : null}
+            </>
+          )}
+        </section>
+      </div>
+
+      {/* Batch — the running receipt, sticky beside the form on wide screens. */}
+      <aside className="surface-dark rounded-premium min-[1100px]:sticky min-[1100px]:top-4 animate-rise [animation-delay:120ms] overflow-hidden">
+        <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-medium tracking-[-0.01em]">Batch</h2>
+            <p className="text-[11.5px] text-on-dark-mut mt-0.5 truncate">
+              {departmentName ? `${departmentName} · ${formatWeekdayDate(businessDay)}` : "Nothing selected yet"}
+            </p>
+          </div>
+          <span className="flex-none text-[11px] px-2.5 py-1 rounded-full bg-white/[0.06] ring-1 ring-inset ring-white/10 text-on-dark-2 tabular-nums">
+            {lines.length} line{lines.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {lines.length === 0 ? (
+          <div className="px-5 pb-6 pt-4 flex flex-col items-center text-center">
+            <span className="w-12 h-12 rounded-full grid place-items-center bg-white/[0.06] ring-1 ring-inset ring-white/10 text-on-dark-mut">
+              <ShoppingBag size={20} strokeWidth={1.6} />
+            </span>
+            <p className="mt-3 text-[13px] font-medium">No lines yet</p>
+            <p className="mt-1 text-[12px] text-on-dark-mut">Products you add appear here before you post.</p>
+          </div>
+        ) : (
+          <ul className="px-3 max-h-[46vh] overflow-y-auto">
+            {lines.map((l) => {
+              const closing = l.openingQty + l.receivedQty - l.quantity;
+              return (
+                <li key={l.productId} className="group flex items-center gap-3 px-2 py-2.5 rounded-[12px] transition-colors hover:bg-white/[0.05] animate-rise">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12.5px] font-medium truncate">{l.name}</p>
+                    <p className="text-[11px] text-on-dark-mut tabular-nums mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      {l.code} · {l.openingQty + l.receivedQty} → <span className={closing < 0 ? "text-red-on-dark" : "text-on-dark-2"}>{closing}</span>
+                      {l.isOverride ? <DarkTag>Override</DarkTag> : null}
+                      {l.correctionOfMovementId ? <DarkTag>Correction</DarkTag> : null}
+                    </p>
                   </div>
-                );
-              })}
-            </div>
-          </>
+                  <span className="text-[17px] font-medium tabular-nums tracking-[-0.02em]">{l.quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeLine(l.productId)}
+                    aria-label={`Remove ${l.name}`}
+                    className="w-7 h-7 rounded-full grid place-items-center text-on-dark-mut transition-colors hover:bg-white/10 hover:text-white"
+                  >
+                    <X size={14} strokeWidth={2} />
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
         )}
 
-        <div className="p-4 border-t border-n200">
+        <div className="px-5 pt-3 pb-5 mt-1 border-t border-white/[0.07]">
           {departmentId && contextProducts.length > 0 ? (
-            <div className="text-xs text-n600 mb-3">
-              <button type="button" onClick={() => setShowUntouched((v) => !v)} className="text-brand">
-                {lines.length}
-              </button>{" "}
-              product{lines.length === 1 ? "" : "s"} in this batch · the other{" "}
-              <button type="button" onClick={() => setShowUntouched((v) => !v)} className="text-brand font-medium">
-                {untouched.length}
-              </button>{" "}
-              product{untouched.length === 1 ? "" : "s"} in {departmentName} will be posted as zero sales for {businessDay}.
+            <div className="mb-4">
+              <button
+                type="button"
+                onClick={() => setShowUntouched((v) => !v)}
+                className="w-full flex items-center justify-between gap-2 text-left text-[11.5px] text-on-dark-mut hover:text-on-dark-2 transition-colors"
+              >
+                <span>
+                  The other <b className="font-medium text-on-dark tabular-nums">{untouched.length}</b> product{untouched.length === 1 ? "" : "s"} will
+                  post as zero sales
+                </span>
+                <ChevronDown size={14} strokeWidth={1.75} className={`flex-none transition-transform duration-300 ${showUntouched ? "rotate-180" : ""}`} />
+              </button>
               {showUntouched && untouched.length > 0 ? (
-                <div className="mt-2 border border-n200 rounded max-h-48 overflow-y-auto bg-n50">
+                <div className="mt-2 rounded-[12px] bg-white/[0.04] ring-1 ring-inset ring-white/[0.07] max-h-48 overflow-y-auto animate-pop">
                   {untouched.map((p) => (
-                    <div key={p.id} className="px-3 py-1.5 text-xs border-b border-n200 last:border-b-0 flex gap-2">
-                      <span className="text-n600 tabular-nums flex-none">{p.code}</span>
-                      <span className="truncate">{p.name}</span>
+                    <div key={p.id} className="px-3 py-1.5 text-[11.5px] border-b border-white/[0.05] last:border-b-0 flex gap-2">
+                      <span className="text-on-dark-mut tabular-nums flex-none">{p.code}</span>
+                      <span className="truncate text-on-dark-2">{p.name}</span>
                     </div>
                   ))}
                 </div>
@@ -530,21 +620,75 @@ export function SalesBatchForm({
             </div>
           ) : null}
 
-          <div className="flex flex-col min-[600px]:flex-row min-[600px]:items-center min-[600px]:justify-between gap-3">
-            <div className="flex gap-2">
-              <Btn type="button" onClick={clearBatch} disabled={lines.length === 0}>
-                Clear batch
-              </Btn>
-            </div>
-            <div className="flex flex-col min-[600px]:flex-row min-[600px]:items-center gap-2">
-              {postError ? <p className="text-sm text-red">{postError}</p> : null}
-              <Btn variant="pri" disabled={lines.length === 0 || posting} onClick={post} className="h-10">
-                {posting ? "Posting…" : "Post sales"}
-              </Btn>
-            </div>
+          <div className="flex items-end justify-between mb-4">
+            <span className="text-[11.5px] text-on-dark-mut">Total bottles sold</span>
+            <span className="text-[28px] font-medium tracking-[-0.03em] tabular-nums leading-none">{totalBottles}</span>
           </div>
+
+          {postError ? <p className="text-[12px] text-red-on-dark mb-3 animate-pop">{postError}</p> : null}
+
+          <button
+            type="button"
+            onClick={post}
+            disabled={lines.length === 0 || posting}
+            className={`w-full h-12 rounded-[14px] inline-flex items-center justify-center gap-2 text-[13.5px] font-medium transition-[transform,background-color,box-shadow,filter] duration-200 active:scale-[0.98] ${
+              posting
+                ? "bg-frame-3 text-on-dark ring-1 ring-inset ring-white/10"
+                : lines.length === 0
+                  ? "bg-white/[0.06] text-on-dark-mut cursor-not-allowed"
+                  : "bg-brand-bright text-frame hover:brightness-105 shadow-glow"
+            }`}
+          >
+            {posting ? <Spinner size={16} /> : <Check size={16} strokeWidth={2.4} />}
+            {posting ? "Posting…" : lines.length > 0 ? `Post ${lines.length} sale${lines.length === 1 ? "" : "s"}` : "Post sales"}
+          </button>
+          <button
+            type="button"
+            onClick={clearBatch}
+            disabled={lines.length === 0 || posting}
+            className="mt-2 w-full h-9 rounded-[12px] text-[12px] text-on-dark-mut transition-colors hover:text-on-dark hover:bg-white/[0.05] disabled:opacity-40 disabled:pointer-events-none"
+          >
+            Clear batch
+          </button>
         </div>
-      </Card>
+      </aside>
     </div>
   );
+}
+
+function HeroStat({ label, value }: { label: string; value: number | string | null }) {
+  return (
+    <div className="px-4 py-3 min-w-0">
+      <span className="block text-[11px] text-on-dark-mut">{label}</span>
+      <span className="block mt-0.5 text-[20px] font-medium tracking-[-0.02em] tabular-nums h-7 flex items-center">
+        {value == null ? <Spinner size={16} /> : value}
+      </span>
+    </div>
+  );
+}
+
+function Metric({ label, value, strong = false }: { label: string; value: number; strong?: boolean }) {
+  return (
+    <div className={`rounded-[12px] px-3 py-2.5 ${strong ? "bg-brand-soft" : "bg-n50"}`}>
+      <span className={`block text-[11px] ${strong ? "text-brand" : "text-n600"}`}>{label}</span>
+      <span className={`block text-[18px] font-medium tracking-[-0.02em] tabular-nums ${strong ? "text-brand" : "text-ink"}`}>{value}</span>
+    </div>
+  );
+}
+
+function StepButton({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      className="w-10 h-10 rounded-full grid place-items-center bg-white text-ink shadow-premium transition-[transform,background-color] duration-150 hover:bg-brand-hover active:scale-90"
+    >
+      {children}
+    </button>
+  );
+}
+
+function DarkTag({ children }: { children: React.ReactNode }) {
+  return <span className="inline-block text-[10px] px-1.5 py-px rounded-sm bg-amber-soft/15 text-amber-soft ring-1 ring-inset ring-amber-soft/20">{children}</span>;
 }

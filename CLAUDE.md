@@ -2032,3 +2032,53 @@ grid items' default `min-width: auto` was caught and fixed with
 ₦0–₦1 axis), and `/login` visually unchanged. `npx tsc`, `npx eslint .` and
 `npm run build` all clean.
 
+**Loading spinners, green hover, full-width pages, Sales entry redesign (no
+phase number).** Four asks after the dark + green redesign went live:
+
+- *Spinner everywhere something loads*: new `components/ui/Spinner.tsx`
+  (`Spinner` — a CSS conic-gradient ring masked to a circle, no new
+  dependency; `LoadingPill` — a floating glass "Loading…" pill; `LoadingBlock`).
+  Navigation reuses `nextjs-toploader` rather than new route-change
+  plumbing: NProgress puts `nprogress-busy` on `<html>` from click until the
+  history push, and `.loading-pill` keys off that class (150ms delay so fast
+  navigations never flash it). The library only auto-starts on `<a>` clicks,
+  so every client component that navigates programmatically (19 filter/form
+  files plus `Sidebar`) now imports `useRouter` from `nextjs-toploader/app`
+  instead of `next/navigation` — same API, it just starts the bar on push.
+  Because the App Router commits the navigation as soon as a `loading.tsx`
+  boundary renders (ending NProgress), `SkeletonPage` renders a
+  forced-visible `LoadingPill` too, so the pill covers the whole wait.
+  `Btn` shows the spinner whenever its children are a plain string ending
+  in "…" — every existing `{pending ? "Saving…" : "Save"}` label across ~25
+  screens got a spinner with no per-screen edit (explicit `loading` prop
+  also available); busy buttons are no longer dimmed. The three product
+  searches and the two remaining "Loading…" texts use the spinner too.
+- *Light-green hover*: new `--brand-hover` token; all 41 `hover:bg-n50`
+  (and the one `group-hover:bg-n50`) became `hover:bg-brand-hover` via `sed`.
+- *Fill the screen*: `PageShell`/`SkeletonPage` lost their 1320px cap;
+  Start count's form now spans its card in a three-column row.
+- *Sales entry redesign* (`app/(app)/sales/SalesBatchForm.tsx` — JSX only,
+  every handler, draft/correction/override rule and server action
+  unchanged): dark-green hero with the department, business day (glass
+  controls) and live product/line/bottle counts; an "Add a sale" card with
+  a large search field, animated results, a picked-product panel with
+  Opening/Received/Available tiles, a −/+ quantity stepper (Enter adds) and
+  a live "closing after this sale" preview; a sticky dark Batch panel with
+  animated lines, the zero-sales expander, a big total and a glowing
+  bright-green Post button that swaps to a spinner while posting; a
+  success screen with an animated check. Motion utilities (`.animate-rise`,
+  `.animate-pop`, `.animate-check-pop`, one ease-out curve, off under
+  `prefers-reduced-motion`) and glow/focus shadows are tokens in
+  `app/globals.css`.
+
+Verified the same way as the previous redesign (a throwaway live account
+still isn't available): a temporary, uncommitted preview route rendering
+the real shell, skeleton, buttons and table hover, plus a copy of
+`SalesBatchForm` whose only change was importing a mock of
+`lib/sales/actions` (sample products, a restored draft, slow search and
+post). Playwright walked select department → draft restore → search
+spinner → results → pick → stepper → add → posting spinner → success at
+1600px and 390px: no overflow, no console errors; `nprogress-busy` shows
+the pill; a hovered row reads light green. `tsc`, `eslint .` and
+`npm run build` clean.
+

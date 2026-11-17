@@ -95,7 +95,7 @@ export function ImportWizard() {
               disabled={stage === "checking" || stage === "committing"}
               className="text-sm"
             />
-            <a href="/templates/product-import-template.csv" download className="text-graphite text-sm">
+            <a href="/templates/product-import-template.csv" download className="text-brand text-sm">
               Download CSV template
             </a>
           </div>
@@ -127,10 +127,10 @@ export function ImportWizard() {
                 <table className="w-full border-collapse">
                   <thead>
                     <tr>
-                      <th className="text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide">
+                      <th className="text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200">
                         Row
                       </th>
-                      <th className="text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide">
+                      <th className="text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200">
                         Reason
                       </th>
                     </tr>
@@ -138,8 +138,8 @@ export function ImportWizard() {
                   <tbody>
                     {result.errors.map((e, i) => (
                       <tr key={i} className="border-b border-n200 last:border-b-0">
-                        <td className="px-4 h-8 text-[13px] tabular-nums text-red whitespace-nowrap">{e.row}</td>
-                        <td className="px-4 h-8 text-[13px] text-n600">{e.reason}</td>
+                        <td className="px-4 h-8 text-[12.5px] tabular-nums text-red whitespace-nowrap">{e.row}</td>
+                        <td className="px-4 h-8 text-[12.5px] text-n600">{e.reason}</td>
                       </tr>
                     ))}
                   </tbody>

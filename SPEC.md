@@ -231,40 +231,57 @@ add itself is its own `loading.tsx`.
 
 ## Design tokens (app/globals.css)
 
-Originally extracted from `design/ui-draft.html`; superseded by the premium
-redesign (see CLAUDE.md's follow-ups) — `design/ui-draft.html` is now a
-historical reference, not the authoritative source, for anything the
-redesign has touched (everywhere except `/login`).
+Originally extracted from `design/ui-draft.html`; superseded first by the
+premium redesign and then by the **dark + green redesign** (see CLAUDE.md's
+follow-ups). `design/ui-draft.html` is now a historical reference only, for
+everything except `/login`. The dashboard (`app/(app)/_dashboard/`) is the
+reference implementation of the current system.
 
-- Two primary colours only: Ink `#111827` (body text, headings), Graphite
-  `#6B7280` (the one accent — buttons, links, focus rings, the sidebar's
-  active-item state; replaced the original Teal `#0F766E` app-wide via a
-  single token rename+recolour, not a per-file edit — see CLAUDE.md)
-- Neutrals: `#F9FAFB` `#F3F4F6` `#E5E7EB` `#9CA3AF` `#4B5563`
-- Semantic colours — **used only on variances** within the authenticated app,
-  never for general UI state (e.g. form errors on authenticated screens use a
-  neutral note box, not red): red `#B42318` (short), green `#067647`
-  (excess), amber `#B54708` (warning). The login route is the one documented
-  exception — see "Login route visual treatment" below — where red is used
-  for a plain auth error message.
+- **Frame and canvas**: the app shell is a near-black, faintly green frame
+  (`--frame #0A100C`, `--frame-2`/`--frame-3` for raised dark surfaces, the
+  `.app-frame` class for the glow); every page renders inside one rounded
+  (`--radius-panel: 24px`), independently scrolling canvas panel
+  (`--canvas #F2F4F1`) inset into that frame.
+- **Ink** `#0F1712` for body text and headings.
+- **Brand green** — the one accent family: `--brand #17803F` (readable
+  accent: links, focus outlines, positive figures — ≥4.5:1 on white),
+  `--brand-bright #3CC15F` (marks and fills only: chart bars, badges, the
+  active nav icon, the top loader — never body text on white),
+  `--brand-soft`/`--brand-soft-2` (tinted surfaces and pills). This
+  replaced the Graphite accent app-wide via one token rename (`graphite` →
+  `brand`), same mechanism as the earlier Teal → Graphite change.
+- **Primary buttons are dark Ink** (`Btn` variants `acc`/`pri`), not green —
+  green is for highlights, not button fills. Secondary buttons are white.
+- Green-tinted neutrals: `#F7F8F6` `#EEF1ED` `#E4E8E3` `#9AA49D` `#5F6A63`.
+- Semantic colours — **used only on variances and flags**: red `#C4302B`
+  (short; `--red-on-dark` for the same on dark surfaces), green `#17803F`
+  (excess), amber `#B86E12` (warning/override), each with a `-soft`
+  background used by `Tag` pills.
 - Font: Inter, weights 400 and 500 only — **never 600/700**. This is a review
-  convention, not build-enforced (Tailwind's font-semibold/font-bold classes
-  still exist; don't use them).
-- Type scale 12/14/16/20/24 — maps directly onto Tailwind's existing
-  text-xs/sm/base/xl/2xl, overridden in `@theme` to the exact pixel values
-- Tabular numerals (`tabular-nums`) on every quantity and currency figure
-- Two radius/surface systems now coexist deliberately: buttons/inputs/chips/
-  tags keep the original 6px/hairline-border/no-shadow treatment
-  (`--radius: 6px`); `Card`/`Stat` surfaces default to the redesign's
-  `--radius-premium: 12px` + `--shadow-premium` instead (a `variant="default"`
-  escape hatch still exists on both components if a screen genuinely needs
-  the flat look).
-- App shell (`components/app-shell/`): a full-width white top `Header` (logo,
-  hotel name, signed-in user, dark pill sign-out) above a white sidebar —
-  **white background, black text for the active item, grey (`text-n600`)
-  for inactive items** (an earlier dark-charcoal-sidebar version was a
-  misreading of the reference and was corrected once — this is the settled
-  version), one `lucide-react` icon per nav item.
+  convention, not build-enforced.
+- Compact type scale **11.5/13/15/18/22** on text-xs/sm/base/xl/2xl (body
+  13px; table cells 12.5px; page titles 26px desktop / 22px phone).
+- Tabular numerals (`tabular-nums`) on every quantity and currency figure.
+- Radii: `--radius: 10px` for buttons/inputs/selects, `--radius-sm: 7px` for
+  tags/pills, `--radius-premium: 18px` for cards and stat tiles.
+- Surfaces (`Card`'s `variant`): `premium` (white, soft shadow — the
+  default), `dark` (`.surface-dark`, e.g. the dashboard's Movements today),
+  `tint` (`.surface-tint`, the green summary card), and the legacy flat
+  `default`. `Stat` adds `hero` (`.surface-hero`, dark and slightly tilted on
+  desktop) plus optional `bars` (a tiny per-department bar strip), `icon`
+  and `footer`.
+- Tables: header cells are small sentence-case grey labels with no fill and
+  a single hairline under them (no uppercase); rows are separated by
+  hairlines.
+- App shell (`components/app-shell/`): a **dark sidebar** — brand at the
+  top, a business-day card, a "Jump to…" box that filters the nav (⌘K/Ctrl+K
+  focuses it, Enter opens the first match), role-filtered nav groups with
+  one `lucide-react` icon each (the active item's icon sits on a bright-green
+  square), unread badges in bright green, and the signed-in user with
+  sign-out at the bottom. On phones (<900px) a dark top bar (menu, brand,
+  messages shortcut) replaces it and the sidebar opens as a drawer.
+  `PageShell` renders each page's title/subtitle/actions inside the canvas
+  (not sticky); actions wrap under the title on narrow screens.
 
 ## Login route visual treatment (deliberate exception to the design system above)
 

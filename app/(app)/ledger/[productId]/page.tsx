@@ -73,7 +73,7 @@ export default async function LedgerProductHistoryPage({
                   {["Business day", "Time", "Type", "Direction", "Counterparty", "Qty", "By", "Flags"].map((h, i) => (
                     <th
                       key={h}
-                      className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                      className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                         i === 5 ? "text-right" : ""
                       }`}
                     >
@@ -85,15 +85,15 @@ export default async function LedgerProductHistoryPage({
               <tbody>
                 {rows.map((m) => (
                   <tr key={m.id} className={`border-b border-n200 last:border-b-0 hover:bg-n50 ${m.isReversed ? "opacity-60" : ""}`}>
-                    <td className="px-4 h-9 text-[13.5px] tabular-nums whitespace-nowrap">{m.businessDay}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-n600 tabular-nums whitespace-nowrap">{formatTime(m.createdAt)}</td>
-                    <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{TYPE_LABEL[m.type]}</td>
-                    <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
+                    <td className="px-4 h-9 text-[12.5px] tabular-nums whitespace-nowrap">{m.businessDay}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-n600 tabular-nums whitespace-nowrap">{formatTime(m.createdAt)}</td>
+                    <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{TYPE_LABEL[m.type]}</td>
+                    <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                       <span className={m.direction === "in" ? "text-green" : "text-red"}>{m.direction === "in" ? "In" : "Out"}</span>
                     </td>
-                    <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{m.counterpartyName ?? "—"}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums font-medium whitespace-nowrap">{m.quantity}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{m.createdByName}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{m.counterpartyName ?? "—"}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums font-medium whitespace-nowrap">{m.quantity}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{m.createdByName}</td>
                     <td className="px-4 h-9 whitespace-nowrap">
                       <div className="flex gap-1.5">
                         {m.isReversal ? <Tag variant="mut">Reversal</Tag> : null}

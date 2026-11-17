@@ -14,6 +14,7 @@ export function DashboardDepartmentFilter({
 
   return (
     <Select
+      className="h-9.5 border-transparent shadow-premium min-w-0 max-w-[60vw]"
       defaultValue={initial}
       onChange={(e) => router.push(e.target.value ? `/?department=${e.target.value}` : "/")}
     >

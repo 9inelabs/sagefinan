@@ -88,7 +88,7 @@ function TabButton({
       disabled={disabled}
       className={`px-3 py-2 text-sm border-b-2 -mb-px ${
         active
-          ? "border-graphite text-graphite font-medium"
+          ? "border-brand text-brand font-medium"
           : disabled
             ? "border-transparent text-n400 cursor-not-allowed"
             : "border-transparent text-n600 hover:text-ink"
@@ -176,7 +176,7 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
           {session.status !== "LOCKED" ? (
             <>
               Spotted a miscount?{" "}
-              <Link href={`/compare/${session.id}`} className="text-graphite">
+              <Link href={`/compare/${session.id}`} className="text-brand">
                 Correct it from Compare stock
               </Link>
               .
@@ -187,11 +187,11 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
 
       <Card className="max-w-[420px] mx-auto w-full overflow-hidden">
         <div className="bg-ink text-white px-4 py-3">
-          <b className="text-[15px] font-medium block">{session.departmentName}</b>
+          <b className="text-[14px] font-medium block">{session.departmentName}</b>
           <p className="text-xs text-n400 mt-0.5">Physical count · as at close of {session.asAtDate}</p>
         </div>
         <div className="px-4 py-2.5 border-b border-n200 bg-n50">
-          <div className="flex justify-between text-[12.5px] mb-1.5">
+          <div className="flex justify-between text-[12px] mb-1.5">
             <span>
               Counted <b className="font-medium tabular-nums">{counted}</b> of <b className="font-medium tabular-nums">{total}</b>
             </span>
@@ -206,7 +206,7 @@ function PhysicalTab({ session, initialLines }: { session: SessionMeta; initialL
             </span>
           </div>
           <div className="h-[5px] bg-n200 rounded-full overflow-hidden mb-2.5">
-            <div className="h-full bg-graphite" style={{ width: `${pct}%` }} />
+            <div className="h-full bg-brand" style={{ width: `${pct}%` }} />
           </div>
           <Input placeholder="Search product or code" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
@@ -341,11 +341,11 @@ function LedgerLinesEditor({
   return (
     <Card className="max-w-[420px] mx-auto w-full overflow-hidden">
       <div className="bg-ink text-white px-4 py-3">
-        <b className="text-[15px] font-medium block">{session.departmentName}</b>
+        <b className="text-[14px] font-medium block">{session.departmentName}</b>
         <p className="text-xs text-n400 mt-0.5">Ledger record · optional, skippable</p>
       </div>
       <div className="px-4 py-2.5 border-b border-n200 bg-n50">
-        <div className="flex justify-between text-[12.5px] mb-1.5">
+        <div className="flex justify-between text-[12px] mb-1.5">
           <span>
             Recorded <b className="font-medium tabular-nums">{recorded}</b> of <b className="font-medium tabular-nums">{lines.length}</b>
           </span>

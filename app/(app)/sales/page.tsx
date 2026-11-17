@@ -44,7 +44,7 @@ export default async function SalesPage() {
             <div className="p-6 text-sm text-n600 leading-relaxed">
               {department.name} has no stock ledger, so there&apos;s no opening or received figure to record a sale
               against. Its record of what it received is its{" "}
-              <Link href="/requisitions/history" className="text-graphite">
+              <Link href="/requisitions/history" className="text-brand">
                 Requisition history
               </Link>{" "}
               instead.

@@ -47,3 +47,8 @@ export function formatReceiptDate(iso: string) {
   const month = d.toLocaleDateString("en-GB", { month: "long" });
   return `${day}/${month}/${d.getFullYear()}`;
 }
+
+// "Mon, 16 Nov 2026" — compact form for the sidebar's business-day card.
+export function formatShortDate(iso: string) {
+  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+}

@@ -115,7 +115,7 @@ function ReasonTable({
             {["Reason", "Lines", "Qty", ...(showValue ? ["Value"] : [])].map((h, i) => (
               <th
                 key={h}
-                className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                   i > 0 ? "text-right" : ""
                 }`}
               >
@@ -129,14 +129,14 @@ function ReasonTable({
             const sign = r.totalQuantity < 0 ? "−" : r.totalQuantity > 0 ? "+" : "";
             return (
               <tr key={r.reasonCodeId} className="border-b border-n200 last:border-b-0 hover:bg-n50">
-                <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{r.label}</td>
-                <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{r.lineCount}</td>
-                <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">
+                <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{r.label}</td>
+                <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{r.lineCount}</td>
+                <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">
                   {sign}
                   {Math.abs(r.totalQuantity)}
                 </td>
                 {showValue ? (
-                  <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">
+                  <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">
                     {r.totalValue == null ? "—" : formatNaira(r.totalValue)}
                   </td>
                 ) : null}

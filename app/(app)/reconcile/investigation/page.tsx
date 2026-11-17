@@ -40,7 +40,7 @@ export default async function UnderInvestigationPage({ searchParams }: { searchP
                   {["As at", "Department", "Product", "Kind", "Expected", "Counted", "Ledger", "Variance", "Note", "Session"].map((h, i) => (
                     <th
                       key={h}
-                      className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                      className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                         i > 3 && i < 8 ? "text-right" : ""
                       }`}
                     >
@@ -52,21 +52,21 @@ export default async function UnderInvestigationPage({ searchParams }: { searchP
               <tbody>
                 {lines.map((l) => (
                   <tr key={`${l.countLineId}-${l.kind}`} className="border-b border-n200 last:border-b-0 hover:bg-n50">
-                    <td className="px-4 h-9 text-[13.5px] tabular-nums whitespace-nowrap">{l.asAtDate}</td>
-                    <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{l.departmentName}</td>
-                    <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
+                    <td className="px-4 h-9 text-[12.5px] tabular-nums whitespace-nowrap">{l.asAtDate}</td>
+                    <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{l.departmentName}</td>
+                    <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                       {l.name} <span className="text-n600 text-xs">{l.code}</span>
                     </td>
                     <td className="px-4 h-9 whitespace-nowrap">
                       <Tag variant={l.kind === "variance" ? "bad" : "warn"}>{l.kind === "variance" ? "Physical variance" : "Book differs"}</Tag>
                     </td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{l.expectedQty}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{l.countedQty}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{l.ledgerQty ?? "—"}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{l.variance > 0 ? `+${l.variance}` : l.variance}</td>
-                    <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{l.note ?? "—"}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{l.expectedQty}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{l.countedQty}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{l.ledgerQty ?? "—"}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{l.variance > 0 ? `+${l.variance}` : l.variance}</td>
+                    <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{l.note ?? "—"}</td>
                     <td className="px-0 h-9">
-                      <Link href={`/reconcile/${l.sessionId}`} className="flex items-center h-9 px-4 text-graphite text-sm whitespace-nowrap">
+                      <Link href={`/reconcile/${l.sessionId}`} className="flex items-center h-9 px-4 text-brand text-sm whitespace-nowrap">
                         {l.sessionStatus === "LOCKED" ? "View" : "Reconcile"}
                       </Link>
                     </td>

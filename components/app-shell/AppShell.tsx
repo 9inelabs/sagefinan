@@ -2,21 +2,21 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Header } from "./Header";
+import { Menu } from "lucide-react";
+import { MessagesButton } from "./MessagesButton";
+import { ShellContext } from "./shell-context";
 import { Sidebar } from "./Sidebar";
 import { navForRole } from "@/lib/nav";
 import type { CurrentProfile } from "@/lib/auth/profile";
 import { createClient } from "@/lib/supabase/client";
 import { markMessagesRead } from "@/lib/messages/actions";
 
-// Premium redesign's shell (see CLAUDE.md's follow-up): Header spans the
-// full width above everything, so the layout is now a vertical stack
-// (header, then a sidebar+content row) rather than the old pure horizontal
-// split. Fixed to the viewport height with the sidebar and content each
-// scrolling independently within it — the sidebar's own nav stays visible
-// regardless of how far the content is scrolled, same guarantee the old
-// `sticky top-0 h-screen` sidebar gave, without needing to know Header's
-// exact pixel height to compute an offset.
+// Dark + green redesign's shell (see CLAUDE.md's follow-up): the whole
+// viewport is the dark frame; the sidebar sits directly on it (desktop) or
+// slides in as a drawer (mobile, opened from the top bar), and every page
+// renders inside one rounded, independently-scrolling canvas panel inset
+// into the frame. The sidebar's nav stays visible whatever the scroll
+// position, since only the panel scrolls.
 //
 // This is also where the Messages nav badge lives (SPEC.md/CLAUDE.md's
 // unread-count follow-up): AppShell wraps every route and stays mounted
@@ -27,10 +27,12 @@ import { markMessagesRead } from "@/lib/messages/actions";
 export function AppShell({
   profile,
   initialUnreadMessages,
+  businessDayLabel,
   children,
 }: {
   profile: CurrentProfile;
   initialUnreadMessages: number;
+  businessDayLabel: string;
   children: React.ReactNode;
 }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -97,24 +99,50 @@ export function AppShell({
   }, [profile.id]);
 
   return (
-    <div className="h-screen flex flex-col">
-      <Header profile={profile} onOpenDrawer={() => setDrawerOpen(true)} />
-      <div className="flex-1 min-h-0 flex relative">
-        <aside className="hidden min-[900px]:block flex-none h-full overflow-y-auto">
-          <Sidebar groups={groups} unreadCounts={{ messages: unreadMessages }} />
+    <ShellContext.Provider value={{ unreadMessages }}>
+      <div className="app-frame h-dvh flex">
+        <aside className="hidden min-[900px]:block flex-none h-full">
+          <Sidebar groups={groups} profile={profile} businessDayLabel={businessDayLabel} unreadCounts={{ messages: unreadMessages }} />
         </aside>
 
         {drawerOpen ? (
-          <div className="absolute inset-0 z-50 min-[900px]:hidden">
-            <div className="absolute inset-0 bg-black/30" onClick={() => setDrawerOpen(false)} />
-            <div className="absolute inset-y-0 left-0 h-full">
-              <Sidebar groups={groups} unreadCounts={{ messages: unreadMessages }} onNavigate={() => setDrawerOpen(false)} />
+          <div className="fixed inset-0 z-50 min-[900px]:hidden">
+            <div className="absolute inset-0 bg-black/50" onClick={() => setDrawerOpen(false)} />
+            <div className="absolute inset-y-0 left-0 h-full shadow-lift">
+              <Sidebar
+                groups={groups}
+                profile={profile}
+                businessDayLabel={businessDayLabel}
+                unreadCounts={{ messages: unreadMessages }}
+                onNavigate={() => setDrawerOpen(false)}
+                onClose={() => setDrawerOpen(false)}
+              />
             </div>
           </div>
         ) : null}
 
-        <div className="flex-1 min-w-0 flex flex-col overflow-y-auto">{children}</div>
+        <div className="flex-1 min-w-0 flex flex-col h-full min-[900px]:py-2.5 min-[900px]:pr-2.5">
+          {/* Mobile top bar — hamburger, brand, messages. Desktop has the sidebar instead. */}
+          <div className="min-[900px]:hidden flex-none flex items-center justify-between gap-3 px-4 py-3 text-on-dark">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <button
+                type="button"
+                onClick={() => setDrawerOpen(true)}
+                aria-label="Open menu"
+                className="w-9.5 h-9.5 rounded grid place-items-center flex-none bg-frame-2 border border-frame-line"
+              >
+                <Menu size={18} strokeWidth={1.75} />
+              </button>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo-mark.png" alt="" className="w-6 h-auto flex-none invert" />
+              <b className="text-[14.5px] font-medium truncate">De-Moon Hotel</b>
+            </div>
+            <MessagesButton dark />
+          </div>
+
+          <main className="flex-1 min-h-0 overflow-y-auto bg-canvas rounded-t-panel min-[900px]:rounded-panel">{children}</main>
+        </div>
       </div>
-    </div>
+    </ShellContext.Provider>
   );
 }

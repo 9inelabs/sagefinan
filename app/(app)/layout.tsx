@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getUnreadMessageCount } from "@/lib/messages/actions";
 import { AppShell } from "@/components/app-shell/AppShell";
+import { formatShortDate, yesterdayIso } from "@/lib/dates";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const profile = await getCurrentProfile();
@@ -27,7 +28,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // the server→client prop boundary the way it can plain data, so this
   // moved client-side. See CLAUDE.md's follow-up on the premium redesign.
   return (
-    <AppShell profile={profile} initialUnreadMessages={initialUnreadMessages}>
+    <AppShell profile={profile} initialUnreadMessages={initialUnreadMessages} businessDayLabel={formatShortDate(yesterdayIso())}>
       {children}
     </AppShell>
   );

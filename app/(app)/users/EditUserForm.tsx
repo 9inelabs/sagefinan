@@ -112,7 +112,7 @@ export function EditUserForm({
       <label className="flex items-center gap-2 text-sm mb-3.5 cursor-pointer select-none">
         <input
           type="checkbox"
-          className="accent-graphite w-4 h-4"
+          className="accent-brand w-4 h-4"
           checked={isActive}
           onChange={(e) => setIsActive(e.target.checked)}
           disabled={pending}

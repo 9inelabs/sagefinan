@@ -21,7 +21,7 @@ export default async function ComparePage() {
             title="Nothing to compare yet"
             description="Finish a count from Take stock and it will appear here."
             action={
-              <Link href="/count" className="text-graphite text-sm">
+              <Link href="/count" className="text-brand text-sm">
                 Go to Take stock →
               </Link>
             }
@@ -34,7 +34,7 @@ export default async function ComparePage() {
                   {["As at", "Department", "Counted by", "Products", "Variances", "Value", "Status"].map((h, i) => (
                     <th
                       key={h}
-                      className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                      className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                         i > 2 && i < 6 ? "text-right" : ""
                       }`}
                     >
@@ -49,22 +49,22 @@ export default async function ComparePage() {
                   return (
                     <tr key={r.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
                       <td className="px-0 h-9">
-                        <Link href={`/compare/${r.id}`} className="flex items-center h-9 px-4 text-[13.5px] tabular-nums whitespace-nowrap">
+                        <Link href={`/compare/${r.id}`} className="flex items-center h-9 px-4 text-[12.5px] tabular-nums whitespace-nowrap">
                           {r.asAtDate}
                         </Link>
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{r.departmentName}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{r.countedByName}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{r.productCount}</td>
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{r.departmentName}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{r.countedByName}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{r.productCount}</td>
                       <td
-                        className={`px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap ${
+                        className={`px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap ${
                           (r.varianceCount ?? 0) > 0 ? "text-red font-medium" : ""
                         }`}
                       >
                         {r.varianceCount ?? "—"}
                       </td>
                       <td
-                        className={`px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap ${
+                        className={`px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap ${
                           (r.varianceValue ?? 0) < 0 ? "text-red font-medium" : (r.varianceValue ?? 0) > 0 ? "text-green font-medium" : ""
                         }`}
                       >

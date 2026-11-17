@@ -67,7 +67,7 @@ export default async function UsersPage() {
                     {["Name", "Email", "Role", "Department", "Status", "Last sign-in", ""].map((h) => (
                       <th
                         key={h}
-                        className="text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap"
+                        className="text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap"
                       >
                         {h}
                       </th>
@@ -77,21 +77,21 @@ export default async function UsersPage() {
                 <tbody>
                   {rows.map((u) => (
                     <tr key={u.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
-                        <Link href={`/users/${u.id}`} className="text-graphite">
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
+                        <Link href={`/users/${u.id}`} className="text-brand">
                           {u.fullName}
                         </Link>
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{u.email}</td>
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">{ROLE_LABELS[u.role]}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-n600 whitespace-nowrap">{u.departmentName ?? "—"}</td>
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
+                      <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{u.email}</td>
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{ROLE_LABELS[u.role]}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{u.departmentName ?? "—"}</td>
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                         {u.isActive ? <Tag variant="ok">Active</Tag> : <Tag variant="mut">Inactive</Tag>}
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] text-n600 tabular-nums whitespace-nowrap">{formatLastSignIn(u.lastSignIn)}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-n600 tabular-nums whitespace-nowrap">{formatLastSignIn(u.lastSignIn)}</td>
                       <td className="px-4 h-9 text-right whitespace-nowrap">
                         <div className="flex justify-end items-center gap-3">
-                          <Link href={`/users/${u.id}`} className="text-graphite text-sm">
+                          <Link href={`/users/${u.id}`} className="text-brand text-sm">
                             Edit
                           </Link>
                           <UserRowActions id={u.id} isActive={u.isActive} />
@@ -107,7 +107,7 @@ export default async function UsersPage() {
               {rows.map((u) => (
                 <div key={u.id} className="p-4">
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <Link href={`/users/${u.id}`} className="text-graphite font-medium">
+                    <Link href={`/users/${u.id}`} className="text-brand font-medium">
                       {u.fullName}
                     </Link>
                     {u.isActive ? <Tag variant="ok">Active</Tag> : <Tag variant="mut">Inactive</Tag>}
@@ -118,7 +118,7 @@ export default async function UsersPage() {
                     {u.departmentName ? ` · ${u.departmentName}` : ""} · last sign-in {formatLastSignIn(u.lastSignIn)}
                   </div>
                   <div className="flex gap-4 text-sm">
-                    <Link href={`/users/${u.id}`} className="text-graphite">
+                    <Link href={`/users/${u.id}`} className="text-brand">
                       Edit
                     </Link>
                     <UserRowActions id={u.id} isActive={u.isActive} />

@@ -149,7 +149,7 @@ export function ReconcileScreen({
           </Card>
 
           <Card title="What locking does">
-            <div className="p-4 text-[13px] text-n600 leading-relaxed flex flex-col gap-3">
+            <div className="p-4 text-[12.5px] text-n600 leading-relaxed flex flex-col gap-3">
               <p>
                 Once locked, this session&apos;s figures become permanent and can&apos;t be edited. No stock movement dated on or before{" "}
                 <span className="tabular-nums text-ink">{session.asAtDate}</span> may be posted for {session.departmentName} afterwards.
@@ -243,7 +243,7 @@ function TabButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`px-3 py-2.5 text-sm border-b-2 -mb-px ${active ? "border-graphite text-graphite" : "border-transparent text-n600 hover:text-ink"}`}
+      className={`px-3 py-2.5 text-sm border-b-2 -mb-px ${active ? "border-brand text-brand" : "border-transparent text-n600 hover:text-ink"}`}
     >
       {children}
     </button>
@@ -450,7 +450,7 @@ function ReasonSection({
           />
           <div className="flex items-center gap-3 mt-1.5">
             {dirty ? (
-              <button type="button" onClick={persist} disabled={pending} className="text-graphite text-xs">
+              <button type="button" onClick={persist} disabled={pending} className="text-brand text-xs">
                 {pending ? "Saving…" : "Save reason"}
               </button>
             ) : setByName ? (
@@ -504,8 +504,8 @@ function CorrectDialog({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-black/30" onClick={pending ? undefined : onClose} />
-      <div className="relative bg-white border border-n200 rounded max-w-[440px] w-full" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-frame/50 backdrop-blur-[2px]" onClick={pending ? undefined : onClose} />
+      <div className="relative bg-white rounded-premium shadow-premium max-w-[440px] w-full" role="dialog" aria-modal="true">
         <div className="p-4 border-b border-n200">
           <h2 className="text-sm font-medium">Correct {line.name}</h2>
           <p className="text-xs text-n600 mt-1">
@@ -579,8 +579,8 @@ function PostLockAdjustDialog({
 
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-4">
-      <div className="absolute inset-0 bg-black/30" onClick={pending ? undefined : onClose} />
-      <div className="relative bg-white border border-n200 rounded max-w-[440px] w-full" role="dialog" aria-modal="true">
+      <div className="absolute inset-0 bg-frame/50 backdrop-blur-[2px]" onClick={pending ? undefined : onClose} />
+      <div className="relative bg-white rounded-premium shadow-premium max-w-[440px] w-full" role="dialog" aria-modal="true">
         <div className="p-4 border-b border-n200">
           <h2 className="text-sm font-medium">Raise a post-lock adjustment — {line.name}</h2>
           <p className="text-xs text-n600 mt-1">

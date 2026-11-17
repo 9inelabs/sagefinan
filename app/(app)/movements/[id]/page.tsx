@@ -68,7 +68,7 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
             {movement.isReversal && movement.reversalOfMovementId ? (
               <Row label="Reverses">
                 <Tag variant="mut">Reversal</Tag>{" "}
-                <Link href={`/movements/${movement.reversalOfMovementId}`} className="text-graphite ml-1">
+                <Link href={`/movements/${movement.reversalOfMovementId}`} className="text-brand ml-1">
                   View the original movement →
                 </Link>
               </Row>
@@ -76,7 +76,7 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
             {movement.isReversed && movement.reversedByMovementId ? (
               <Row label="Reversed by">
                 <Tag variant="bad">Reversed</Tag>{" "}
-                <Link href={`/movements/${movement.reversedByMovementId}`} className="text-graphite ml-1">
+                <Link href={`/movements/${movement.reversedByMovementId}`} className="text-brand ml-1">
                   View the reversal →
                 </Link>
               </Row>

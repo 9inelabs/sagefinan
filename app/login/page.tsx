@@ -59,7 +59,7 @@ export default async function LoginPage({
           />
 
           {error ? (
-            <p className="text-sm text-[#B42318] text-center mt-4 mb-0" role="alert">
+            <p className="text-[14px] text-[#B42318] text-center mt-4 mb-0" role="alert">
               {error}
             </p>
           ) : null}

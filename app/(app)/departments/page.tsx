@@ -51,7 +51,7 @@ export default async function DepartmentsPage({
     >
       <Card title="Departments" extra={`${departments?.length ?? 0} shown`}>
         <div className="px-4 py-2.5 border-b border-n200">
-          <Link href={showInactive ? "/departments" : "/departments?includeInactive=1"} className="text-xs text-graphite">
+          <Link href={showInactive ? "/departments" : "/departments?includeInactive=1"} className="text-xs text-brand">
             {showInactive ? "Hide inactive" : "Include inactive"}
           </Link>
         </div>
@@ -75,7 +75,7 @@ export default async function DepartmentsPage({
                     {HEADERS.map((h, i) => (
                       <th
                         key={h + i}
-                        className={`text-[11.5px] font-medium text-n600 text-left px-4 py-2 border-b border-n200 bg-n50 uppercase tracking-wide whitespace-nowrap ${
+                        className={`text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap ${
                           i === 2 || i === 3 ? "text-right" : ""
                         }`}
                       >
@@ -87,22 +87,22 @@ export default async function DepartmentsPage({
                 <tbody>
                   {departments.map((d) => (
                     <tr key={d.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
-                        <Link href={`/departments/${d.id}`} className="text-graphite">
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
+                        <Link href={`/departments/${d.id}`} className="text-brand">
                           {d.name}
                         </Link>
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                         {d.is_central_store ? <Tag variant="acc">Central store</Tag> : <span className="text-n600">—</span>}
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{productCounts.get(d.id) ?? 0}</td>
-                      <td className="px-4 h-9 text-[13.5px] text-right tabular-nums whitespace-nowrap">{userCounts.get(d.id) ?? 0}</td>
-                      <td className="px-4 h-9 text-[13.5px] whitespace-nowrap">
+                      <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{productCounts.get(d.id) ?? 0}</td>
+                      <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{userCounts.get(d.id) ?? 0}</td>
+                      <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                         {d.is_active ? <Tag variant="ok">Active</Tag> : <Tag variant="mut">Inactive</Tag>}
                       </td>
-                      <td className="px-4 h-9 text-[13.5px] text-right whitespace-nowrap">
+                      <td className="px-4 h-9 text-[12.5px] text-right whitespace-nowrap">
                         <div className="flex justify-end gap-3">
-                          <Link href={`/departments/${d.id}`} className="text-graphite">
+                          <Link href={`/departments/${d.id}`} className="text-brand">
                             Edit
                           </Link>
                           <DepartmentRowActions id={d.id} name={d.name} isActive={d.is_active} />
@@ -118,7 +118,7 @@ export default async function DepartmentsPage({
               {departments.map((d) => (
                 <div key={d.id} className="p-4">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <Link href={`/departments/${d.id}`} className="text-[15px] text-graphite font-medium">
+                    <Link href={`/departments/${d.id}`} className="text-[14px] text-brand font-medium">
                       {d.name}
                     </Link>
                     {d.is_active ? <Tag variant="ok">Active</Tag> : <Tag variant="mut">Inactive</Tag>}
@@ -129,7 +129,7 @@ export default async function DepartmentsPage({
                     {d.is_central_store ? <Tag variant="acc">Central store</Tag> : null}
                   </div>
                   <div className="flex gap-4 text-sm">
-                    <Link href={`/departments/${d.id}`} className="text-graphite">
+                    <Link href={`/departments/${d.id}`} className="text-brand">
                       Edit
                     </Link>
                     <DepartmentRowActions id={d.id} name={d.name} isActive={d.is_active} />

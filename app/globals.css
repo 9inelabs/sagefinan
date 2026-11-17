@@ -1,85 +1,120 @@
 @import "tailwindcss";
 
 /*
-  Design tokens — see CLAUDE.md's "premium redesign" follow-ups for the full
-  history. Two primary colours (ink, graphite — graphite replaced the
-  original teal accent everywhere in the app: buttons, links, focus rings,
-  the active nav state, via this one token, not a per-file edit), a fixed
-  neutral ramp, and three semantic colours reserved for variances. Do not
-  add ad-hoc colours outside this set.
+  Design tokens — "dark + green" redesign (see CLAUDE.md's follow-up). The app
+  shell sits on a near-black, faintly green frame (sidebar + mobile top bar);
+  page content sits on a soft off-white canvas panel inset into that frame,
+  in white cards. One accent family — brand green — for links, primary
+  highlights, focus rings, active nav and chart marks. Red/amber/green stay
+  reserved for variances and flags. Do not add ad-hoc colours outside this set.
 */
 :root {
-  --ink: #111827;
-  --graphite: #6b7280;
+  --ink: #0f1712;
 
-  --n50: #f9fafb;
-  --n100: #f3f4f6;
-  --n200: #e5e7eb;
-  --n400: #9ca3af;
-  --n600: #4b5563;
+  /* Brand green. --brand is the readable accent (text/links/buttons on white,
+     ≥4.5:1); --brand-bright is for marks and fills (bars, badges, active nav
+     icon), never body text on white; --brand-soft is the tinted surface. */
+  --brand: #17803f;
+  --brand-bright: #3cc15f;
+  --brand-soft: #e2ede2;
+  --brand-soft-2: #d5e6d6;
 
-  --red: #b42318;
-  --green: #067647;
-  --amber: #b54708;
+  /* Green-tinted neutral ramp. */
+  --canvas: #f2f4f1;
+  --n50: #f7f8f6;
+  --n100: #eef1ed;
+  --n200: #e4e8e3;
+  --n400: #9aa49d;
+  --n600: #5f6a63;
 
-  --radius: 6px;
+  /* Dark frame (sidebar, mobile top bar, dark feature cards). */
+  --frame: #0a100c;
+  --frame-2: #121b15;
+  --frame-3: #1a251e;
+  --frame-line: rgba(255, 255, 255, 0.07);
+  --on-dark: #e9f0ea;
+  --on-dark-2: #b8c3bb;
+  --on-dark-mut: #7f8c83;
 
-  /*
-    "Premium" redesign surface tokens (see CLAUDE.md's follow-up) — used by
-    components/ui/Card.tsx and Stat.tsx's now-default "premium" surface
-    (rounder corners, soft shadow, no hairline border) across every screen.
-    Doesn't touch --radius itself: buttons/inputs/chips/tags stay on the
-    original 6px system, only Card/Stat surfaces use --radius-premium.
-    --charcoal-active is the one dark-surface colour still in use, for the
-    header's sign-out pill.
-  */
-  --charcoal-active: #000000;
-  --radius-premium: 12px;
-  --shadow-premium: 0 1px 2px rgba(0, 0, 0, 0.04), 0 4px 16px rgba(0, 0, 0, 0.06);
+  /* Semantic — variances and flags only. */
+  --red: #c4302b;
+  --red-soft: #fbe9e8;
+  --red-on-dark: #ff8f8b; /* negative figures on dark surfaces */
+  --green: #17803f;
+  --green-soft: #e2ede2;
+  --amber: #b86e12;
+  --amber-soft: #fbf0e1;
+
+  --radius: 10px; /* buttons, inputs, selects */
+  --radius-sm: 7px; /* tags, pills, small controls */
+  --radius-premium: 18px; /* cards, stat tiles */
+  --radius-panel: 24px; /* the canvas panel inset into the dark frame */
+  --shadow-premium: 0 1px 2px rgba(15, 23, 18, 0.04), 0 8px 24px rgba(15, 23, 18, 0.05);
+  --shadow-lift: 0 10px 28px rgba(10, 16, 12, 0.28);
+  --shadow-btn: 0 6px 16px rgba(15, 23, 18, 0.18);
 }
 
 @theme inline {
   --color-ink: var(--ink);
-  --color-graphite: var(--graphite);
+  --color-brand: var(--brand);
+  --color-brand-bright: var(--brand-bright);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-2: var(--brand-soft-2);
 
+  --color-canvas: var(--canvas);
   --color-n50: var(--n50);
   --color-n100: var(--n100);
   --color-n200: var(--n200);
   --color-n400: var(--n400);
   --color-n600: var(--n600);
 
-  --color-red: var(--red);
-  --color-green: var(--green);
-  --color-amber: var(--amber);
+  --color-frame: var(--frame);
+  --color-frame-2: var(--frame-2);
+  --color-frame-3: var(--frame-3);
+  --color-frame-line: var(--frame-line);
+  --color-on-dark: var(--on-dark);
+  --color-on-dark-2: var(--on-dark-2);
+  --color-on-dark-mut: var(--on-dark-mut);
 
-  --color-charcoal-active: var(--charcoal-active);
+  --color-red: var(--red);
+  --color-red-soft: var(--red-soft);
+  --color-red-on-dark: var(--red-on-dark);
+  --color-green: var(--green);
+  --color-green-soft: var(--green-soft);
+  --color-amber: var(--amber);
+  --color-amber-soft: var(--amber-soft);
+
   --radius-premium: var(--radius-premium);
+  --radius-panel: var(--radius-panel);
   --shadow-premium: var(--shadow-premium);
+  --shadow-lift: var(--shadow-lift);
+  --shadow-btn: var(--shadow-btn);
 
   --font-sans: var(--font-inter);
 
-  /* Border radius is 6px uniformly across the app — "rounded" resolves to it directly. */
+  /* "rounded" (and -md/-lg/-xl) is the 10px control radius; "rounded-sm" is the 7px pill radius. */
   --radius-DEFAULT: var(--radius);
-  --radius-sm: var(--radius);
+  --radius-sm: var(--radius-sm);
   --radius-md: var(--radius);
   --radius-lg: var(--radius);
   --radius-xl: var(--radius);
 
-  /* Type scale is fixed at 12/14/16/20/24 — these map onto Tailwind's existing xs/sm/base/xl/2xl. */
-  --text-xs: 12px;
-  --text-sm: 14px;
-  --text-base: 16px;
-  --text-xl: 20px;
-  --text-2xl: 24px;
+  /* Type scale, deliberately compact: 11.5/13/15/18/22 on xs/sm/base/xl/2xl. */
+  --text-xs: 11.5px;
+  --text-sm: 13px;
+  --text-base: 15px;
+  --text-xl: 18px;
+  --text-2xl: 22px;
 }
 
 body {
-  background: var(--n100);
+  background: var(--canvas);
   color: var(--ink);
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.45;
+  font-feature-settings: "cv11", "ss01";
 }
 
 /*
@@ -87,6 +122,42 @@ body {
   Tailwind's font-semibold/font-bold utilities remain available but must not be used;
   this is a project convention enforced by review, not by the build.
 */
+
+/*
+  The dark app frame. A faint green glow in the top-left corner over the
+  near-black base — set here once rather than as an arbitrary Tailwind
+  gradient so the shell and the mobile drawer share exactly one definition.
+*/
+.app-frame {
+  background: radial-gradient(900px 500px at 0% 0%, #132219 0%, transparent 60%), var(--frame);
+}
+
+/* Dark feature surfaces (the dashboard's hero stat tile, Movements-today card). */
+.surface-dark {
+  background: radial-gradient(260px 200px at 100% 0%, rgba(60, 193, 95, 0.16), transparent 70%),
+    linear-gradient(170deg, #141f18, var(--frame));
+  color: var(--on-dark);
+  box-shadow: var(--shadow-lift);
+}
+.surface-hero {
+  background: radial-gradient(160px 120px at 90% 100%, rgba(60, 193, 95, 0.22), transparent 70%),
+    linear-gradient(150deg, #16241b, #0b120e);
+  color: var(--on-dark);
+  box-shadow: var(--shadow-lift);
+}
+.surface-tint {
+  background: linear-gradient(160deg, var(--brand-soft), var(--brand-soft-2));
+}
+
+/* Sidebar nav fades out at the bottom edge instead of a hard cut while scrolling. */
+.nav-fade {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 32px), transparent);
+  scrollbar-width: none;
+}
+.nav-fade::-webkit-scrollbar {
+  display: none;
+}
 
 /*
   Route loading.tsx files wrap their content in this class (components/ui/Skeleton.tsx's

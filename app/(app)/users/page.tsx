@@ -76,7 +76,7 @@ export default async function UsersPage() {
                 </thead>
                 <tbody>
                   {rows.map((u) => (
-                    <tr key={u.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                    <tr key={u.id} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                       <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                         <Link href={`/users/${u.id}`} className="text-brand">
                           {u.fullName}

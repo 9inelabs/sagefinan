@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Button";
+import { LoadingBlock } from "@/components/ui/Spinner";
 import { Input } from "@/components/ui/Input";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -306,7 +307,7 @@ function LedgerTabLoader({ session }: { session: SessionMeta }) {
   }, [session.id]);
 
   if (loading) {
-    return <div className="text-sm text-n600 p-6 text-center">Loading…</div>;
+    return <LoadingBlock />;
   }
 
   return <LedgerLinesEditor session={session} initialLines={initial} search={search} setSearch={setSearch} />;

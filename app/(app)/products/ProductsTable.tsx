@@ -121,7 +121,7 @@ export function ProductsTable({
           </thead>
           <tbody>
             {products.map((p) => (
-              <tr key={p.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+              <tr key={p.id} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                 <td className="px-4 h-9">
                   <input type="checkbox" className="accent-brand w-4 h-4" checked={selected.has(p.id)} onChange={() => toggleOne(p.id)} />
                 </td>

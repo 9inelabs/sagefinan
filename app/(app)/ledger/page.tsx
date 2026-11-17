@@ -115,8 +115,8 @@ export default async function LedgerPage({ searchParams }: { searchParams: Promi
               </thead>
               <tbody>
                 {data.rows.map((r) => (
-                  <tr key={r.productId} className="border-b border-n200 last:border-b-0 hover:bg-n50 group">
-                    <td className="px-0 h-9 sticky left-0 z-1 bg-white group-hover:bg-n50">
+                  <tr key={r.productId} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover group">
+                    <td className="px-0 h-9 sticky left-0 z-1 bg-white group-hover:bg-brand-hover">
                       <Link
                         href={`/ledger/${r.productId}?${exportSp.toString()}`}
                         className="flex items-center h-9 px-4 text-[12.5px] whitespace-nowrap"

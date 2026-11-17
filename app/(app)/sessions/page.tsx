@@ -83,7 +83,7 @@ export default async function SessionsPage({ searchParams }: { searchParams: Pro
                   const netSign = (r.varianceValue ?? 0) < 0 ? "−" : (r.varianceValue ?? 0) > 0 ? "+" : "";
                   const statusTag = STATUS_TAG[r.status];
                   return (
-                    <tr key={r.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                    <tr key={r.id} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                       <td className="px-0 h-9">
                         <Link href={href} className="flex items-center h-9 px-4 text-[12.5px] tabular-nums whitespace-nowrap">
                           {r.asAtDate}
@@ -156,7 +156,7 @@ function PageLink({ params, page, disabled, children }: { params: SearchParams; 
   if (params.status) sp.set("status", params.status);
   sp.set("page", String(page));
   return (
-    <Link href={`/sessions?${sp.toString()}`} className="px-3 py-1.5 rounded border border-n200 hover:bg-n50 hover:border-n400">
+    <Link href={`/sessions?${sp.toString()}`} className="px-3 py-1.5 rounded border border-n200 hover:bg-brand-hover hover:border-n400">
       {children}
     </Link>
   );

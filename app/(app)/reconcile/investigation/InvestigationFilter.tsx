@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { Select } from "@/components/ui/Select";
 
 export function InvestigationFilter({ departments, initial }: { departments: { id: string; name: string }[]; initial: string }) {

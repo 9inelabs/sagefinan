@@ -48,7 +48,7 @@ export default async function RepeatVarianceProductPage({
       subtitle={`${productCode} · ${departmentName} · session by session, ${sp.from} – ${sp.to}`}
       actions={
         <Link href={`/reconcile/reports/repeat-variances?${backSp.toString()}`}>
-          <button className="px-[13px] py-[7px] rounded border border-n200 text-sm hover:bg-n50 hover:border-n400">← Back to report</button>
+          <button className="px-[13px] py-[7px] rounded border border-n200 text-sm hover:bg-brand-hover hover:border-n400">← Back to report</button>
         </Link>
       }
     >
@@ -74,7 +74,7 @@ export default async function RepeatVarianceProductPage({
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.sessionId} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                  <tr key={r.sessionId} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                     <td className="px-0 h-9">
                       <Link href={`/reconcile/${r.sessionId}`} className="flex items-center h-9 px-4 text-[12.5px] tabular-nums whitespace-nowrap">
                         {r.asAtDate}

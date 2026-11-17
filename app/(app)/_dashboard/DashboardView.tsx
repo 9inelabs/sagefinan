@@ -213,7 +213,7 @@ export function DashboardView({
                     </thead>
                     <tbody>
                       {repeatVariances.map((row) => (
-                        <tr key={`${row.productId}-${row.departmentId}`} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                        <tr key={`${row.productId}-${row.departmentId}`} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                           <td className={TD}>
                             <b className="block font-medium">{row.productName}</b>
                             <span className="block text-[11px] text-n600">{row.productCode}</span>
@@ -347,11 +347,11 @@ export function ScopedHome({ role, departmentName }: { role: "STOREKEEPER" | "DE
 
   return (
     <PageShell title="Welcome" subtitle={departmentName ?? undefined}>
-      <div className="surface-hero rounded-premium px-5 py-5 mb-3 max-w-[720px]">
+      <div className="surface-hero rounded-premium px-5 py-5 mb-3">
         <span className="block text-[11.5px] text-on-dark-mut">Signed in for</span>
         <b className="block text-[22px] font-medium tracking-[-0.02em] mt-1">{departmentName ?? "your department"}</b>
       </div>
-      <div className="grid min-[600px]:grid-cols-2 gap-3 max-w-[720px]">
+      <div className="grid min-[600px]:grid-cols-2 gap-3">
         {shortcuts.map((s) => {
           const Icon = s.icon;
           return (

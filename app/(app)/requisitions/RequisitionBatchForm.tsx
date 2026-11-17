@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Button";
+import { Spinner } from "@/components/ui/Spinner";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Field } from "@/components/ui/Field";
@@ -258,7 +259,7 @@ export function RequisitionBatchForm({
               <div className="relative">
                 <Input placeholder="Search code or name" value={search} onChange={(e) => runSearch(e.target.value)} />
                 {searching ? (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-n600">Searching…</span>
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-n600" role="status"><Spinner size={15} />Searching…</span>
                 ) : null}
                 {results.length > 0 ? (
                   <div className="absolute z-10 mt-1 w-full bg-white rounded border border-n200 shadow-premium max-h-64 overflow-y-auto shadow-sm">
@@ -267,7 +268,7 @@ export function RequisitionBatchForm({
                         key={r.id}
                         type="button"
                         onClick={() => pick(r)}
-                        className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm hover:bg-n50"
+                        className="w-full text-left flex items-center gap-2 px-3 py-2 text-sm hover:bg-brand-hover"
                       >
                         <span className="text-n600 tabular-nums text-xs flex-none">{r.code}</span>
                         <span className="truncate flex-1">{r.name}</span>
@@ -370,7 +371,7 @@ export function RequisitionBatchForm({
                   {lines.map((l) => {
                     const remaining = l.available - l.quantity;
                     return (
-                      <tr key={l.productId} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                      <tr key={l.productId} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                         <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{l.name}</td>
                         <td className="px-4 h-9 text-[12.5px] text-n600 tabular-nums whitespace-nowrap">{l.code}</td>
                         <td className="px-4 h-9 text-[12.5px] text-right text-n600 tabular-nums whitespace-nowrap">{l.available}</td>

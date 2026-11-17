@@ -86,7 +86,7 @@ export default async function DepartmentsPage({
                 </thead>
                 <tbody>
                   {departments.map((d) => (
-                    <tr key={d.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                    <tr key={d.id} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                       <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                         <Link href={`/departments/${d.id}`} className="text-brand">
                           {d.name}

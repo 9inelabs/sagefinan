@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Spinner } from "@/components/ui/Spinner";
 import { useRouter } from "next/navigation";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { getDepartmentReferenceCounts, setDepartmentActive } from "@/lib/departments/actions";
@@ -56,7 +57,10 @@ export function DepartmentRowActions({ id, name, isActive }: { id: string; name:
               <p>Historical records stay intact — this only hides it from new counts, sales and requisitions, and it can be reactivated later.</p>
             </>
           ) : (
-            "Loading…"
+            <span className="inline-flex items-center gap-2">
+              <Spinner size={16} />
+              Loading…
+            </span>
           )
         }
         onConfirm={async () => {

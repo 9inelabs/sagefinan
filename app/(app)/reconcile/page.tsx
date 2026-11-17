@@ -95,7 +95,7 @@ function SessionTable({
           {rows.map((r) => {
             const netSign = (r.varianceValue ?? 0) < 0 ? "−" : (r.varianceValue ?? 0) > 0 ? "+" : "";
             return (
-              <tr key={r.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+              <tr key={r.id} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                 <td className="px-0 h-9">
                   <Link href={`/reconcile/${r.id}`} className="flex items-center h-9 px-4 text-[12.5px] tabular-nums whitespace-nowrap">
                     {r.asAtDate}

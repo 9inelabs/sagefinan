@@ -128,7 +128,7 @@ function ReasonTable({
           {rows.map((r) => {
             const sign = r.totalQuantity < 0 ? "−" : r.totalQuantity > 0 ? "+" : "";
             return (
-              <tr key={r.reasonCodeId} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+              <tr key={r.reasonCodeId} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                 <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{r.label}</td>
                 <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">{r.lineCount}</td>
                 <td className="px-4 h-9 text-[12.5px] text-right tabular-nums whitespace-nowrap">

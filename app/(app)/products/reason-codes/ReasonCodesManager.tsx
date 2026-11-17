@@ -57,7 +57,7 @@ export function ReasonCodesManager({ initialCodes }: { initialCodes: ReasonCodeR
             </thead>
             <tbody>
               {codes.map((c) => (
-                <tr key={c.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                <tr key={c.id} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                   <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{c.label}</td>
                   <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{APPLIES_LABEL[c.appliesTo]}</td>
                   <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{c.requiresNote ? "Yes" : "—"}</td>

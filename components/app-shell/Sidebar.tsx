@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { useRouter } from "nextjs-toploader/app";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, LogOut, Search, X } from "lucide-react";
 import { signOut } from "@/lib/auth/actions";

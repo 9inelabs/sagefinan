@@ -124,7 +124,7 @@ export function CompareTable({
                 </thead>
                 <tbody>
                   {visibleLines.map((l) => (
-                    <tr key={l.id} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                    <tr key={l.id} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                       <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">
                         {l.name} <span className="text-n600 text-xs">{l.code}</span>
                       </td>

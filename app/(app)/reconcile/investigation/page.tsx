@@ -51,7 +51,7 @@ export default async function UnderInvestigationPage({ searchParams }: { searchP
               </thead>
               <tbody>
                 {lines.map((l) => (
-                  <tr key={`${l.countLineId}-${l.kind}`} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                  <tr key={`${l.countLineId}-${l.kind}`} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                     <td className="px-4 h-9 text-[12.5px] tabular-nums whitespace-nowrap">{l.asAtDate}</td>
                     <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{l.departmentName}</td>
                     <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">

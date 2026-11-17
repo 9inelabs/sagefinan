@@ -89,7 +89,7 @@ export function CountsTable({ rows, extra }: { rows: DepartmentCountRow[]; extra
                 {visible.map((row) => {
                   const s = STATUS[row.status];
                   return (
-                    <tr key={row.departmentId} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                    <tr key={row.departmentId} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                       <td className={TD}>
                         <DeptCell name={row.departmentName} sub={`${row.productCount} products`} />
                       </td>

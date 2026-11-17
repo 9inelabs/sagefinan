@@ -85,7 +85,7 @@ export default async function RepeatVariancesReportPage({ searchParams }: { sear
                   drillSp.set("from", from);
                   drillSp.set("to", to);
                   return (
-                    <tr key={`${r.productId}:${r.departmentId}`} className="border-b border-n200 last:border-b-0 hover:bg-n50">
+                    <tr key={`${r.productId}:${r.departmentId}`} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                       <td className="px-0 h-9">
                         <Link
                           href={`/reconcile/reports/repeat-variances/${r.productId}?${drillSp.toString()}`}

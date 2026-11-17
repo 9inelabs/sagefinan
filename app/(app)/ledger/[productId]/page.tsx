@@ -58,7 +58,7 @@ export default async function LedgerProductHistoryPage({
       subtitle={`${productCode} · every movement behind the closing figure as at ${asAtDate}`}
       actions={
         <Link href={`/ledger?${backSp.toString()}`}>
-          <button className="px-[13px] py-[7px] rounded border border-n200 text-sm hover:bg-n50 hover:border-n400">← Back to ledger</button>
+          <button className="px-[13px] py-[7px] rounded border border-n200 text-sm hover:bg-brand-hover hover:border-n400">← Back to ledger</button>
         </Link>
       }
     >
@@ -84,7 +84,7 @@ export default async function LedgerProductHistoryPage({
               </thead>
               <tbody>
                 {rows.map((m) => (
-                  <tr key={m.id} className={`border-b border-n200 last:border-b-0 hover:bg-n50 ${m.isReversed ? "opacity-60" : ""}`}>
+                  <tr key={m.id} className={`border-b border-n200 last:border-b-0 hover:bg-brand-hover ${m.isReversed ? "opacity-60" : ""}`}>
                     <td className="px-4 h-9 text-[12.5px] tabular-nums whitespace-nowrap">{m.businessDay}</td>
                     <td className="px-4 h-9 text-[12.5px] text-n600 tabular-nums whitespace-nowrap">{formatTime(m.createdAt)}</td>
                     <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{TYPE_LABEL[m.type]}</td>

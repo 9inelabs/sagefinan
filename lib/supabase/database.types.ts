@@ -654,8 +654,10 @@ export type Database = {
           description: string
           id: string
           invoice_reference: string | null
+          note: string | null
           purchase_order_id: string | null
           quantity_text: string | null
+          reversal_of_id: string | null
           supplier_name: string | null
         }
         Insert: {
@@ -666,8 +668,10 @@ export type Database = {
           description: string
           id?: string
           invoice_reference?: string | null
+          note?: string | null
           purchase_order_id?: string | null
           quantity_text?: string | null
+          reversal_of_id?: string | null
           supplier_name?: string | null
         }
         Update: {
@@ -678,8 +682,10 @@ export type Database = {
           description?: string
           id?: string
           invoice_reference?: string | null
+          note?: string | null
           purchase_order_id?: string | null
           quantity_text?: string | null
+          reversal_of_id?: string | null
           supplier_name?: string | null
         }
         Relationships: [
@@ -695,6 +701,13 @@ export type Database = {
             columns: ["purchase_order_id"]
             isOneToOne: false
             referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_unstocked_lines_reversal_of_id_fkey"
+            columns: ["reversal_of_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_unstocked_lines"
             referencedColumns: ["id"]
           },
         ]
@@ -1099,6 +1112,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      reverse_unstocked_purchase_line: {
+        Args: { p_created_by: string; p_id: string; p_reason: string }
+        Returns: string
       }
       save_purchase_order: {
         Args: {

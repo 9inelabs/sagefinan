@@ -4,6 +4,7 @@ import { formatNaira } from "@/lib/format";
 import { formatDateTime, formatWeekdayDate } from "@/lib/dates";
 import type { ReceiptData, ReceiptLine } from "@/lib/receipts/actions";
 import { PrintButton } from "./PrintButton";
+import { ReverseUnstockedLine } from "./ReverseUnstockedLine";
 
 function signedQty(n: number) {
   return n < 0 ? `−${Math.abs(n)}` : String(n);
@@ -48,8 +49,9 @@ export function ReceiptView({
     "inline-flex items-center gap-1.5 h-9.5 px-4 rounded-full text-[12.5px] font-medium transition-[transform,background-color] active:scale-[0.97]";
   const prices = receipt.showPrices;
   const isPurchase = receipt.kind === "PURCHASE";
-  const unstockedCount = receipt.lines.filter((l) => l.unstocked).length;
-  const stockedCount = receipt.lines.length - unstockedCount;
+  const unstockedCount = receipt.lines.filter((l) => l.unstocked && !l.flags.includes("Reversal")).length;
+  const unstockedLines = receipt.lines.filter((l) => l.unstocked).length;
+  const stockedCount = receipt.lines.length - unstockedLines;
 
   return (
     <div className={embedded ? "w-full" : "max-w-[860px] mx-auto w-full"}>
@@ -164,6 +166,7 @@ export function ReceiptView({
                           {f}
                         </span>
                       ))}
+                      {l.canReverse ? <ReverseUnstockedLine lineId={l.id} description={l.name} /> : null}
                     </div>
                     {l.note ? <p className="text-[11.5px] text-n600 mt-1">“{l.note}”</p> : null}
                   </td>

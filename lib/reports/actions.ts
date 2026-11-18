@@ -83,7 +83,7 @@ export async function getReportsOverview(from: string, to: string): Promise<Repo
   const [{ data, error }, { data: pos, error: poError }, { data: unstocked, error: uError }] = await Promise.all([
     admin.from("movements_detail").select(DETAIL_COLUMNS).gte("business_day", from).lte("business_day", to).order("created_at", { ascending: false }).limit(ROW_CAP),
     admin.from("purchase_orders").select("status, order_date, purchase_order_lines(amount)").gte("order_date", from).lte("order_date", to),
-    admin.from("purchase_unstocked_lines").select("business_day, created_by, created_at, supplier_name, amount, profiles(full_name)").gte("business_day", from).lte("business_day", to),
+    admin.from("purchase_unstocked_lines").select("business_day, created_by, created_at, supplier_name, amount, reversal_of_id, profiles(full_name)").gte("business_day", from).lte("business_day", to),
   ]);
   if (error) throw new Error(error.message);
   if (poError) throw new Error(poError.message);
@@ -153,12 +153,24 @@ export async function getReportsOverview(from: string, to: string): Promise<Repo
 
   // Items bought but not stocked count towards purchase spend and appear on
   // the same purchase receipt as that day's stock lines.
-  for (const u of (unstocked ?? []) as unknown as { business_day: string; created_by: string; created_at: string; supplier_name: string | null; amount: number; profiles: { full_name: string } | null }[]) {
-    out.purchases.amountPaid += Number(u.amount);
-    out.purchases.unstockedItems += 1;
+  // A reversal row (reversal_of_id set) nets out its original: negative
+  // amount, one fewer item.
+  for (const u of (unstocked ?? []) as unknown as {
+    business_day: string;
+    created_by: string;
+    created_at: string;
+    supplier_name: string | null;
+    amount: number;
+    reversal_of_id: string | null;
+    profiles: { full_name: string } | null;
+  }[]) {
+    const s = u.reversal_of_id ? -1 : 1;
+    const amount = s * Number(u.amount);
+    out.purchases.amountPaid += amount;
+    out.purchases.unstockedItems += s;
     const key = `PURCHASE|${u.business_day}|${u.created_by}|`;
     const g = groups.get(key);
-    if (g) g.value += Number(u.amount);
+    if (g) g.value += amount;
     else
       groups.set(key, {
         kind: "PURCHASE",
@@ -168,7 +180,7 @@ export async function getReportsOverview(from: string, to: string): Promise<Repo
         title: "Purchase",
         subtitle: `${u.supplier_name ?? "—"} · ${u.profiles?.full_name ?? "—"}`,
         quantity: 0,
-        value: Number(u.amount),
+        value: amount,
       });
   }
 
@@ -223,7 +235,7 @@ export async function listPurchaseGroups(filters: { from?: string; to?: string; 
   }
   let uq = admin
     .from("purchase_unstocked_lines")
-    .select("business_day, created_by, created_at, supplier_name, invoice_reference, purchase_order_id, description, amount, profiles(full_name)");
+    .select("business_day, created_by, created_at, supplier_name, invoice_reference, purchase_order_id, description, amount, reversal_of_id, profiles(full_name)");
   if (filters.from) uq = uq.gte("business_day", filters.from);
   if (filters.to) uq = uq.lte("business_day", filters.to);
   if (filters.q?.trim()) {
@@ -268,12 +280,15 @@ export async function listPurchaseGroups(filters: { from?: string; to?: string; 
     invoice_reference: string | null;
     purchase_order_id: string | null;
     amount: number;
+    reversal_of_id: string | null;
     profiles: { full_name: string } | null;
   }[]) {
     const g = groupFor(u.business_day, u.created_by, u.created_at, u.profiles?.full_name ?? "—");
+    const s = u.reversal_of_id ? -1 : 1;
     g.items += 1;
-    g.unstockedItems += 1;
-    g.amountPaid += Number(u.amount);
+    g.unstockedItems += s;
+    g.amountPaid += s * Number(u.amount);
+    if (u.reversal_of_id) g.hasReversal = true;
     if (u.supplier_name && !g.suppliers.includes(u.supplier_name)) g.suppliers.push(u.supplier_name);
     if (u.invoice_reference && !g.invoices.includes(u.invoice_reference)) g.invoices.push(u.invoice_reference);
     if (u.purchase_order_id) g.hasPurchaseOrder = true;

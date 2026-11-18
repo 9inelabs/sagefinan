@@ -15,6 +15,7 @@ import { parseReceiptParams, receiptQuery } from "@/lib/receipts/params";
 import { LoadingBlock } from "@/components/ui/Spinner";
 import { ReceiptView } from "./ReceiptView";
 import { PrintButton } from "./PrintButton";
+import { ReceiptReloadContext } from "./ReverseUnstockedLine";
 
 // In-place receipts: any list row or link pointing at /reports/receipt?…
 // opens that receipt in a slide-over drawer on top of the list instead of
@@ -57,6 +58,16 @@ export function ReceiptDrawerProvider({
       })
       .catch(() => setState("error"));
   }, []);
+
+  // Re-fetch the open receipt in place (after a line on it is reversed),
+  // without the loading state flashing the whole receipt away.
+  const reload = useCallback(() => {
+    const params = href ? parseReceiptParams(new URL(href, "http://x").searchParams) : null;
+    if (!params) return;
+    getReceipt(params)
+      .then((r) => r && setReceipt(r))
+      .catch(() => {});
+  }, [href]);
 
   useEffect(() => {
     if (!href) return;
@@ -137,11 +148,13 @@ export function ReceiptDrawerProvider({
                   ) : null}
                   {receipt ? (
                     <div className="animate-rise">
-                      <ReceiptView
-                        receipt={receipt}
-                        pdfHref={pdfHref}
-                        embedded
-                      />
+                      <ReceiptReloadContext.Provider value={reload}>
+                        <ReceiptView
+                          receipt={receipt}
+                          pdfHref={pdfHref}
+                          embedded
+                        />
+                      </ReceiptReloadContext.Provider>
                     </div>
                   ) : null}
                 </div>

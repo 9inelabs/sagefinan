@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageShell } from "@/components/app-shell/PageShell";
+import { ReportsNav } from "@/components/reports/ReportsNav";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Button";
 import { Stat } from "@/components/ui/Stat";
@@ -18,6 +19,7 @@ const TYPE_LABEL: Record<MovementType, string> = {
   REQUISITION: "Requisition",
   SALE: "Sale",
   OPENING: "Opening balance",
+  ADJUSTMENT: "Adjustment",
 };
 
 function formatTime(iso: string) {
@@ -91,6 +93,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Pr
         </Link>
       }
     >
+      <ReportsNav active="movements" role={profile.role} />
       {overrideCount !== null ? (
         <div className="mb-4.5 max-w-[280px]">
           <Link href="/movements?override=1">

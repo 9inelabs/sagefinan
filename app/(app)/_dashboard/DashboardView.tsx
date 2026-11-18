@@ -13,6 +13,7 @@ import {
   Receipt,
   RefreshCw,
   ShoppingBag,
+  SlidersHorizontal,
   TrendingUp,
   type LucideIcon,
 } from "lucide-react";
@@ -34,6 +35,7 @@ const MOVEMENT_META: Record<RecentMovementRow["type"], { label: string; icon: Lu
   REQUISITION: { label: "Requisition", icon: ArrowLeftRight },
   SALE: { label: "Sale", icon: Receipt },
   OPENING: { label: "Opening balance", icon: TrendingUp },
+  ADJUSTMENT: { label: "Adjustment", icon: SlidersHorizontal },
 };
 
 const TH = "text-[11px] font-normal text-n600 text-left px-4 pt-1 pb-2 border-b border-n200 whitespace-nowrap";

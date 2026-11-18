@@ -321,6 +321,8 @@ async function getRecentMovements(admin: AdminClient, departmentId?: string): Pr
         ? `${m.supplier_name ?? "Supplier"} → ${m.to_department_name} · ${m.quantity} ${m.product_name}`
         : m.type === "OPENING"
           ? `${m.to_department_name} · ${m.quantity} ${m.product_name}`
+          : m.type === "ADJUSTMENT"
+            ? `${m.to_department_name ?? m.from_department_name} · ${m.to_department_id ? "+" : "−"}${m.quantity} ${m.product_name}`
           : m.type === "REQUISITION"
             ? `${m.from_department_name} → ${m.to_department_name} · ${m.quantity} ${m.product_name}`
             : `${m.from_department_name} · ${m.quantity} ${m.product_name}`,

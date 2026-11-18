@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageShell } from "@/components/app-shell/PageShell";
+import { ReportsNav } from "@/components/reports/ReportsNav";
 import { Card } from "@/components/ui/Card";
 import { Btn } from "@/components/ui/Button";
 import { Tag } from "@/components/ui/Tag";
@@ -19,8 +20,8 @@ type SearchParams = {
 };
 
 function receiptHref(g: SalesHistoryGroup) {
-  const sp = new URLSearchParams({ department: g.departmentId, day: g.businessDay, by: g.createdBy });
-  return `/sales/history/receipt?${sp.toString()}`;
+  const sp = new URLSearchParams({ kind: "SALE", department: g.departmentId, day: g.businessDay, by: g.createdBy });
+  return `/reports/receipt?${sp.toString()}`;
 }
 
 export default async function SalesHistoryPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
@@ -70,6 +71,7 @@ export default async function SalesHistoryPage({ searchParams }: { searchParams:
         </Link>
       }
     >
+      <ReportsNav active="sales" role={profile.role} />
       <Card title="Sales history" extra={`${totalCount} batch${totalCount === 1 ? "" : "es"}`}>
         <Filters
           departments={departments}

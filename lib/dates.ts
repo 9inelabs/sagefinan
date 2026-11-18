@@ -52,3 +52,16 @@ export function formatReceiptDate(iso: string) {
 export function formatShortDate(iso: string) {
   return new Date(`${iso}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 }
+
+// "16-Nov-2026" — the purchase order's own date format, matching the
+// hotel's existing paper/PDF purchase order.
+export function formatPoDate(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  const month = d.toLocaleDateString("en-GB", { month: "short" });
+  return `${String(d.getDate()).padStart(2, "0")}-${month}-${d.getFullYear()}`;
+}
+
+// "16 Nov 2026, 14:05" — when something was recorded/actioned.
+export function formatDateTime(iso: string) {
+  return new Date(iso).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}

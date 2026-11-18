@@ -294,3 +294,25 @@ html.nprogress-busy .loading-pill,
     animation-duration: 1.6s;
   }
 }
+
+/*
+  Printing a receipt (components/receipt/PrintButton.tsx): drop the app
+  chrome and the scrolling panel so only the document prints, with its dark
+  header colours kept.
+*/
+@media print {
+  [data-print-hide],
+  .loading-pill {
+    display: none !important;
+  }
+  .app-frame {
+    background: #fff !important;
+    height: auto !important;
+    display: block !important;
+  }
+  main {
+    overflow: visible !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+  }
+}

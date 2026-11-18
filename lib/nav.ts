@@ -8,12 +8,12 @@ import {
   RefreshCw,
   History,
   BookOpen,
-  ArrowLeftRight,
   ShoppingBag,
   FilePlus,
-  PackageCheck,
   Receipt,
-  ReceiptText,
+  ClipboardCheck,
+  SlidersHorizontal,
+  FileBarChart,
   Building2,
   Package,
   TrendingUp,
@@ -27,6 +27,9 @@ export type NavItem = {
   href: string;
   roles: UserRole[];
   icon: LucideIcon;
+  // Other path prefixes that count as "this item" for the active highlight
+  // (e.g. Reports covers the history pages it houses).
+  matches?: string[];
 };
 
 export type NavGroup = {
@@ -72,22 +75,15 @@ export const NAV_GROUPS: NavGroup[] = [
         roles: ["ADMIN", "AUDITOR", "STOREKEEPER", "DEPARTMENT_USER"],
         icon: BookOpen,
       },
-      {
-        key: "movements",
-        label: "Movements",
-        href: "/movements",
-        roles: ["ADMIN", "AUDITOR", "STOREKEEPER"],
-        icon: ArrowLeftRight,
-      },
       { key: "purchases", label: "Purchases", href: "/purchases", roles: ["ADMIN", "STOREKEEPER"], icon: ShoppingBag },
-      { key: "req", label: "Requisitions", href: "/requisitions", roles: ["ADMIN", "STOREKEEPER"], icon: FilePlus },
       {
-        key: "req-history",
-        label: "Requisition history",
-        href: "/requisitions/history",
-        roles: ["ADMIN", "AUDITOR", "STOREKEEPER", "DEPARTMENT_USER"],
-        icon: PackageCheck,
+        key: "purchase-orders",
+        label: "Purchase orders",
+        href: "/purchase-orders",
+        roles: ["ADMIN", "STOREKEEPER"],
+        icon: ClipboardCheck,
       },
+      { key: "req", label: "Requisitions", href: "/requisitions", roles: ["ADMIN", "STOREKEEPER"], icon: FilePlus },
       {
         key: "sales",
         label: "Sales entry",
@@ -95,12 +91,21 @@ export const NAV_GROUPS: NavGroup[] = [
         roles: ["ADMIN", "STOREKEEPER", "DEPARTMENT_USER"],
         icon: Receipt,
       },
+      { key: "adjustments", label: "Adjustments", href: "/adjustments", roles: ["ADMIN"], icon: SlidersHorizontal },
+    ],
+  },
+  {
+    title: "Reports",
+    items: [
       {
-        key: "sales-history",
-        label: "Sales history",
-        href: "/sales/history",
+        key: "reports",
+        label: "Reports",
+        href: "/reports",
         roles: ["ADMIN", "AUDITOR", "STOREKEEPER", "DEPARTMENT_USER"],
-        icon: ReceiptText,
+        icon: FileBarChart,
+        // The transaction histories live inside Reports now (CLAUDE.md:
+        // "Purchase amounts, purchase orders, adjustments, reports").
+        matches: ["/sales/history", "/requisitions/history", "/movements"],
       },
     ],
   },

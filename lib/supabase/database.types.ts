@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       adjustments: {
@@ -323,6 +298,8 @@ export type Database = {
       }
       movements: {
         Row: {
+          adjustment_category: string | null
+          amount: number | null
           business_day: string
           created_at: string
           created_by: string
@@ -333,6 +310,7 @@ export type Database = {
           note: string | null
           override_reason: string | null
           product_id: string
+          purchase_order_id: string | null
           quantity: number
           received_by: string | null
           reversal_of_movement_id: string | null
@@ -341,6 +319,8 @@ export type Database = {
           type: Database["public"]["Enums"]["movement_type"]
         }
         Insert: {
+          adjustment_category?: string | null
+          amount?: number | null
           business_day?: string
           created_at?: string
           created_by: string
@@ -351,6 +331,7 @@ export type Database = {
           note?: string | null
           override_reason?: string | null
           product_id: string
+          purchase_order_id?: string | null
           quantity: number
           received_by?: string | null
           reversal_of_movement_id?: string | null
@@ -359,6 +340,8 @@ export type Database = {
           type: Database["public"]["Enums"]["movement_type"]
         }
         Update: {
+          adjustment_category?: string | null
+          amount?: number | null
           business_day?: string
           created_at?: string
           created_by?: string
@@ -369,6 +352,7 @@ export type Database = {
           note?: string | null
           override_reason?: string | null
           product_id?: string
+          purchase_order_id?: string | null
           quantity?: number
           received_by?: string | null
           reversal_of_movement_id?: string | null
@@ -396,6 +380,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
             referencedColumns: ["id"]
           },
           {
@@ -533,6 +524,127 @@ export type Database = {
           },
         ]
       }
+      purchase_order_lines: {
+        Row: {
+          amount: number
+          description: string
+          id: string
+          line_no: number
+          product_id: string | null
+          purchase_order_id: string
+          quantity_text: string | null
+        }
+        Insert: {
+          amount: number
+          description: string
+          id?: string
+          line_no: number
+          product_id?: string | null
+          purchase_order_id: string
+          quantity_text?: string | null
+        }
+        Update: {
+          amount?: number
+          description?: string
+          id?: string
+          line_no?: number
+          product_id?: string | null
+          purchase_order_id?: string
+          quantity_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_order_lines_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_order_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_orders: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string
+          id: string
+          notes: string | null
+          order_date: string
+          po_number: number
+          received_at: string | null
+          rejected_at: string | null
+          rejected_by: string | null
+          rejection_reason: string | null
+          status: Database["public"]["Enums"]["purchase_order_status"]
+          supplier_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          notes?: string | null
+          order_date: string
+          po_number?: never
+          received_at?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["purchase_order_status"]
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          notes?: string | null
+          order_date?: string
+          po_number?: never
+          received_at?: string | null
+          rejected_at?: string | null
+          rejected_by?: string | null
+          rejection_reason?: string | null
+          status?: Database["public"]["Enums"]["purchase_order_status"]
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_orders_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_orders_rejected_by_fkey"
+            columns: ["rejected_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reason_codes: {
         Row: {
           applies_to: string
@@ -644,6 +756,8 @@ export type Database = {
       }
       movements_detail: {
         Row: {
+          adjustment_category: string | null
+          amount: number | null
           business_day: string | null
           created_at: string | null
           created_by: string | null
@@ -658,6 +772,7 @@ export type Database = {
           product_code: string | null
           product_id: string | null
           product_name: string | null
+          purchase_order_id: string | null
           quantity: number | null
           received_by: string | null
           received_by_name: string | null
@@ -667,6 +782,7 @@ export type Database = {
           to_department_id: string | null
           to_department_name: string | null
           type: Database["public"]["Enums"]["movement_type"] | null
+          unit_cost: number | null
         }
         Relationships: [
           {
@@ -688,6 +804,13 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movements_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
             referencedColumns: ["id"]
           },
           {
@@ -828,6 +951,7 @@ export type Database = {
           p_created_by: string
           p_invoice_reference: string
           p_lines: Json
+          p_purchase_order_id?: string
           p_supplier_name: string
         }
         Returns: string[]
@@ -850,6 +974,18 @@ export type Database = {
           p_lines: Json
         }
         Returns: string[]
+      }
+      post_stock_adjustment: {
+        Args: {
+          p_business_day: string
+          p_category: string
+          p_created_by: string
+          p_delta: number
+          p_department_id: string
+          p_note: string
+          p_product_id: string
+        }
+        Returns: string
       }
       record_count_adjustment: {
         Args: {
@@ -906,6 +1042,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_purchase_order: {
+        Args: {
+          p_id: string
+          p_lines: Json
+          p_notes: string
+          p_order_date: string
+          p_supplier_name: string
+          p_user: string
+        }
+        Returns: string
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       start_or_open_count_session: {
@@ -936,7 +1083,13 @@ export type Database = {
       }
     }
     Enums: {
-      movement_type: "PURCHASE" | "REQUISITION" | "SALE" | "OPENING"
+      movement_type:
+        | "PURCHASE"
+        | "REQUISITION"
+        | "SALE"
+        | "OPENING"
+        | "ADJUSTMENT"
+      purchase_order_status: "PENDING" | "APPROVED" | "REJECTED" | "RECEIVED"
       session_status: "DRAFT" | "COMPLETED" | "LOCKED"
       user_role: "ADMIN" | "STOREKEEPER" | "DEPARTMENT_USER" | "AUDITOR"
     }
@@ -954,12 +1107,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -983,11 +1136,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1008,11 +1161,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1033,11 +1186,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1050,11 +1203,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1064,12 +1217,16 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
-      movement_type: ["PURCHASE", "REQUISITION", "SALE", "OPENING"],
+      movement_type: [
+        "PURCHASE",
+        "REQUISITION",
+        "SALE",
+        "OPENING",
+        "ADJUSTMENT",
+      ],
+      purchase_order_status: ["PENDING", "APPROVED", "REJECTED", "RECEIVED"],
       session_status: ["DRAFT", "COMPLETED", "LOCKED"],
       user_role: ["ADMIN", "STOREKEEPER", "DEPARTMENT_USER", "AUDITOR"],
     },

@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MOVEMENT_TYPE_LABELS, adjustmentCategoryLabel } from "@/lib/movements/labels";
+import { formatNaira } from "@/lib/format";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { PageShell } from "@/components/app-shell/PageShell";
 import { Card } from "@/components/ui/Card";
@@ -8,7 +10,7 @@ import { AccessDenied } from "@/components/AccessDenied";
 import { getMovementDetail } from "@/lib/movements/actions";
 import { ReverseMovementForm } from "./ReverseMovementForm";
 
-const TYPE_LABEL = { PURCHASE: "Purchase", REQUISITION: "Requisition", SALE: "Sale", OPENING: "Opening balance" } as const;
+const TYPE_LABEL = MOVEMENT_TYPE_LABELS;
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -27,7 +29,7 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
   if (!movement) notFound();
 
   const canReverse =
-    (profile.role === "ADMIN" || (profile.role === "STOREKEEPER" && movement.type !== "OPENING")) &&
+    (profile.role === "ADMIN" || (profile.role === "STOREKEEPER" && movement.type !== "OPENING" && movement.type !== "ADJUSTMENT")) &&
     !movement.isReversal &&
     !movement.isReversed;
 
@@ -57,6 +59,26 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
             <Row label="To">{movement.toDepartmentName ?? "—"}</Row>
             <Row label="Entered by">{movement.createdByName}</Row>
             <Row label="Received by">{movement.receivedByName ?? "—"}</Row>
+            {movement.amount != null ? (
+              <Row label="Amount paid">
+                <span className="tabular-nums font-medium">{formatNaira(movement.amount)}</span>
+                {movement.quantity > 0 ? (
+                  <span className="text-n600 text-xs ml-2 tabular-nums">({formatNaira(movement.amount / movement.quantity)} each)</span>
+                ) : null}
+              </Row>
+            ) : null}
+            {movement.type === "ADJUSTMENT" ? (
+              <Row label="Adjustment">
+                {movement.toDepartmentName ? "Added to stock" : "Removed from stock"} · {adjustmentCategoryLabel(movement.adjustmentCategory)}
+              </Row>
+            ) : null}
+            {movement.purchaseOrderId ? (
+              <Row label="Purchase order">
+                <Link href={`/purchase-orders/${movement.purchaseOrderId}`} className="text-brand">
+                  View purchase order →
+                </Link>
+              </Row>
+            ) : null}
             {movement.supplierName ? <Row label="Supplier">{movement.supplierName}</Row> : null}
             {movement.invoiceReference ? <Row label="Invoice / delivery note">{movement.invoiceReference}</Row> : null}
             {movement.isOverride ? (

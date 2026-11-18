@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "nextjs-toploader/app";
-import { Check, PackagePlus, Trash2, X } from "lucide-react";
+import { Check, PackagePlus, Pencil, Trash2, X } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
@@ -16,12 +16,14 @@ export function PurchaseOrderActions({
   role,
   canReceive,
   linkedLines,
+  unpricedCount,
 }: {
   id: string;
   status: PurchaseOrderStatus;
   role: UserRole;
   canReceive: boolean;
   linkedLines: number;
+  unpricedCount: number;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<null | "approve">(null);
@@ -54,12 +56,29 @@ export function PurchaseOrderActions({
       {status === "PENDING" && isAdmin ? (
         <>
           <p className="text-[11.5px] text-on-dark-mut">Your decision</p>
-          <p className="text-[14px] mt-0.5">This order is waiting for your approval.</p>
+          <p className="text-[14px] mt-0.5">
+            {unpricedCount > 0
+              ? `${unpricedCount} item${unpricedCount === 1 ? " has" : "s have"} no price yet — add ${unpricedCount === 1 ? "it" : "them"} to approve.`
+              : "This order is waiting for your approval."}
+          </p>
           <div className="mt-4 grid gap-2">
-            <button type="button" onClick={approve} disabled={busy !== null} className={`${big} bg-brand-bright text-frame hover:brightness-105 shadow-glow`}>
-              {busy === "approve" ? <Spinner size={16} /> : <Check size={16} strokeWidth={2.4} />}
-              {busy === "approve" ? "Approving…" : "Approve order"}
-            </button>
+            {unpricedCount > 0 ? (
+              <Link href={`/purchase-orders/${id}/edit`} className={`${big} bg-brand-bright text-frame hover:brightness-105 shadow-glow`}>
+                <Pencil size={15} strokeWidth={2} />
+                Add prices & approve
+              </Link>
+            ) : (
+              <>
+                <button type="button" onClick={approve} disabled={busy !== null} className={`${big} bg-brand-bright text-frame hover:brightness-105 shadow-glow`}>
+                  {busy === "approve" ? <Spinner size={16} /> : <Check size={16} strokeWidth={2.4} />}
+                  {busy === "approve" ? "Approving…" : "Approve order"}
+                </button>
+                <Link href={`/purchase-orders/${id}/edit`} className={`${big} bg-white/[0.06] ring-1 ring-inset ring-white/10 text-on-dark hover:bg-white/10`}>
+                  <Pencil size={15} strokeWidth={1.9} />
+                  Edit before approving
+                </Link>
+              </>
+            )}
             <button
               type="button"
               onClick={() => setRejectOpen(true)}

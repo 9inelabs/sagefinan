@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ReceiptLink, ReceiptRow } from "@/components/receipt/ReceiptDrawer";
 import { ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Tag } from "@/components/ui/Tag";
@@ -38,7 +38,7 @@ export function AdjustmentList({ rows, title, extra }: { rows: AdjustmentRow[]; 
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover align-top">
+                  <ReceiptRow key={r.id} href={adjustmentReceiptHref(r)} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover align-top">
                     <td className={`${TD} whitespace-nowrap`}>{r.businessDay}</td>
                     <td className={`${TD} whitespace-nowrap`}>{r.departmentName}</td>
                     <td className={TD}>
@@ -57,19 +57,19 @@ export function AdjustmentList({ rows, title, extra }: { rows: AdjustmentRow[]; 
                     </td>
                     <td className={`${TD} text-n600 whitespace-nowrap`}>{r.createdByName}</td>
                     <td className={`${TD} text-right whitespace-nowrap`}>
-                      <Link href={adjustmentReceiptHref(r)} className="inline-flex items-center gap-0.5 text-brand font-medium">
+                      <ReceiptLink href={adjustmentReceiptHref(r)} className="inline-flex items-center gap-0.5 text-brand font-medium">
                         Receipt
                         <ChevronRight size={13} strokeWidth={2} />
-                      </Link>
+                      </ReceiptLink>
                     </td>
-                  </tr>
+                  </ReceiptRow>
                 ))}
               </tbody>
             </table>
           </div>
           <div className="min-[700px]:hidden">
             {rows.map((r) => (
-              <Link key={r.id} href={adjustmentReceiptHref(r)} className="block border-t border-n200 px-4 py-3 hover:bg-brand-hover">
+              <ReceiptLink key={r.id} href={adjustmentReceiptHref(r)} className="block border-t border-n200 px-4 py-3 hover:bg-brand-hover">
                 <div className="flex items-center justify-between gap-3">
                   <b className="font-medium text-[12.5px] truncate">{r.productName}</b>
                   <span className={`font-medium tabular-nums ${r.delta < 0 ? "text-red" : "text-green"}`}>
@@ -79,7 +79,7 @@ export function AdjustmentList({ rows, title, extra }: { rows: AdjustmentRow[]; 
                 <p className="text-[11px] text-n600 mt-0.5">
                   {r.departmentName} · {r.businessDay} · {adjustmentCategoryLabel(r.category)}
                 </p>
-              </Link>
+              </ReceiptLink>
             ))}
           </div>
         </>

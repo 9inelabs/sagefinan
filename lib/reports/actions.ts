@@ -59,7 +59,7 @@ export type ReportsOverview = {
   to: string;
   sales: OverviewBucket;
   requisitions: OverviewBucket;
-  purchases: OverviewBucket & { amountPaid: number };
+  purchases: OverviewBucket & { amountPaid: number; unstockedItems: number };
   openings: OverviewBucket;
   adjustmentsRemoved: OverviewBucket;
   adjustmentsAdded: OverviewBucket;
@@ -80,19 +80,21 @@ export async function getReportsOverview(from: string, to: string): Promise<Repo
   requireRole(profile, ["ADMIN", "AUDITOR"]);
   const admin = createAdminClient();
 
-  const [{ data, error }, { data: pos, error: poError }] = await Promise.all([
+  const [{ data, error }, { data: pos, error: poError }, { data: unstocked, error: uError }] = await Promise.all([
     admin.from("movements_detail").select(DETAIL_COLUMNS).gte("business_day", from).lte("business_day", to).order("created_at", { ascending: false }).limit(ROW_CAP),
     admin.from("purchase_orders").select("status, order_date, purchase_order_lines(amount)").gte("order_date", from).lte("order_date", to),
+    admin.from("purchase_unstocked_lines").select("business_day, created_by, created_at, supplier_name, amount, profiles(full_name)").gte("business_day", from).lte("business_day", to),
   ]);
   if (error) throw new Error(error.message);
   if (poError) throw new Error(poError.message);
+  if (uError) throw new Error(uError.message);
   const rows = (data ?? []) as unknown as DetailRow[];
 
   const empty = (): OverviewBucket => ({ transactions: 0, quantity: 0, value: 0 });
   const out = {
     sales: empty(),
     requisitions: empty(),
-    purchases: { ...empty(), amountPaid: 0 },
+    purchases: { ...empty(), amountPaid: 0, unstockedItems: 0 },
     openings: empty(),
     adjustmentsRemoved: empty(),
     adjustmentsAdded: empty(),
@@ -149,9 +151,30 @@ export async function getReportsOverview(from: string, to: string): Promise<Repo
     }
   }
 
+  // Items bought but not stocked count towards purchase spend and appear on
+  // the same purchase receipt as that day's stock lines.
+  for (const u of (unstocked ?? []) as unknown as { business_day: string; created_by: string; created_at: string; supplier_name: string | null; amount: number; profiles: { full_name: string } | null }[]) {
+    out.purchases.amountPaid += Number(u.amount);
+    out.purchases.unstockedItems += 1;
+    const key = `PURCHASE|${u.business_day}|${u.created_by}|`;
+    const g = groups.get(key);
+    if (g) g.value += Number(u.amount);
+    else
+      groups.set(key, {
+        kind: "PURCHASE",
+        href: `/reports/receipt?${new URLSearchParams({ kind: "PURCHASE", day: u.business_day, by: u.created_by }).toString()}`,
+        businessDay: u.business_day,
+        createdAt: u.created_at,
+        title: "Purchase",
+        subtitle: `${u.supplier_name ?? "—"} · ${u.profiles?.full_name ?? "—"}`,
+        quantity: 0,
+        value: Number(u.amount),
+      });
+  }
+
   const poSummary = { pending: 0, approved: 0, received: 0, rejected: 0, approvedValue: 0 };
-  for (const p of (pos ?? []) as { status: string; purchase_order_lines: { amount: number }[] }[]) {
-    const total = p.purchase_order_lines.reduce((s, l) => s + Number(l.amount), 0);
+  for (const p of (pos ?? []) as { status: string; purchase_order_lines: { amount: number | null }[] }[]) {
+    const total = p.purchase_order_lines.reduce((s, l) => s + Number(l.amount ?? 0), 0);
     if (p.status === "PENDING") poSummary.pending++;
     if (p.status === "APPROVED") poSummary.approved++;
     if (p.status === "RECEIVED") poSummary.received++;
@@ -178,6 +201,7 @@ export type PurchaseGroup = {
   invoices: string[];
   hasPurchaseOrder: boolean;
   items: number;
+  unstockedItems: number;
   quantity: number;
   amountPaid: number;
   hasReversal: boolean;
@@ -197,30 +221,66 @@ export async function listPurchaseGroups(filters: { from?: string; to?: string; 
     const t = filters.q.trim();
     query = query.or(`supplier_name.ilike.%${t}%,product_name.ilike.%${t}%,product_code.ilike.%${t}%,invoice_reference.ilike.%${t}%`);
   }
-  const { data, error } = await query.order("created_at", { ascending: false }).limit(ROW_CAP);
+  let uq = admin
+    .from("purchase_unstocked_lines")
+    .select("business_day, created_by, created_at, supplier_name, invoice_reference, purchase_order_id, description, amount, profiles(full_name)");
+  if (filters.from) uq = uq.gte("business_day", filters.from);
+  if (filters.to) uq = uq.lte("business_day", filters.to);
+  if (filters.q?.trim()) {
+    const t = filters.q.trim();
+    uq = uq.or(`supplier_name.ilike.%${t}%,description.ilike.%${t}%,invoice_reference.ilike.%${t}%`);
+  }
+  const [{ data, error }, { data: unstocked, error: uError }] = await Promise.all([
+    query.order("created_at", { ascending: false }).limit(ROW_CAP),
+    uq.order("created_at", { ascending: false }).limit(ROW_CAP),
+  ]);
   if (error) throw new Error(error.message);
+  if (uError) throw new Error(uError.message);
 
   const groups = new Map<string, PurchaseGroup>();
-  for (const r of (data ?? []) as unknown as DetailRow[]) {
-    const key = `${r.business_day}|${r.created_by}`;
-    const s = sign(r);
+  const groupFor = (day: string, by: string, createdAt: string, byName: string) => {
+    const key = `${day}|${by}`;
     let g = groups.get(key);
     if (!g) {
       g = {
-        href: `/reports/receipt?${new URLSearchParams({ kind: "PURCHASE", day: r.business_day, by: r.created_by }).toString()}`,
-        businessDay: r.business_day,
-        createdAt: r.created_at,
-        createdByName: r.created_by_name,
+        href: `/reports/receipt?${new URLSearchParams({ kind: "PURCHASE", day, by }).toString()}`,
+        businessDay: day,
+        createdAt,
+        createdByName: byName,
         suppliers: [],
         invoices: [],
         hasPurchaseOrder: false,
         items: 0,
+        unstockedItems: 0,
         quantity: 0,
         amountPaid: 0,
         hasReversal: false,
       };
       groups.set(key, g);
     }
+    return g;
+  };
+  for (const u of (unstocked ?? []) as unknown as {
+    business_day: string;
+    created_by: string;
+    created_at: string;
+    supplier_name: string | null;
+    invoice_reference: string | null;
+    purchase_order_id: string | null;
+    amount: number;
+    profiles: { full_name: string } | null;
+  }[]) {
+    const g = groupFor(u.business_day, u.created_by, u.created_at, u.profiles?.full_name ?? "—");
+    g.items += 1;
+    g.unstockedItems += 1;
+    g.amountPaid += Number(u.amount);
+    if (u.supplier_name && !g.suppliers.includes(u.supplier_name)) g.suppliers.push(u.supplier_name);
+    if (u.invoice_reference && !g.invoices.includes(u.invoice_reference)) g.invoices.push(u.invoice_reference);
+    if (u.purchase_order_id) g.hasPurchaseOrder = true;
+  }
+  for (const r of (data ?? []) as unknown as DetailRow[]) {
+    const s = sign(r);
+    const g = groupFor(r.business_day, r.created_by, r.created_at, r.created_by_name);
     g.items += 1;
     g.quantity += s * r.quantity;
     g.amountPaid += s * Number(r.amount ?? 0);
@@ -229,5 +289,5 @@ export async function listPurchaseGroups(filters: { from?: string; to?: string; 
     if (r.purchase_order_id) g.hasPurchaseOrder = true;
     if (r.reversal_of_movement_id) g.hasReversal = true;
   }
-  return [...groups.values()];
+  return [...groups.values()].sort((a, b) => b.businessDay.localeCompare(a.businessDay) || b.createdAt.localeCompare(a.createdAt));
 }

@@ -28,11 +28,12 @@ export type PurchaseProductResult = {
   availableQty: number | null;
 };
 
-// Restricted to active products assigned to the central store — every
-// balance figure on this screen goes through get_department_balance per
-// CLAUDE.md's "never hand-roll a movement sum" rule, and that function only
-// returns rows for assigned products, so an unassigned product has no
-// context to show here.
+// Every active catalogue product is searchable. One the central store doesn't
+// stock yet comes back with assignedToCentral = false / availableQty = null
+// (get_department_balance only returns assigned products); posting it makes
+// post_purchase_batch assign it to the central store first. An item that
+// isn't in the catalogue at all is recorded as an unstocked receipt line
+// instead (purchase_unstocked_lines) — see SPEC.md.
 // Performance note: this used to (a) fetch the central store department,
 // then (b) search products, then (c) call get_department_balance for the
 // WHOLE department — three sequential round trips, the last one recomputing
@@ -180,7 +181,12 @@ export async function listReceivers(departmentId: string) {
 // BATCH POSTING
 // ============================================================================
 
-export type PurchaseLineInput = { productId: string; quantity: number; amount: number };
+// A stock line (a product → quantity into the central store) or an
+// unstocked line (something the system doesn't track — goat meat, diesel —
+// recorded on the purchase receipt only, never stock, never a product).
+export type PurchaseLineInput =
+  | { productId: string; quantity: number; amount: number }
+  | { description: string; quantityText: string; amount: number };
 
 export async function postPurchaseBatch(input: {
   businessDay: string;
@@ -194,14 +200,14 @@ export async function postPurchaseBatch(input: {
 
   const supplierName = input.supplierName.trim();
   if (!supplierName) throw new Error("Supplier name is required.");
-  if (input.lines.length === 0) throw new Error("Add at least one product to the batch.");
+  if (input.lines.length === 0) throw new Error("Add at least one item to the purchase.");
   for (const line of input.lines) {
-    if (!Number.isInteger(line.quantity) || line.quantity <= 0) {
-      throw new Error("Every quantity must be a positive whole number.");
+    if ("productId" in line) {
+      if (!Number.isInteger(line.quantity) || line.quantity <= 0) throw new Error("Every stock quantity must be a positive whole number.");
+    } else if (!line.description.trim()) {
+      throw new Error("Every item needs a description.");
     }
-    if (!Number.isFinite(line.amount) || line.amount < 0) {
-      throw new Error("Every line needs the amount paid (zero or more).");
-    }
+    if (!Number.isFinite(line.amount) || line.amount < 0) throw new Error("Every line needs the amount paid (zero or more).");
   }
 
   const admin = createAdminClient();
@@ -210,7 +216,11 @@ export async function postPurchaseBatch(input: {
     p_supplier_name: supplierName,
     p_invoice_reference: input.invoiceReference.trim() || "",
     p_created_by: profile.id,
-    p_lines: input.lines.map((l) => ({ product_id: l.productId, quantity: l.quantity, amount: Math.round(l.amount * 100) / 100 })),
+    p_lines: input.lines.map((l) =>
+      "productId" in l
+        ? { product_id: l.productId, quantity: l.quantity, amount: Math.round(l.amount * 100) / 100 }
+        : { description: l.description.trim(), quantity_text: l.quantityText.trim(), amount: Math.round(l.amount * 100) / 100 }
+    ),
     p_purchase_order_id: input.purchaseOrderId ?? undefined,
   });
   if (error) throw new Error(error.message);

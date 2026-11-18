@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReceiptLink, ReceiptRow } from "@/components/receipt/ReceiptDrawer";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { PageShell } from "@/components/app-shell/PageShell";
@@ -145,11 +146,11 @@ export default async function SalesHistoryPage({ searchParams }: { searchParams:
 
 function SalesHistoryDesktopRow({ group: g }: { group: SalesHistoryGroup }) {
   return (
-    <tr className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
+    <ReceiptRow href={receiptHref(g)} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
       <td className="px-0 h-9">
-        <Link href={receiptHref(g)} className="flex items-center h-9 px-4 text-[12.5px] tabular-nums whitespace-nowrap text-brand">
+        <ReceiptLink href={receiptHref(g)} className="flex items-center h-9 px-4 text-[12.5px] tabular-nums whitespace-nowrap text-brand">
           {g.businessDay}
-        </Link>
+        </ReceiptLink>
       </td>
       <td className="px-4 h-9 text-[12.5px] whitespace-nowrap">{g.departmentName}</td>
       <td className="px-4 h-9 text-[12.5px] text-n600 whitespace-nowrap">{g.createdByName}</td>
@@ -161,13 +162,13 @@ function SalesHistoryDesktopRow({ group: g }: { group: SalesHistoryGroup }) {
           {g.hasReversal ? <Tag variant="mut">Reversal</Tag> : null}
         </div>
       </td>
-    </tr>
+    </ReceiptRow>
   );
 }
 
 function SalesHistoryMobileRow({ group: g }: { group: SalesHistoryGroup }) {
   return (
-    <Link href={receiptHref(g)} className="block p-4">
+    <ReceiptLink href={receiptHref(g)} className="block p-4">
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-medium">{g.departmentName}</span>
         <span className="text-sm font-medium tabular-nums">{g.totalQuantity}</span>
@@ -181,7 +182,7 @@ function SalesHistoryMobileRow({ group: g }: { group: SalesHistoryGroup }) {
           {g.hasReversal ? <Tag variant="mut">Reversal</Tag> : null}
         </div>
       ) : null}
-    </Link>
+    </ReceiptLink>
   );
 }
 

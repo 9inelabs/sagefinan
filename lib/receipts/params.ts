@@ -1,3 +1,5 @@
+// Shared by the receipt page/PDF route (server) and the in-place receipt
+// drawer (client) — plain functions, no server-only imports.
 import type { ReceiptKind, ReceiptParams } from "@/lib/receipts/actions";
 
 const KINDS: ReceiptKind[] = ["SALE", "REQUISITION", "PURCHASE", "ADJUSTMENT"];

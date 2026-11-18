@@ -69,6 +69,11 @@ function stamp(iso: string) {
 }
 
 export function ReceiptDocument({ receipt }: { receipt: ReceiptData }) {
+  // Requisition receipts carry no prices (receipt.showPrices false): the
+  // price columns, money total and grand-total block are dropped entirely.
+  const prices = receipt.showPrices;
+  const isPurchase = receipt.kind === "PURCHASE";
+  const unstockedCount = receipt.lines.filter((l) => l.unstocked).length;
   const tiles = [...receipt.details.map((d) => ({ label: d.label, value: d.value })), { label: "Recorded", value: stamp(receipt.recordedAt) }];
   return (
     <Document title={`${receipt.title} ${receipt.reference}`} author="De-Moon Hotel">
@@ -95,10 +100,12 @@ export function ReceiptDocument({ receipt }: { receipt: ReceiptData }) {
               <Text style={styles.sub}>Business day {day(receipt.businessDay)}</Text>
             </View>
             <View>
-              <Text style={[styles.label, { textAlign: "right" }]}>{receipt.valueLabel}</Text>
-              <Text style={styles.total}>{money(receipt.totals.amount)}</Text>
+              <Text style={[styles.label, { textAlign: "right" }]}>{prices ? receipt.valueLabel : "Bottles"}</Text>
+              <Text style={styles.total}>{prices ? money(receipt.totals.amount) : qty(receipt.totals.quantity)}</Text>
               <Text style={[styles.sub, { textAlign: "right" }]}>
-                {receipt.totals.items} item{receipt.totals.items === 1 ? "" : "s"} · {qty(receipt.totals.quantity)} bottles
+                {receipt.totals.items} item{receipt.totals.items === 1 ? "" : "s"}
+                {prices ? ` · ${qty(receipt.totals.quantity)} bottles` : ""}
+                {unstockedCount > 0 ? ` · ${unstockedCount} not stocked` : ""}
               </Text>
             </View>
           </View>
@@ -117,23 +124,22 @@ export function ReceiptDocument({ receipt }: { receipt: ReceiptData }) {
             <Text style={[styles.th, styles.cNo]}>#</Text>
             <Text style={[styles.th, styles.cItem]}>Item</Text>
             <Text style={[styles.th, styles.cQty]}>Qty</Text>
-            <Text style={[styles.th, styles.cUnit]}>{receipt.kind === "PURCHASE" ? "Unit price" : "Unit cost"}</Text>
-            <Text style={[styles.th, styles.cAmt]}>{receipt.valueLabel}</Text>
+            {prices ? <Text style={[styles.th, styles.cUnit]}>{isPurchase ? "Unit price" : "Unit cost"}</Text> : null}
+            {prices ? <Text style={[styles.th, styles.cAmt]}>{receipt.valueLabel}</Text> : null}
           </View>
           {receipt.lines.map((l, i) => (
             <View key={l.id} style={styles.row} wrap={false}>
               <Text style={styles.cNo}>{i + 1}</Text>
               <View style={styles.cItem}>
                 <Text style={styles.itemName}>{l.name}</Text>
-                <Text style={styles.itemMeta}>
-                  {l.code}
-                  {l.flags.length ? `  ·  ${l.flags.join("  ·  ")}` : ""}
-                </Text>
+                <Text style={styles.itemMeta}>{[l.code, ...l.flags].filter(Boolean).join("  ·  ")}</Text>
                 {l.note ? <Text style={styles.note}>“{l.note}”</Text> : null}
               </View>
-              <Text style={[styles.cQty, styles.bold, l.quantity < 0 ? styles.neg : {}]}>{qty(l.quantity)}</Text>
-              <Text style={styles.cUnit}>{l.unitPrice != null ? formatNairaPdf(l.unitPrice) : "—"}</Text>
-              <Text style={[styles.cAmt, styles.bold, (l.amount ?? 0) < 0 ? styles.neg : {}]}>{money(l.amount)}</Text>
+              <Text style={[styles.cQty, styles.bold, l.quantity < 0 ? styles.neg : {}, l.unstocked ? { width: 80 } : {}]}>
+                {l.unstocked ? l.quantityText || "—" : qty(l.quantity)}
+              </Text>
+              {prices ? <Text style={styles.cUnit}>{l.unitPrice != null ? formatNairaPdf(l.unitPrice) : "—"}</Text> : null}
+              {prices ? <Text style={[styles.cAmt, styles.bold, (l.amount ?? 0) < 0 ? styles.neg : {}]}>{money(l.amount)}</Text> : null}
             </View>
           ))}
 
@@ -144,13 +150,15 @@ export function ReceiptDocument({ receipt }: { receipt: ReceiptData }) {
                 <Text>{receipt.totals.items}</Text>
               </View>
               <View style={styles.totalsRow}>
-                <Text style={{ color: C.n600 }}>Total quantity</Text>
+                <Text style={{ color: C.n600 }}>{isPurchase ? "Bottles into stock" : "Total quantity"}</Text>
                 <Text>{qty(receipt.totals.quantity)}</Text>
               </View>
-              <View style={styles.totalsGrand}>
-                <Text style={{ color: C.n600 }}>Total {receipt.valueLabel.toLowerCase()}</Text>
-                <Text style={styles.grandValue}>{money(receipt.totals.amount)}</Text>
-              </View>
+              {prices ? (
+                <View style={styles.totalsGrand}>
+                  <Text style={{ color: C.n600 }}>Total {receipt.valueLabel.toLowerCase()}</Text>
+                  <Text style={styles.grandValue}>{money(receipt.totals.amount)}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
         </View>

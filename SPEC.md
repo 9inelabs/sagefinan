@@ -1023,6 +1023,39 @@ amount paid; everything else shows value at cost. The old
 `/sales/history/receipt` and `/requisitions/history/receipt` URLs (and
 their `export-pdf`) redirect here.
 
+### Unstocked purchase items, PO pricing, receipt drawer (follow-up)
+
+- **Purchases can include items that aren't stock.** Typing in the
+  Purchases search box offers every active catalogue product; picking one
+  records a whole-bottle quantity into the central store (a product the
+  central store didn't stock yet is assigned to it by
+  `post_purchase_batch`, so it appears in the central ledger). Anything not
+  in the catalogue (goat meat, diesel, a knife) can be added as **"not
+  tracked in stock"**: a description, a free-text quantity ("20kg",
+  optional) and the amount paid. Those lines go into
+  `purchase_unstocked_lines` — never `movements`, never a department,
+  never a new product — and appear only on the purchase receipt and in the
+  purchase totals (amount paid, "N items not stocked"). A PO line without
+  a product link becomes such a line when the order is received. There is
+  no reversal for an unstocked line yet (it has no stock effect to undo).
+- **POs can be submitted incomplete.** A line needs only a description;
+  quantity and price are optional (`purchase_order_lines.amount` is
+  nullable). An ADMIN reviewing a PENDING order can edit every line, fill
+  in missing prices/quantities and "Save & approve" in one step.
+  `approve_purchase_order()` refuses while any line still has no price, so
+  an approved PO (and its PDF) is always fully priced.
+- **Requisition receipts show no prices or values** — on screen, in print
+  and in the PDF — because department staff see them. The Reports overview
+  shows requisitions in bottles only.
+- **Receipts open in a slide-over drawer** from every list (Sales and
+  Requisition history, Reports overview/Purchases/Adjustments, a PO's
+  timeline), so the list stays where it was. Ctrl/⌘-click or "Full page"
+  still opens the standalone receipt URL. Print and PDF work from the
+  drawer.
+- **Native dropdown options** render dark ink on white everywhere
+  (`select option` in `app/globals.css`) — dark-surface selects otherwise
+  inherited their white text into the OS's white option list.
+
 ## Phase 1 scope decisions (asked and answered before building)
 
 - **Currency valuation**: computed now in `get_department_balance`, not

@@ -44,7 +44,10 @@ export function PurchaseOrderList({ orders, emptyText }: { orders: PurchaseOrder
                       <td className={TD}>{formatPoDate(o.orderDate)}</td>
                       <td className={`${TD} text-n600`}>{o.supplierName ?? "—"}</td>
                       <td className={`${TD} text-right`}>{o.lineCount}</td>
-                      <td className={`${TD} text-right font-medium`}>{formatNaira(o.total)}</td>
+                      <td className={`${TD} text-right font-medium`}>
+                        {formatNaira(o.total)}
+                        {o.unpricedCount > 0 ? <span className="block text-[10.5px] font-normal text-amber">{o.unpricedCount} not priced</span> : null}
+                      </td>
                       <td className={`${TD} text-n600`}>{o.createdByName}</td>
                       <td className={TD}>
                         <Tag variant={meta.variant}>{meta.label}</Tag>

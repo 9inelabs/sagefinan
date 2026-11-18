@@ -2,7 +2,7 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { getReceipt } from "@/lib/receipts/actions";
 import { ReceiptDocument } from "@/lib/pdf/ReceiptDocument";
 import { pdfResponse } from "@/lib/pdf/respond";
-import { parseReceiptParams } from "../params";
+import { parseReceiptParams } from "@/lib/receipts/params";
 
 export async function GET(request: Request) {
   await getCurrentProfile();

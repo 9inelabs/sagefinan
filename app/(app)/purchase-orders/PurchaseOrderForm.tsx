@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "nextjs-toploader/app";
-import { Link2, Plus, Send, Trash2, X } from "lucide-react";
+import { Check, Link2, Plus, Send, Trash2, X } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { Spinner } from "@/components/ui/Spinner";
-import { savePurchaseOrder, type PurchaseOrderDetail } from "@/lib/purchase-orders/actions";
+import { approvePurchaseOrder, savePurchaseOrder, type PurchaseOrderDetail } from "@/lib/purchase-orders/actions";
 import { searchProductsForPurchase, type PurchaseProductResult } from "@/lib/movements/actions";
 import { useDebouncedSearch } from "@/lib/useDebouncedSearch";
 import { formatNaira } from "@/lib/format";
@@ -35,7 +35,11 @@ function parseAmount(v: string) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-export function PurchaseOrderForm({ initial, today }: { initial: PurchaseOrderDetail | null; today: string }) {
+// `approver` (an ADMIN reviewing a PENDING order) adds a "Save & approve"
+// action: the approver can fill in missing prices/quantities and change any
+// line, then approve in one step. Approval needs every line priced; the
+// storekeeper may submit with prices or quantities still blank.
+export function PurchaseOrderForm({ initial, today, approver = false }: { initial: PurchaseOrderDetail | null; today: string; approver?: boolean }) {
   const router = useRouter();
   const [orderDate, setOrderDate] = useState(initial?.orderDate ?? today);
   const [supplierName, setSupplierName] = useState(initial?.supplierName ?? "");
@@ -46,14 +50,14 @@ export function PurchaseOrderForm({ initial, today }: { initial: PurchaseOrderDe
           key: nextKey++,
           description: l.description,
           quantityText: l.quantityText ?? "",
-          amount: String(l.amount),
+          amount: l.amount == null ? "" : String(l.amount),
           productId: l.productId,
           productCode: l.productCode,
         }))
       : [blankLine(), blankLine(), blankLine()]
   );
   const [activeKey, setActiveKey] = useState<number | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [saving, setSaving] = useState<null | "save" | "approve">(null);
   const [error, setError] = useState<string | null>(null);
 
   const { results, searching, handleChange: suggest, setResults, reset } = useDebouncedSearch((q: string) =>
@@ -71,30 +75,41 @@ export function PurchaseOrderForm({ initial, today }: { initial: PurchaseOrderDe
     setActiveKey(null);
   }
 
-  const filled = lines.filter((l) => l.description.trim() || l.amount.trim());
-  const total = filled.reduce((s, l) => s + (Number.isFinite(parseAmount(l.amount)) ? parseAmount(l.amount) : 0), 0);
+  const filled = lines.filter((l) => l.description.trim() || l.amount.trim() || l.quantityText.trim());
+  const total = filled.reduce((s, l) => s + (l.amount.trim() && Number.isFinite(parseAmount(l.amount)) ? parseAmount(l.amount) : 0), 0);
+  const unpriced = filled.filter((l) => !l.amount.trim()).length;
 
-  async function submit() {
+  async function submit(andApprove: boolean) {
     setError(null);
     for (const [i, l] of filled.entries()) {
       if (!l.description.trim()) return setError(`Item ${i + 1} needs a description.`);
-      const a = parseAmount(l.amount);
-      if (l.amount.trim() === "" || !Number.isFinite(a) || a < 0) return setError(`Item ${i + 1} (${l.description}) needs its total price.`);
+      if (l.amount.trim()) {
+        const a = parseAmount(l.amount);
+        if (!Number.isFinite(a) || a < 0) return setError(`Item ${i + 1} (${l.description}): the price must be a number.`);
+      } else if (andApprove) {
+        return setError(`Item ${i + 1} (${l.description}) needs a price before the order can be approved.`);
+      }
     }
     if (filled.length === 0) return setError("Add at least one item.");
-    setSaving(true);
+    setSaving(andApprove ? "approve" : "save");
     try {
       const { id } = await savePurchaseOrder({
         id: initial?.id ?? null,
         orderDate,
         supplierName,
         notes,
-        lines: filled.map((l) => ({ description: l.description, quantityText: l.quantityText, amount: parseAmount(l.amount), productId: l.productId })),
+        lines: filled.map((l) => ({
+          description: l.description,
+          quantityText: l.quantityText,
+          amount: l.amount.trim() ? parseAmount(l.amount) : null,
+          productId: l.productId,
+        })),
       });
+      if (andApprove) await approvePurchaseOrder(id);
       router.push(`/purchase-orders/${id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not save this purchase order.");
-      setSaving(false);
+      setSaving(null);
     }
   }
 
@@ -179,12 +194,11 @@ export function PurchaseOrderForm({ initial, today }: { initial: PurchaseOrderDe
                             type="button"
                             onMouseDown={(e) => e.preventDefault()}
                             onClick={() => linkProduct(l.key, r)}
-                            disabled={!r.assignedToCentral}
                             className="w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-[9px] text-[12.5px] hover:bg-brand-hover disabled:opacity-50"
                           >
                             <span className="flex-none text-[10.5px] tabular-nums text-n600 bg-n100 rounded-sm px-1.5 py-0.5">{r.code}</span>
                             <span className="truncate flex-1">{r.name}</span>
-                            {!r.assignedToCentral ? <span className="text-[10.5px] text-amber">not in central store</span> : null}
+                            {!r.assignedToCentral ? <span className="text-[10.5px] text-brand">new to the store</span> : null}
                           </button>
                         ))
                       )}
@@ -192,7 +206,7 @@ export function PurchaseOrderForm({ initial, today }: { initial: PurchaseOrderDe
                   ) : null}
                   <div className="grid grid-cols-2 gap-2 mt-2 min-[800px]:hidden">
                     <Input value={l.quantityText} onChange={(e) => update(l.key, { quantityText: e.target.value })} placeholder="Qty, e.g. 2 crates" />
-                    <Input inputMode="decimal" value={l.amount} onChange={(e) => update(l.key, { amount: e.target.value })} placeholder="Total ₦" className="text-right" />
+                    <Input inputMode="decimal" value={l.amount} onChange={(e) => update(l.key, { amount: e.target.value })} placeholder="Price ₦ (optional)" className="text-right" />
                   </div>
                 </div>
                 <Input
@@ -205,7 +219,7 @@ export function PurchaseOrderForm({ initial, today }: { initial: PurchaseOrderDe
                   inputMode="decimal"
                   value={l.amount}
                   onChange={(e) => update(l.key, { amount: e.target.value })}
-                  placeholder="0"
+                  placeholder="optional"
                   className="hidden min-[800px]:block text-right tabular-nums"
                 />
                 <button
@@ -241,20 +255,40 @@ export function PurchaseOrderForm({ initial, today }: { initial: PurchaseOrderDe
           <span className="text-[11.5px] text-on-dark-mut">Total</span>
           <span className="text-[28px] font-medium tracking-[-0.03em] tabular-nums leading-none">{formatNaira(total)}</span>
         </div>
+        {unpriced > 0 ? (
+          <p className="mt-2 text-[11.5px] text-amber-soft">
+            {unpriced} item{unpriced === 1 ? "" : "s"} without a price{approver ? " — add them to approve" : " — the approver can add them"}
+          </p>
+        ) : null}
         <p className="mt-4 text-[11.5px] text-on-dark-mut leading-relaxed">
-          Submitting sends this order to an admin for approval. Once approved it can be downloaded as a PDF and received into stock when the goods arrive.
+          {approver
+            ? "Fill in any missing prices or quantities and change anything you need, then approve. The storekeeper sees the approved version."
+            : "Prices and quantities can be left blank — the admin can fill them in before approving. Once approved the order can be downloaded as a PDF and received into stock when the goods arrive."}
         </p>
         {error ? <p className="mt-3 text-[12px] text-red-on-dark animate-pop">{error}</p> : null}
+        {approver ? (
+          <button
+            type="button"
+            onClick={() => submit(true)}
+            disabled={saving !== null}
+            className={`mt-4 w-full h-12 rounded-[14px] inline-flex items-center justify-center gap-2 text-[13.5px] font-medium transition-[transform,filter] duration-200 active:scale-[0.98] ${
+              saving === "approve" ? "bg-frame-3 text-on-dark ring-1 ring-inset ring-white/10" : "bg-brand-bright text-frame hover:brightness-105 shadow-glow"
+            }`}
+          >
+            {saving === "approve" ? <Spinner size={16} /> : <Check size={16} strokeWidth={2.4} />}
+            {saving === "approve" ? "Approving…" : "Save & approve"}
+          </button>
+        ) : null}
         <button
           type="button"
-          onClick={submit}
-          disabled={saving}
-          className={`mt-4 w-full h-12 rounded-[14px] inline-flex items-center justify-center gap-2 text-[13.5px] font-medium transition-[transform,filter] duration-200 active:scale-[0.98] ${
-            saving ? "bg-frame-3 text-on-dark ring-1 ring-inset ring-white/10" : "bg-brand-bright text-frame hover:brightness-105 shadow-glow"
+          onClick={() => submit(false)}
+          disabled={saving !== null}
+          className={`${approver ? "mt-2 bg-white/[0.06] ring-1 ring-inset ring-white/10 text-on-dark hover:bg-white/10" : "mt-4 bg-brand-bright text-frame hover:brightness-105 shadow-glow"} w-full h-12 rounded-[14px] inline-flex items-center justify-center gap-2 text-[13.5px] font-medium transition-[transform,filter] duration-200 active:scale-[0.98] ${
+            saving === "save" ? "!bg-frame-3 !text-on-dark ring-1 ring-inset ring-white/10" : ""
           }`}
         >
-          {saving ? <Spinner size={16} /> : <Send size={15} strokeWidth={2} />}
-          {saving ? "Submitting…" : initial ? "Save & resubmit for approval" : "Submit for approval"}
+          {saving === "save" ? <Spinner size={16} /> : <Send size={15} strokeWidth={2} />}
+          {saving === "save" ? "Saving…" : approver ? "Save without approving" : initial ? "Save & resubmit for approval" : "Submit for approval"}
         </button>
         <Link
           href={initial ? `/purchase-orders/${initial.id}` : "/purchase-orders"}

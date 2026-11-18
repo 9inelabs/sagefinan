@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { ReceiptLink, ReceiptRow } from "@/components/receipt/ReceiptDrawer";
 import { ChevronRight, Download } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { PageShell } from "@/components/app-shell/PageShell";
@@ -47,7 +47,7 @@ export default async function PurchasesReportPage({ searchParams }: { searchPara
 
       <div className="grid grid-cols-2 min-[900px]:grid-cols-3 gap-3 mb-3">
         <Stat variant="hero" label="Amount paid" value={formatNaira(totalPaid)} footer={`${groups.length} receipt${groups.length === 1 ? "" : "s"}`} />
-        <Stat label="Bottles received" value={String(totalQty)} />
+        <Stat label="Bottles into stock" value={String(totalQty)} footer={`${groups.reduce((s, g) => s + g.unstockedItems, 0)} items bought but not stocked`} />
         <Stat label="Average per receipt" value={groups.length ? formatNaira(totalPaid / groups.length) : formatNaira(0)} />
       </div>
 
@@ -64,7 +64,8 @@ export default async function PurchasesReportPage({ searchParams }: { searchPara
                     <th className={TH}>Supplier</th>
                     <th className={TH}>Invoice</th>
                     <th className={`${TH} text-right`}>Items</th>
-                    <th className={`${TH} text-right`}>Bottles</th>
+                    <th className={`${TH} text-right`}>Bottles into stock</th>
+                    <th className={`${TH} text-right`}>Not stocked</th>
                     <th className={`${TH} text-right`}>Amount paid</th>
                     <th className={TH}>Entered by</th>
                     <th className={TH} />
@@ -72,7 +73,7 @@ export default async function PurchasesReportPage({ searchParams }: { searchPara
                 </thead>
                 <tbody>
                   {groups.map((g) => (
-                    <tr key={g.href} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
+                    <ReceiptRow key={g.href} href={g.href} className="border-b border-n200 last:border-b-0 hover:bg-brand-hover">
                       <td className={`${TD} whitespace-nowrap`}>{g.businessDay}</td>
                       <td className={TD}>
                         {g.suppliers.join(", ") || "—"}
@@ -90,30 +91,32 @@ export default async function PurchasesReportPage({ searchParams }: { searchPara
                       <td className={`${TD} text-n600`}>{g.invoices.join(", ") || "—"}</td>
                       <td className={`${TD} text-right`}>{g.items}</td>
                       <td className={`${TD} text-right`}>{g.quantity}</td>
+                      <td className={`${TD} text-right ${g.unstockedItems ? "" : "text-n400"}`}>{g.unstockedItems || "—"}</td>
                       <td className={`${TD} text-right font-medium`}>{formatNaira(g.amountPaid)}</td>
                       <td className={`${TD} text-n600 whitespace-nowrap`}>{g.createdByName}</td>
                       <td className={`${TD} text-right`}>
-                        <Link href={g.href} className="inline-flex items-center gap-0.5 text-brand font-medium">
+                        <ReceiptLink href={g.href} className="inline-flex items-center gap-0.5 text-brand font-medium">
                           Receipt
                           <ChevronRight size={13} strokeWidth={2} />
-                        </Link>
+                        </ReceiptLink>
                       </td>
-                    </tr>
+                    </ReceiptRow>
                   ))}
                 </tbody>
               </table>
             </div>
             <div className="min-[700px]:hidden">
               {groups.map((g) => (
-                <Link key={g.href} href={g.href} className="block border-t border-n200 px-4 py-3 hover:bg-brand-hover">
+                <ReceiptLink key={g.href} href={g.href} className="block border-t border-n200 px-4 py-3 hover:bg-brand-hover">
                   <div className="flex justify-between gap-3">
                     <b className="font-medium text-[12.5px] truncate">{g.suppliers.join(", ") || "Supplier not recorded"}</b>
                     <b className="font-medium text-[12.5px] tabular-nums">{formatNaira(g.amountPaid)}</b>
                   </div>
                   <p className="text-[11px] text-n600 mt-0.5">
                     {g.businessDay} · {g.items} item{g.items === 1 ? "" : "s"} · {g.quantity} bottles
+                    {g.unstockedItems ? ` · ${g.unstockedItems} not stocked` : ""}
                   </p>
-                </Link>
+                </ReceiptLink>
               ))}
             </div>
           </>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ReceiptLink } from "@/components/receipt/ReceiptDrawer";
 import { redirect } from "next/navigation";
 import { ArrowLeftRight, ChevronRight, ClipboardCheck, PackageMinus, PackagePlus, Receipt, ShoppingBag, TrendingUp, type LucideIcon } from "lucide-react";
 import { getCurrentProfile } from "@/lib/auth/profile";
@@ -49,14 +50,14 @@ export default async function ReportsOverviewPage({ searchParams }: { searchPara
       icon: ShoppingBag,
       href: `/reports/purchases?${q}`,
       value: signed(o.purchases.amountPaid),
-      lines: [`${o.purchases.quantity} bottles received`, `${o.purchases.transactions} lines`],
+      lines: [`${o.purchases.quantity} bottles into stock`, `${o.purchases.unstockedItems} item${o.purchases.unstockedItems === 1 ? "" : "s"} not stocked`],
     },
     {
       label: "Requisitions",
       icon: ArrowLeftRight,
       href: `/requisitions/history?${q}`,
       value: `${o.requisitions.quantity} bottles`,
-      lines: [`${formatNaira(o.requisitions.value)} at cost`, `${o.requisitions.transactions} lines`],
+      lines: [`${o.requisitions.transactions} lines`],
     },
     {
       label: "Stock removed",
@@ -131,7 +132,7 @@ export default async function ReportsOverviewPage({ searchParams }: { searchPara
               const Icon = KIND_ICON[r.kind];
               return (
                 <li key={`${r.href}-${i}`} className="border-t border-n100">
-                  <Link href={r.href} className="flex items-center gap-3 px-4.5 py-3 hover:bg-brand-hover">
+                  <ReceiptLink href={r.href} className="flex items-center gap-3 px-4.5 py-3 hover:bg-brand-hover">
                     <span className="w-8.5 h-8.5 rounded-full grid place-items-center bg-brand-soft text-brand flex-none">
                       <Icon size={15} strokeWidth={1.75} />
                     </span>
@@ -142,11 +143,17 @@ export default async function ReportsOverviewPage({ searchParams }: { searchPara
                       <span className="block text-[11.5px] text-n600 truncate">{r.subtitle}</span>
                     </span>
                     <span className="text-right tabular-nums">
-                      <b className="block text-[12.5px] font-medium">{signed(r.value)}</b>
-                      <span className="block text-[11px] text-n600">{r.quantity} bottles</span>
+                      {r.kind === "REQUISITION" ? (
+                        <b className="block text-[12.5px] font-medium">{r.quantity} bottles</b>
+                      ) : (
+                        <>
+                          <b className="block text-[12.5px] font-medium">{signed(r.value)}</b>
+                          <span className="block text-[11px] text-n600">{r.quantity} bottles</span>
+                        </>
+                      )}
                     </span>
                     <ChevronRight size={15} strokeWidth={1.75} className="text-n400 flex-none" />
-                  </Link>
+                  </ReceiptLink>
                 </li>
               );
             })}

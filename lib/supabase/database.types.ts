@@ -526,7 +526,7 @@ export type Database = {
       }
       purchase_order_lines: {
         Row: {
-          amount: number
+          amount: number | null
           description: string
           id: string
           line_no: number
@@ -535,7 +535,7 @@ export type Database = {
           quantity_text: string | null
         }
         Insert: {
-          amount: number
+          amount?: number | null
           description: string
           id?: string
           line_no: number
@@ -544,7 +544,7 @@ export type Database = {
           quantity_text?: string | null
         }
         Update: {
-          amount?: number
+          amount?: number | null
           description?: string
           id?: string
           line_no?: number
@@ -641,6 +641,60 @@ export type Database = {
             columns: ["rejected_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchase_unstocked_lines: {
+        Row: {
+          amount: number
+          business_day: string
+          created_at: string
+          created_by: string
+          description: string
+          id: string
+          invoice_reference: string | null
+          purchase_order_id: string | null
+          quantity_text: string | null
+          supplier_name: string | null
+        }
+        Insert: {
+          amount: number
+          business_day: string
+          created_at?: string
+          created_by: string
+          description: string
+          id?: string
+          invoice_reference?: string | null
+          purchase_order_id?: string | null
+          quantity_text?: string | null
+          supplier_name?: string | null
+        }
+        Update: {
+          amount?: number
+          business_day?: string
+          created_at?: string
+          created_by?: string
+          description?: string
+          id?: string
+          invoice_reference?: string | null
+          purchase_order_id?: string | null
+          quantity_text?: string | null
+          supplier_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_unstocked_lines_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_unstocked_lines_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
             referencedColumns: ["id"]
           },
         ]
@@ -867,6 +921,10 @@ export type Database = {
       app_current_role: {
         Args: never
         Returns: Database["public"]["Enums"]["user_role"]
+      }
+      approve_purchase_order: {
+        Args: { p_id: string; p_user: string }
+        Returns: undefined
       }
       finish_count_session: {
         Args: {

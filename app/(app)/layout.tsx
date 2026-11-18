@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth/profile";
 import { getUnreadMessageCount } from "@/lib/messages/actions";
+import { getPendingPurchaseOrderCount } from "@/lib/purchase-orders/actions";
 import { AppShell } from "@/components/app-shell/AppShell";
 import { formatShortDate, yesterdayIso } from "@/lib/dates";
 
@@ -20,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // here via Realtime — see its own comment). This layout persists across
   // client-side navigations within (app), so this only re-fetches on a hard
   // navigation/reload, same as every other value read here.
-  const initialUnreadMessages = await getUnreadMessageCount();
+  const [initialUnreadMessages, pendingPurchaseOrders] = await Promise.all([getUnreadMessageCount(), getPendingPurchaseOrderCount()]);
 
   // navForRole() (and its NAV_GROUPS, which now carry lucide-react icon
   // component references) is computed inside AppShell itself, not here —
@@ -28,7 +29,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // the server→client prop boundary the way it can plain data, so this
   // moved client-side. See CLAUDE.md's follow-up on the premium redesign.
   return (
-    <AppShell profile={profile} initialUnreadMessages={initialUnreadMessages} businessDayLabel={formatShortDate(yesterdayIso())}>
+    <AppShell
+      profile={profile}
+      initialUnreadMessages={initialUnreadMessages}
+      pendingPurchaseOrders={pendingPurchaseOrders}
+      businessDayLabel={formatShortDate(yesterdayIso())}>
       {children}
     </AppShell>
   );

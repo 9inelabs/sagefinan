@@ -6,7 +6,7 @@ import { useRouter } from "nextjs-toploader/app";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarDays, LogOut, Search, X } from "lucide-react";
 import { signOut } from "@/lib/auth/actions";
-import { ROLE_LABELS, type NavGroup } from "@/lib/nav";
+import { ROLE_LABELS, type NavGroup, type NavItem } from "@/lib/nav";
 import type { CurrentProfile } from "@/lib/auth/profile";
 
 // Dark + green redesign (see CLAUDE.md's follow-up): the sidebar owns the
@@ -126,7 +126,7 @@ export function Sidebar({
           <div key={group.title} className="pt-3.5">
             <p className="text-[10.5px] tracking-[0.08em] uppercase text-on-dark-mut px-2 pb-1.5">{group.title}</p>
             {group.items.map((item) => {
-              const currentlyOn = item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const currentlyOn = matchesItem(item, pathname);
               const active = pendingHref ? pendingHref === item.href : currentlyOn && !isShadowedByChild(groups, item.href, pathname);
               const Icon = item.icon;
               const unread = unreadCounts?.[item.key] ?? 0;
@@ -192,10 +192,21 @@ export function Sidebar({
   );
 }
 
+function underPath(prefix: string, pathname: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function matchesItem(item: NavItem, pathname: string) {
+  if (item.href === "/") return pathname === "/";
+  return underPath(item.href, pathname) || (item.matches ?? []).some((m) => underPath(m, pathname));
+}
+
 // "/requisitions" would otherwise also light up on "/requisitions/history",
-// which has its own nav item — prefer the most specific matching item.
+// which belongs to Reports — prefer the most specific matching item.
 function isShadowedByChild(groups: NavGroup[], href: string, pathname: string) {
   return groups.some((g) =>
-    g.items.some((i) => i.href !== href && i.href.startsWith(`${href}/`) && (pathname === i.href || pathname.startsWith(`${i.href}/`))),
+    g.items.some(
+      (i) => i.href !== href && [i.href, ...(i.matches ?? [])].some((p) => p.startsWith(`${href}/`) && underPath(p, pathname))
+    )
   );
 }

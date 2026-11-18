@@ -18,6 +18,7 @@ const TYPE_LABEL: Record<MovementType, string> = {
   REQUISITION: "Requisition",
   SALE: "Sale",
   OPENING: "Opening balance",
+  ADJUSTMENT: "Adjustment",
 };
 
 function formatTime(iso: string) {

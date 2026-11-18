@@ -28,11 +28,15 @@ import { markMessagesRead } from "@/lib/messages/actions";
 export function AppShell({
   profile,
   initialUnreadMessages,
+  pendingPurchaseOrders = 0,
   businessDayLabel,
   children,
 }: {
   profile: CurrentProfile;
   initialUnreadMessages: number;
+  // Admin-only "waiting for approval" count, refreshed on navigation via the
+  // layout (approve/reject revalidate it) — not live like messages.
+  pendingPurchaseOrders?: number;
   businessDayLabel: string;
   children: React.ReactNode;
 }) {
@@ -104,8 +108,8 @@ export function AppShell({
       <div className="app-frame h-dvh flex">
         {/* Shown from the moment a navigation starts until it lands (see .loading-pill). */}
         <LoadingPill />
-        <aside className="hidden min-[900px]:block flex-none h-full">
-          <Sidebar groups={groups} profile={profile} businessDayLabel={businessDayLabel} unreadCounts={{ messages: unreadMessages }} />
+        <aside className="hidden min-[900px]:block flex-none h-full" data-print-hide>
+          <Sidebar groups={groups} profile={profile} businessDayLabel={businessDayLabel} unreadCounts={{ messages: unreadMessages, "purchase-orders": pendingPurchaseOrders }} />
         </aside>
 
         {drawerOpen ? (
@@ -116,7 +120,7 @@ export function AppShell({
                 groups={groups}
                 profile={profile}
                 businessDayLabel={businessDayLabel}
-                unreadCounts={{ messages: unreadMessages }}
+                unreadCounts={{ messages: unreadMessages, "purchase-orders": pendingPurchaseOrders }}
                 onNavigate={() => setDrawerOpen(false)}
                 onClose={() => setDrawerOpen(false)}
               />
@@ -126,7 +130,7 @@ export function AppShell({
 
         <div className="flex-1 min-w-0 flex flex-col h-full min-[900px]:py-2.5 min-[900px]:pr-2.5">
           {/* Mobile top bar — hamburger, brand, messages. Desktop has the sidebar instead. */}
-          <div className="min-[900px]:hidden flex-none flex items-center justify-between gap-3 px-4 py-3 text-on-dark">
+          <div className="min-[900px]:hidden flex-none flex items-center justify-between gap-3 px-4 py-3 text-on-dark" data-print-hide>
             <div className="flex items-center gap-2.5 min-w-0">
               <button
                 type="button"

@@ -180,13 +180,14 @@ export async function listReceivers(departmentId: string) {
 // BATCH POSTING
 // ============================================================================
 
-export type PurchaseLineInput = { productId: string; quantity: number };
+export type PurchaseLineInput = { productId: string; quantity: number; amount: number };
 
 export async function postPurchaseBatch(input: {
   businessDay: string;
   supplierName: string;
   invoiceReference: string;
   lines: PurchaseLineInput[];
+  purchaseOrderId?: string | null;
 }) {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN", "STOREKEEPER"]);
@@ -198,6 +199,9 @@ export async function postPurchaseBatch(input: {
     if (!Number.isInteger(line.quantity) || line.quantity <= 0) {
       throw new Error("Every quantity must be a positive whole number.");
     }
+    if (!Number.isFinite(line.amount) || line.amount < 0) {
+      throw new Error("Every line needs the amount paid (zero or more).");
+    }
   }
 
   const admin = createAdminClient();
@@ -206,11 +210,14 @@ export async function postPurchaseBatch(input: {
     p_supplier_name: supplierName,
     p_invoice_reference: input.invoiceReference.trim() || "",
     p_created_by: profile.id,
-    p_lines: input.lines.map((l) => ({ product_id: l.productId, quantity: l.quantity })),
+    p_lines: input.lines.map((l) => ({ product_id: l.productId, quantity: l.quantity, amount: Math.round(l.amount * 100) / 100 })),
+    p_purchase_order_id: input.purchaseOrderId ?? undefined,
   });
   if (error) throw new Error(error.message);
 
   revalidatePath("/purchases");
+  revalidatePath("/purchase-orders");
+  revalidatePath("/reports");
   revalidatePath("/movements");
   revalidatePath("/");
   return { count: data?.length ?? 0 };
@@ -287,6 +294,7 @@ export async function reverseMovement(movementId: string, reason: string) {
     if (targetError) throw new Error(targetError.message);
     if (!target) throw new Error("Movement not found.");
     if (target.type === "OPENING") throw new Error("Only an admin can reverse an opening balance.");
+    if (target.type === "ADJUSTMENT") throw new Error("Only an admin can reverse a stock adjustment.");
     const touches = target.from_department_id === profile.departmentId || target.to_department_id === profile.departmentId;
     if (!touches) throw new Error("You don't have access to reverse that movement.");
   }
@@ -338,6 +346,9 @@ export type MovementRow = {
   isOverride: boolean;
   isReversal: boolean;
   isReversed: boolean;
+  amount: number | null;
+  adjustmentCategory: string | null;
+  purchaseOrderId: string | null;
 };
 
 type MovementsDetailRow = Database["public"]["Views"]["movements_detail"]["Row"];
@@ -358,6 +369,9 @@ function toMovementRow(m: MovementsDetailRow): MovementRow {
     isOverride: m.is_override ?? false,
     isReversal: m.reversal_of_movement_id != null,
     isReversed: m.reversed_by_movement_id != null,
+    amount: m.amount,
+    adjustmentCategory: m.adjustment_category,
+    purchaseOrderId: m.purchase_order_id,
   };
 }
 

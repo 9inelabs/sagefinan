@@ -322,6 +322,34 @@ export async function reverseMovement(movementId: string, reason: string) {
   return { id: data as string };
 }
 
+// Reverses a purchase line that isn't stock (purchase_unstocked_lines) —
+// appends a cancelling row, never edits or deletes the original. Same roles
+// as reversing a purchase movement: every purchase belongs to the central
+// store, which is the storekeeper's own department. No business-day lock
+// applies: these lines belong to no department, so no count session covers
+// them.
+export async function reverseUnstockedPurchaseLine(lineId: string, reason: string) {
+  const profile = await getCurrentProfile();
+  requireRole(profile, ["ADMIN", "STOREKEEPER"]);
+
+  const trimmed = reason.trim();
+  if (!trimmed) throw new Error("A reason is required to reverse a purchase line.");
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.rpc("reverse_unstocked_purchase_line", {
+    p_id: lineId,
+    p_reason: trimmed,
+    p_created_by: profile.id,
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/reports");
+  revalidatePath("/reports/purchases");
+  revalidatePath("/reports/receipt");
+  revalidatePath("/purchase-orders");
+  return { id: data as string };
+}
+
 // ============================================================================
 // MOVEMENTS LIST / DETAIL — every role in lib/nav.ts's "movements" entry can
 // read this; STOREKEEPER/DEPARTMENT_USER are scoped to movements touching

@@ -2217,3 +2217,25 @@ option text computed `rgb(15, 23, 18)`. Not verified signed in against real
 data (throwaway live accounts are still blocked here). `tsc`, `eslint .`,
 `npm run build` clean.
 
+**Reverse unstocked purchase items (follow-up, no phase number).** Closes the
+gap the previous entry left open. Migration
+`20261118150000_unstocked_purchase_reversal.sql` (applied via the Management
+API and recorded by hand, like the last two) adds `reversal_of_id`/`note` to
+`purchase_unstocked_lines`, a partial unique index on `reversal_of_id`, and
+`reverse_unstocked_purchase_line()`, which mirrors `post_movement_reversal`
+(append a copy, never touch the original). `reverseUnstockedPurchaseLine()`
+(`lib/movements/actions.ts`, ADMIN/STOREKEEPER) calls it.
+`components/receipt/ReverseUnstockedLine.tsx` is the per-line button and
+`ConfirmDialog`, shown when `ReceiptLine.canReverse` is set. The loader sets
+it per role and per reversal state, looking up reversals separately because
+one filed by another person sits on a different receipt. The drawer provides
+`ReceiptReloadContext`, so the open receipt refreshes in place. Receipts
+(screen and PDF) and both Reports aggregations net a reversal row as a
+negative amount and one fewer not-stocked item. Verified with a rolled-back
+`DO` block on the live database: reversal written with its reason, net
+amount correct, original untouched, double reversal, reversal of a reversal
+and blank reason all refused, nothing persisted. A temporary mocked preview
+(deleted) showed the Reverse button, the Reversed/Reversal tags and the
+dialog at 1440/390px with no overflow or console errors. `tsc`, `eslint .`
+and `npm run build` are clean.
+

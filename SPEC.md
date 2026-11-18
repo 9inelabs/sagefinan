@@ -1036,8 +1036,18 @@ their `export-pdf`) redirect here.
   `purchase_unstocked_lines` — never `movements`, never a department,
   never a new product — and appear only on the purchase receipt and in the
   purchase totals (amount paid, "N items not stocked"). A PO line without
-  a product link becomes such a line when the order is received. There is
-  no reversal for an unstocked line yet (it has no stock effect to undo).
+  a product link becomes such a line when the order is received.
+- **Unstocked lines reverse like movements.** ADMIN/STOREKEEPER press
+  "Reverse" on the line in its purchase receipt and give a reason;
+  `reverse_unstocked_purchase_line()` appends a copy tagged
+  `reversal_of_id` (with the reason in `note`) and every total nets it as
+  negative. The original is never edited or deleted. A line reverses at
+  most once (a partial unique index makes this race-proof), and a reversal
+  can't itself be reversed. The reversal row is filed under whoever
+  reversed it, like a movement reversal, so it lands on the same receipt
+  only when that person also entered the purchase; the original always
+  shows "Reversed". There's no business-day lock: these lines belong to no
+  department, so no count session covers them.
 - **POs can be submitted incomplete.** A line needs only a description;
   quantity and price are optional (`purchase_order_lines.amount` is
   nullable). An ADMIN reviewing a PENDING order can edit every line, fill

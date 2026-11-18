@@ -73,7 +73,7 @@ export function ReceiptDocument({ receipt }: { receipt: ReceiptData }) {
   // price columns, money total and grand-total block are dropped entirely.
   const prices = receipt.showPrices;
   const isPurchase = receipt.kind === "PURCHASE";
-  const unstockedCount = receipt.lines.filter((l) => l.unstocked).length;
+  const unstockedCount = receipt.lines.filter((l) => l.unstocked && !l.flags.includes("Reversal")).length;
   const tiles = [...receipt.details.map((d) => ({ label: d.label, value: d.value })), { label: "Recorded", value: stamp(receipt.recordedAt) }];
   return (
     <Document title={`${receipt.title} ${receipt.reference}`} author="De-Moon Hotel">

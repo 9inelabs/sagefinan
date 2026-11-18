@@ -28,6 +28,10 @@ export type ReceiptLine = {
   quantity: number; // signed: reversals and stock removals are negative; 0 for unstocked items
   quantityText: string | null; // free-text quantity of an unstocked purchase item ("20kg")
   unstocked: boolean;
+  // True only for an unstocked purchase line the viewer may reverse (not a
+  // reversal itself, not already reversed). Stock lines reverse from
+  // /movements instead.
+  canReverse: boolean;
   unitPrice: number | null;
   amount: number | null; // signed like quantity
   flags: string[];
@@ -99,8 +103,27 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
     description: string;
     quantity_text: string | null;
     amount: number;
+    reversal_of_id: string | null;
+    note: string | null;
   }[];
   if (data.length === 0 && unstockedRows.length === 0) return null;
+
+  // Which unstocked lines have been reversed (the reversal may sit on another
+  // receipt — reversed by someone else — so look it up rather than infer it
+  // from this receipt's own rows).
+  const reversedUnstocked = new Set<string>();
+  if (unstockedRows.length > 0) {
+    const { data: reversals, error: rError } = await admin
+      .from("purchase_unstocked_lines")
+      .select("reversal_of_id")
+      .in(
+        "reversal_of_id",
+        unstockedRows.map((u) => u.id),
+      );
+    if (rError) throw new Error(rError.message);
+    for (const r of reversals ?? []) if (r.reversal_of_id) reversedUnstocked.add(r.reversal_of_id);
+  }
+  const mayReverseUnstocked = profile.role === "ADMIN" || profile.role === "STOREKEEPER";
 
   const lines: ReceiptLine[] = data.map((m) => {
     const reversal = m.reversal_of_movement_id != null;
@@ -122,6 +145,7 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
       quantity: qty,
       quantityText: null,
       unstocked: false,
+      canReverse: false,
       unitPrice: !showPrices ? null : kind === "PURCHASE" ? (paid != null && m.quantity ? paid / m.quantity! : null) : unitCost,
       amount: !showPrices ? null : kind === "PURCHASE" ? (paid != null ? sign * paid : null) : qty * unitCost,
       flags,
@@ -129,6 +153,8 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
     };
   });
   for (const u of unstockedRows) {
+    const reversal = u.reversal_of_id != null;
+    const reversed = reversedUnstocked.has(u.id);
     lines.push({
       id: u.id,
       code: null,
@@ -136,10 +162,11 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
       quantity: 0,
       quantityText: u.quantity_text,
       unstocked: true,
+      canReverse: mayReverseUnstocked && !reversal && !reversed,
       unitPrice: null,
-      amount: Number(u.amount),
-      flags: ["Not stocked"],
-      note: null,
+      amount: (reversal ? -1 : 1) * Number(u.amount),
+      flags: ["Not stocked", reversal ? "Reversal" : null, reversed ? "Reversed" : null].filter((f): f is string => !!f),
+      note: reversal ? u.note : null,
     });
   }
 

@@ -17,7 +17,7 @@ export type PurchaseOrderLine = {
   lineNo: number;
   description: string;
   quantityText: string | null;
-  amount: number;
+  amount: number | null; // null = not priced yet (the approver fills it in)
   productId: string | null;
   productCode: string | null;
   productName: string | null;
@@ -31,6 +31,7 @@ export type PurchaseOrderSummary = {
   status: PurchaseOrderStatus;
   total: number;
   lineCount: number;
+  unpricedCount: number;
   createdById: string;
   createdByName: string;
   createdAt: string;
@@ -80,7 +81,7 @@ type PoRow = {
     line_no: number;
     description: string;
     quantity_text: string | null;
-    amount: number;
+    amount: number | null;
     product_id: string | null;
     products: { code: string; name: string } | null;
   }[];
@@ -93,7 +94,7 @@ function toLines(row: PoRow): PurchaseOrderLine[] {
       lineNo: l.line_no,
       description: l.description,
       quantityText: l.quantity_text,
-      amount: Number(l.amount),
+      amount: l.amount == null ? null : Number(l.amount),
       productId: l.product_id,
       productCode: l.products?.code ?? null,
       productName: l.products?.name ?? null,
@@ -108,8 +109,9 @@ function toSummary(row: PoRow): PurchaseOrderSummary {
     orderDate: row.order_date,
     supplierName: row.supplier_name,
     status: row.status,
-    total: lines.reduce((s, l) => s + l.amount, 0),
+    total: lines.reduce((s, l) => s + (l.amount ?? 0), 0),
     lineCount: lines.length,
+    unpricedCount: lines.filter((l) => l.amount == null).length,
     createdById: row.created_by,
     createdByName: row.creator?.full_name ?? "—",
     createdAt: row.created_at,
@@ -170,7 +172,7 @@ export async function getPurchaseOrder(id: string): Promise<PurchaseOrderDetail 
 export type PurchaseOrderLineInput = {
   description: string;
   quantityText: string;
-  amount: number;
+  amount: number | null; // null = leave for the approver to price
   productId: string | null;
 };
 
@@ -185,11 +187,11 @@ export async function savePurchaseOrder(input: {
   requireRole(profile, ["ADMIN", "STOREKEEPER"]);
 
   if (!input.orderDate) throw new Error("Choose the order date.");
-  const lines = input.lines.filter((l) => l.description.trim() !== "" || l.amount > 0);
+  const lines = input.lines.filter((l) => l.description.trim() !== "" || (l.amount ?? 0) > 0 || l.quantityText.trim() !== "");
   if (lines.length === 0) throw new Error("Add at least one item.");
   for (const [i, l] of lines.entries()) {
     if (!l.description.trim()) throw new Error(`Item ${i + 1} needs a description.`);
-    if (!Number.isFinite(l.amount) || l.amount < 0) throw new Error(`Item ${i + 1} needs an amount (zero or more).`);
+    if (l.amount != null && (!Number.isFinite(l.amount) || l.amount < 0)) throw new Error(`Item ${i + 1}'s price must be zero or more.`);
   }
 
   const admin = createAdminClient();
@@ -203,7 +205,7 @@ export async function savePurchaseOrder(input: {
     p_lines: lines.map((l) => ({
       description: l.description.trim(),
       quantity_text: l.quantityText.trim(),
-      amount: Math.round(l.amount * 100) / 100,
+      amount: l.amount == null ? "" : Math.round(l.amount * 100) / 100,
       product_id: l.productId ?? "",
     })),
   });
@@ -214,19 +216,15 @@ export async function savePurchaseOrder(input: {
   return { id: data as string };
 }
 
+// Refused while any line is unpriced (approve_purchase_order re-checks it
+// in the same transaction as the status change).
 export async function approvePurchaseOrder(id: string) {
   const profile = await getCurrentProfile();
   requireRole(profile, ["ADMIN"]);
   const admin = createAdminClient();
 
-  const { data, error } = await admin
-    .from("purchase_orders")
-    .update({ status: "APPROVED", approved_by: profile.id, approved_at: new Date().toISOString(), updated_at: new Date().toISOString() })
-    .eq("id", id)
-    .eq("status", "PENDING")
-    .select("id");
+  const { error } = await admin.rpc("approve_purchase_order", { p_id: id, p_user: profile.id });
   if (error) throw new Error(error.message);
-  if (!data || data.length === 0) throw new Error("Only a pending purchase order can be approved — it may already have been actioned.");
 
   revalidatePath("/purchase-orders");
   revalidatePath(`/purchase-orders/${id}`);
@@ -296,8 +294,7 @@ export type ReceivablePurchaseOrder = {
     description: string;
     quantityText: string | null;
     amount: number;
-    // null = not assigned to the central store, so it can't be received yet
-    currentQty: number | null;
+    currentQty: number;
   }[];
   unlinkedLines: { description: string; quantityText: string | null; amount: number }[];
 };
@@ -338,9 +335,11 @@ export async function getReceivablePurchaseOrder(id: string): Promise<Receivable
         name: l.productName ?? l.description,
         description: l.description,
         quantityText: l.quantityText,
-        amount: l.amount,
-        currentQty: balanceByProduct.get(l.productId!) ?? null,
+        amount: l.amount ?? 0, // an approved order is always fully priced
+        // Not yet stocked by the central store reads 0 — posting the purchase
+        // assigns it there (post_purchase_batch).
+        currentQty: balanceByProduct.get(l.productId!) ?? 0,
       })),
-    unlinkedLines: po.lines.filter((l) => !l.productId).map((l) => ({ description: l.description, quantityText: l.quantityText, amount: l.amount })),
+    unlinkedLines: po.lines.filter((l) => !l.productId).map((l) => ({ description: l.description, quantityText: l.quantityText, amount: l.amount ?? 0 })),
   };
 }

@@ -23,9 +23,11 @@ export type ReceiptParams = {
 
 export type ReceiptLine = {
   id: string;
-  code: string;
+  code: string | null; // null for an unstocked purchase item
   name: string;
-  quantity: number; // signed: reversals and stock removals are negative
+  quantity: number; // signed: reversals and stock removals are negative; 0 for unstocked items
+  quantityText: string | null; // free-text quantity of an unstocked purchase item ("20kg")
+  unstocked: boolean;
   unitPrice: number | null;
   amount: number | null; // signed like quantity
   flags: string[];
@@ -42,6 +44,9 @@ export type ReceiptData = {
   headline: string; // department / route / supplier shown large in the header
   details: { label: string; value: string; href?: string }[];
   valueLabel: string;
+  // Requisition receipts carry no prices or values at all (they're seen by
+  // department staff) — the loader nulls them and the views drop the columns.
+  showPrices: boolean;
   lines: ReceiptLine[];
   totals: { items: number; quantity: number; amount: number };
 };
@@ -70,9 +75,32 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
   if (kind === "REQUISITION") query = query.eq("to_department_id", department!);
   if (kind === "ADJUSTMENT") query = query.or(`from_department_id.eq.${department},to_department_id.eq.${department}`);
   if (kind === "PURCHASE" && po) query = query.eq("purchase_order_id", po);
-  const { data, error } = await query.order("created_at", { ascending: true });
+  const showPrices = kind !== "REQUISITION";
+  const [{ data: moved, error }, unstockedResult] = await Promise.all([
+    query.order("created_at", { ascending: true }),
+    kind === "PURCHASE"
+      ? (() => {
+          let u = admin.from("purchase_unstocked_lines").select("*").eq("business_day", day).eq("created_by", by);
+          if (po) u = u.eq("purchase_order_id", po);
+          return u.order("created_at", { ascending: true });
+        })()
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   if (error) throw new Error(error.message);
-  if (!data || data.length === 0) return null;
+  if (unstockedResult.error) throw new Error(unstockedResult.error.message);
+  const data = moved ?? [];
+  const unstockedRows = (unstockedResult.data ?? []) as {
+    id: string;
+    created_at: string;
+    created_by: string;
+    supplier_name: string | null;
+    invoice_reference: string | null;
+    purchase_order_id: string | null;
+    description: string;
+    quantity_text: string | null;
+    amount: number;
+  }[];
+  if (data.length === 0 && unstockedRows.length === 0) return null;
 
   const lines: ReceiptLine[] = data.map((m) => {
     const reversal = m.reversal_of_movement_id != null;
@@ -92,14 +120,41 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
       code: m.product_code!,
       name: m.product_name!,
       quantity: qty,
-      unitPrice: kind === "PURCHASE" ? (paid != null && m.quantity ? paid / m.quantity! : null) : unitCost,
-      amount: kind === "PURCHASE" ? (paid != null ? sign * paid : null) : qty * unitCost,
+      quantityText: null,
+      unstocked: false,
+      unitPrice: !showPrices ? null : kind === "PURCHASE" ? (paid != null && m.quantity ? paid / m.quantity! : null) : unitCost,
+      amount: !showPrices ? null : kind === "PURCHASE" ? (paid != null ? sign * paid : null) : qty * unitCost,
       flags,
       note: m.override_reason ?? (kind === "ADJUSTMENT" || reversal ? m.note : null),
     };
   });
+  for (const u of unstockedRows) {
+    lines.push({
+      id: u.id,
+      code: null,
+      name: u.description,
+      quantity: 0,
+      quantityText: u.quantity_text,
+      unstocked: true,
+      unitPrice: null,
+      amount: Number(u.amount),
+      flags: ["Not stocked"],
+      note: null,
+    });
+  }
 
-  const first = data[0];
+  // Header fields come from the first movement, or — for a purchase made
+  // only of unstocked items — from the first unstocked line.
+  const first = data[0] ?? {
+    id: unstockedRows[0].id,
+    created_at: unstockedRows[0].created_at,
+    created_by_name: null as string | null,
+    supplier_name: unstockedRows[0].supplier_name,
+    invoice_reference: unstockedRows[0].invoice_reference,
+    purchase_order_id: unstockedRows[0].purchase_order_id,
+    to_department_name: null as string | null,
+    from_department_name: null as string | null,
+  };
   const distinct = (xs: (string | null | undefined)[]) => [...new Set(xs.filter((x): x is string => !!x))];
   const details: ReceiptData["details"] = [];
   let headline = "";
@@ -114,13 +169,16 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
     const receivers = distinct(data.map((m) => m.received_by_name));
     if (receivers.length) details.push({ label: "Received by", value: receivers.join(", ") });
   } else if (kind === "PURCHASE") {
-    const suppliers = distinct(data.map((m) => m.supplier_name));
+    const suppliers = distinct([...data.map((m) => m.supplier_name), ...unstockedRows.map((u) => u.supplier_name)]);
     headline = suppliers.join(", ") || "Supplier not recorded";
     details.push({ label: "Supplier", value: headline });
-    details.push({ label: "Into", value: first.to_department_name ?? "Central store" });
-    const invoices = distinct(data.map((m) => m.invoice_reference));
+    details.push({
+      label: "Into",
+      value: data.length === 0 ? "Not stocked — receipt only" : unstockedRows.length > 0 ? `${first.to_department_name ?? "Central store"} + items not stocked` : first.to_department_name ?? "Central store",
+    });
+    const invoices = distinct([...data.map((m) => m.invoice_reference), ...unstockedRows.map((u) => u.invoice_reference)]);
     if (invoices.length) details.push({ label: "Invoice / delivery note", value: invoices.join(", ") });
-    const poIds = distinct(data.map((m) => m.purchase_order_id));
+    const poIds = distinct([...data.map((m) => m.purchase_order_id), ...unstockedRows.map((u) => u.purchase_order_id)]);
     if (poIds.length) {
       const { data: pos } = await admin.from("purchase_orders").select("id, po_number").in("id", poIds);
       for (const p of pos ?? []) details.push({ label: "Purchase order", value: `PO-${String(p.po_number).padStart(4, "0")}`, href: `/purchase-orders/${p.id}` });
@@ -129,7 +187,12 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
     headline = first.to_department_name ?? first.from_department_name ?? "—";
     details.push({ label: "Department", value: headline });
   }
-  details.push({ label: "Entered by", value: first.created_by_name ?? "—" });
+  let createdByName = first.created_by_name;
+  if (!createdByName) {
+    const { data: person } = await admin.from("profiles").select("full_name").eq("id", by).maybeSingle();
+    createdByName = person?.full_name ?? "—";
+  }
+  details.push({ label: "Entered by", value: createdByName });
 
   return {
     kind,
@@ -137,10 +200,11 @@ export async function getReceipt(params: ReceiptParams): Promise<ReceiptData | n
     reference: `${PREFIX[kind]}-${day.slice(2).replace(/-/g, "")}-${first.id!.slice(0, 4).toUpperCase()}`,
     businessDay: day,
     recordedAt: first.created_at!,
-    createdByName: first.created_by_name ?? "—",
+    createdByName,
     headline,
     details,
     valueLabel: kind === "PURCHASE" ? "Amount paid" : "Value at cost",
+    showPrices,
     lines,
     totals: {
       items: lines.length,

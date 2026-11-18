@@ -10,6 +10,7 @@ import { formatPoNumber, PO_STATUS_META } from "@/lib/purchase-orders/format";
 import { formatNaira } from "@/lib/format";
 import { formatDateTime, formatPoDate } from "@/lib/dates";
 import { PurchaseOrderActions } from "./PurchaseOrderActions";
+import { ReceiptLink } from "@/components/receipt/ReceiptDrawer";
 
 export default async function PurchaseOrderPage({ params }: { params: Promise<{ id: string }> }) {
   const profile = await getCurrentProfile();
@@ -64,6 +65,7 @@ export default async function PurchaseOrderPage({ params }: { params: Promise<{ 
                 </p>
                 <p className="mt-1 text-[12px] text-on-dark-2">
                   {po.lineCount} item{po.lineCount === 1 ? "" : "s"} · {linked} linked to stock
+                  {po.unpricedCount > 0 ? <span className="text-amber-soft"> · {po.unpricedCount} not priced yet</span> : null}
                 </p>
               </div>
               <Tag variant={meta.variant}>{meta.label}</Tag>
@@ -105,7 +107,9 @@ export default async function PurchaseOrderPage({ params }: { params: Promise<{ 
                         ) : null}
                       </td>
                       <td className="px-3 py-2.5 text-[12.5px] font-medium whitespace-nowrap">{l.quantityText ?? ""}</td>
-                      <td className="pl-3 pr-5 py-2.5 text-[12.5px] font-medium text-right tabular-nums whitespace-nowrap">{formatNaira(l.amount)}</td>
+                      <td className="pl-3 pr-5 py-2.5 text-[12.5px] font-medium text-right tabular-nums whitespace-nowrap">
+                        {l.amount == null ? <span className="text-amber font-normal">Not priced</span> : formatNaira(l.amount)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -129,6 +133,7 @@ export default async function PurchaseOrderPage({ params }: { params: Promise<{ 
             role={profile.role}
             canReceive={canReceive}
             linkedLines={linked}
+            unpricedCount={po.unpricedCount}
           />
 
           <section className="bg-white rounded-premium shadow-premium p-5 animate-rise [animation-delay:120ms]">
@@ -201,9 +206,9 @@ function TimelineItem({
       <p className="text-[12.5px] font-medium">{title}</p>
       <p className="text-[11.5px] text-n600 mt-0.5">{detail}</p>
       {link ? (
-        <Link href={link.href} className="text-[11.5px] text-brand font-medium mt-1 inline-block">
+        <ReceiptLink href={link.href} className="text-[11.5px] text-brand font-medium mt-1 inline-block">
           {link.label}
-        </Link>
+        </ReceiptLink>
       ) : null}
     </li>
   );

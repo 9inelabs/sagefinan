@@ -3,7 +3,7 @@ import { getCurrentProfile } from "@/lib/auth/profile";
 import { PageShell } from "@/components/app-shell/PageShell";
 import { ReceiptView } from "@/components/receipt/ReceiptView";
 import { getReceipt } from "@/lib/receipts/actions";
-import { parseReceiptParams, receiptQuery, RECEIPT_BACK } from "./params";
+import { parseReceiptParams, receiptQuery, RECEIPT_BACK } from "@/lib/receipts/params";
 
 export default async function ReceiptPage({ searchParams }: { searchParams: Promise<{ [k: string]: string | string[] | undefined }> }) {
   await getCurrentProfile();

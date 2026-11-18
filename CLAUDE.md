@@ -2173,3 +2173,47 @@ the mock's identical links, fixed anyway. Not verified signed in against
 real data — creating a throwaway live account is still blocked here.
 `tsc`, `eslint .`, `npm run build` clean.
 
+**Unstocked purchase items, PO pricing by the approver, receipt drawer
+(follow-up, no phase number).** Five asks; the settled model is in SPEC.md's
+"Unstocked purchase items, PO pricing, receipt drawer" subsection.
+Migrations `20261118120000_unstocked_purchases_po_pricing.sql` (new
+`purchase_unstocked_lines` table, read-only RLS for ADMIN/AUDITOR/
+STOREKEEPER; `post_purchase_batch` writes a line without `product_id` there
+instead of a movement; `purchase_order_lines.amount` nullable;
+`save_purchase_order` accepts blank prices; new `approve_purchase_order()`
+refusing unpriced lines) and `20261118120100_purchase_auto_assign_central.sql`
+(`post_purchase_batch` assigns a purchased product to the central store
+first, `on conflict do nothing`) — applied through the Management API and
+recorded in `schema_migrations` by hand, same as the previous follow-up.
+
+`/purchases` (`PurchaseBatchForm.tsx`, rewritten): lines are a
+`stock | unstocked` union; the search dropdown offers every product
+("New to the store" when the central store doesn't stock it yet) plus a
+"Record "…" as an item not tracked in stock" option. `PurchaseLineInput`
+in `lib/movements/actions.ts` is the same union. PO form gained an
+`approver` mode (edit page, ADMIN on a PENDING order: "Save & approve");
+the PO detail page shows "Not priced" lines and routes an admin to the edit
+screen when any remain. Receipts: `ReceiptData.showPrices` (false for
+requisitions — the loader nulls prices and both `ReceiptView` and the PDF
+drop the columns); purchase receipts merge `purchase_unstocked_lines` rows
+("Not stocked", free-text quantity). `components/receipt/ReceiptDrawer.tsx`
+(provider mounted in `AppShell`, portalled to `body` so the print rule can
+hide `<main>`) with `ReceiptLink`/`ReceiptRow` replaces plain links on
+every receipt list; `parseReceiptParams` moved to `lib/receipts/params.ts`
+so the drawer can share it. Reports overview/purchases count unstocked
+amounts in "amount paid". `select option` colour fixed globally in
+`app/globals.css`.
+
+Verified: a rolled-back `DO` block against the live database (a product not
+in the central store was auto-assigned and its central closing went 0→12;
+an unstocked-only batch wrote one unstocked row and no movement; approving
+an unpriced PO was refused, approved once priced; receiving it wrote its
+unlinked lines as unstocked rows and set RECEIVED; nothing persisted). A
+temporary preview route with a mocked action module (deleted afterward)
+rendered the real `PurchaseBatchForm` and `ReceiptDrawer` at 1440/390px:
+the unstocked-item panel, a purchase receipt with "Not stocked" lines, a
+requisition receipt with no ₦ anywhere, no overflow, no console errors,
+option text computed `rgb(15, 23, 18)`. Not verified signed in against real
+data (throwaway live accounts are still blocked here). `tsc`, `eslint .`,
+`npm run build` clean.
+

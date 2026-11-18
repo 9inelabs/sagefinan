@@ -26,7 +26,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       orderDate={formatPoDate(po.orderDate)}
       supplierName={po.supplierName}
       approvedLine={po.approvedAt ? `Approved by ${po.approvedByName ?? "—"} · ${formatDateTime(po.approvedAt)}` : null}
-      lines={po.lines.map((l) => ({ lineNo: l.lineNo, description: l.description, quantityText: l.quantityText, amount: l.amount }))}
+      lines={po.lines.map((l) => ({ lineNo: l.lineNo, description: l.description, quantityText: l.quantityText, amount: l.amount ?? 0 }))}
       total={po.total}
     />
   );

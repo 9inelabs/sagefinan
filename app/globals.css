@@ -316,3 +316,66 @@ html.nprogress-busy .loading-pill,
     background: #fff !important;
   }
 }
+
+/* In-place receipt drawer (components/receipt/ReceiptDrawer.tsx). */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.animate-slide-in-right {
+  animation: slide-in-right 380ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+.animate-fade-in {
+  animation: fade-in 220ms ease-out backwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-in-right,
+  .animate-fade-in {
+    animation: none;
+  }
+}
+/* Printing while the drawer is open prints just the receipt. */
+@media print {
+  html.receipt-drawer-open main,
+  html.receipt-drawer-open .receipt-drawer-backdrop,
+  html.receipt-drawer-open .receipt-drawer-bar {
+    display: none !important;
+  }
+  html.receipt-drawer-open .receipt-drawer-root,
+  html.receipt-drawer-open .receipt-drawer {
+    position: static !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    background: #fff !important;
+  }
+}
+
+/*
+  Native dropdown lists. Several selects sit on dark surfaces with light text
+  (Sales entry and Adjustments heroes, the dark "All statuses" pill); their
+  options inherited that light text, but on Windows/Chrome the open list is
+  always drawn white, so the options turned near-invisible. Every option is
+  dark-on-white regardless of the select's own styling.
+*/
+select option,
+select optgroup {
+  color: var(--ink);
+  background-color: #fff;
+}
+select option:disabled {
+  color: var(--n400);
+}

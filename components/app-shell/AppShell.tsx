@@ -6,6 +6,7 @@ import { Menu } from "lucide-react";
 import { MessagesButton } from "./MessagesButton";
 import { ShellContext } from "./shell-context";
 import { LoadingPill } from "@/components/ui/Spinner";
+import { ReceiptDrawerProvider } from "@/components/receipt/ReceiptDrawer";
 import { Sidebar } from "./Sidebar";
 import { navForRole } from "@/lib/nav";
 import type { CurrentProfile } from "@/lib/auth/profile";
@@ -147,7 +148,9 @@ export function AppShell({
             <MessagesButton dark />
           </div>
 
-          <main className="flex-1 min-h-0 overflow-y-auto bg-canvas rounded-t-panel min-[900px]:rounded-panel">{children}</main>
+          <main className="flex-1 min-h-0 overflow-y-auto bg-canvas rounded-t-panel min-[900px]:rounded-panel">
+            <ReceiptDrawerProvider>{children}</ReceiptDrawerProvider>
+          </main>
         </div>
       </div>
     </ShellContext.Provider>

@@ -17,8 +17,15 @@ export default async function EditPurchaseOrderPage({ params }: { params: Promis
   if (po.status !== "PENDING" && po.status !== "REJECTED") redirect(`/purchase-orders/${id}`);
 
   return (
-    <PageShell title={`Edit ${formatPoNumber(po.poNumber)}`} subtitle="Saving sends it back for approval">
-      <PurchaseOrderForm initial={po} today={todayIso()} />
+    <PageShell
+      title={`${profile.role === "ADMIN" && po.status === "PENDING" ? "Review" : "Edit"} ${formatPoNumber(po.poNumber)}`}
+      subtitle={
+        profile.role === "ADMIN" && po.status === "PENDING"
+          ? "Add missing prices or quantities and make any changes, then approve"
+          : "Saving sends it back for approval"
+      }
+    >
+      <PurchaseOrderForm initial={po} today={todayIso()} approver={profile.role === "ADMIN" && po.status === "PENDING"} />
     </PageShell>
   );
 }

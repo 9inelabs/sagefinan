@@ -1,13 +1,19 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import NextTopLoader from "nextjs-toploader";
 import { RegisterServiceWorker } from "@/components/RegisterServiceWorker";
 import "./globals.css";
 
-const inter = Inter({
+// Inter, self-hosted (app/fonts/, SIL Open Font License — see Inter-LICENSE.txt)
+// rather than next/font/google: fetching from Google Fonts at build time made
+// production builds depend on Google's response, and one variant of it broke
+// Turbopack's font loader outright. Same latin subset Google served before;
+// the variable file covers the 400/500 weights the app uses.
+const inter = localFont({
   variable: "--font-inter",
-  subsets: ["latin"],
-  weight: ["400", "500"],
+  src: "./fonts/InterVariable-latin.woff2",
+  weight: "100 900",
+  display: "swap",
 });
 
 export const metadata: Metadata = {

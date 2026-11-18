@@ -391,11 +391,16 @@ isn't something worth hand-rolling, see CLAUDE.md).
 |---|---|
 | Dashboard, Take stock, Compare stock, Sessions (phase 5), Reconcile, History | ADMIN, AUDITOR |
 | Stock ledger | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
-| Movements (phase 3) | ADMIN, AUDITOR, STOREKEEPER |
-| Purchases (phase 3), Requisitions | ADMIN, STOREKEEPER |
+| Purchases (phase 3), Purchase orders, Requisitions | ADMIN, STOREKEEPER |
 | Sales entry (phase 4) | ADMIN, STOREKEEPER, DEPARTMENT_USER |
-| Sales history (phase 4) | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
+| Adjustments | ADMIN |
+| Reports (houses Sales history, Requisition history, Movements and the new purchase/adjustment/PO reports — tabs filtered per role) | ADMIN, AUDITOR, STOREKEEPER, DEPARTMENT_USER |
 | Departments, Products, Users ("Administration" group, phase 2) | ADMIN |
+
+Sales history, Requisition history and Movements are no longer sidebar
+items: they keep their URLs and live under Reports (its tab bar,
+`components/reports/ReportsNav.tsx`, is rendered at the top of each), and
+the Reports nav item highlights for them via `NavItem.matches`.
 
 DEPARTMENT_USER has no access to Movements at all (follow-up, see
 CLAUDE.md) — nav item hidden, the page and detail route both show
@@ -961,6 +966,62 @@ simpler than the on-screen version (a solid dark header bar, not a
 gradient; react-pdf's gradient primitives were a reliability tradeoff not
 worth taking for a detail that isn't what "match the reference image"
 was actually asking for — that's the on-screen view's job).
+
+## Purchase amounts, purchase orders, stock adjustments, Reports (follow-up, no phase number)
+
+Decisions asked and answered before building:
+
+- **Purchase amount = total paid for the line; stock valuation unchanged.**
+  `movements.amount` (PURCHASE only) records what was paid; unit price on
+  receipts is amount ÷ quantity. Every stock value (ledger, dashboard,
+  variances, receipts for other types) still uses `products.unit_cost` —
+  recording a purchase never revalues stock or shifts past figures.
+- **Purchase orders: approval unlocks the PDF; stock arrives later.** The
+  storekeeper (or admin) raises a PO (`purchase_orders` +
+  `purchase_order_lines`, saved atomically by `save_purchase_order()`); an
+  ADMIN approves or rejects it with a reason; a rejected PO can be edited
+  and resubmitted (back to PENDING) or withdrawn (deleted — only PENDING/
+  REJECTED ever can be). An approved PO downloads as a PDF reproducing the
+  hotel's own paper template. When goods arrive, "Receive goods" opens
+  Purchases prefilled with the PO's stock-linked lines (quantity in bottles
+  entered then — PO quantities are free text like "2 crates"); posting
+  calls `post_purchase_batch(..., p_purchase_order_id)`, which refuses an
+  unapproved PO and marks it RECEIVED in the same transaction.
+  PO lines are free-text descriptions (much of what the hotel orders —
+  fresh food, diesel, knives — is never stock) with an optional link to a
+  product; only linked lines can be received into stock. Statuses:
+  PENDING → APPROVED/REJECTED → RECEIVED.
+- **Adjustments: admin only, both directions, a reason category plus a
+  required note.** A new movement type, `ADJUSTMENT`, one-sided: an
+  increase sets `to_department_id`, a decrease `from_department_id`
+  (`movement_department_shape` enforces exactly one). Because
+  `get_department_balance` already counts every to-side non-OPENING
+  movement as received and every from-side movement as issued, adjustments
+  flow into the ledger with no change to that function. Categories live in
+  `lib/movements/labels.ts` (Expired, Damaged, Breakage, Lost, Staff/house
+  use for removals; Found, Returned for additions; Correction, Other for
+  both). `post_stock_adjustment()` refuses a removal larger than the
+  department's closing balance for that business day. Adjustments reverse
+  like any movement (admin only) and respect business-day locking. Not to
+  be confused with the phase-5/6 `adjustments` *table*, which corrects a
+  physical count, never stock.
+- **One Reports section** (`/reports`): Overview (ADMIN/AUDITOR — totals per
+  transaction type for a date range plus the latest receipts), Sales,
+  Requisitions, Purchases, Purchase orders, Adjustments, All movements,
+  Audit reports. Every transaction group opens a receipt.
+
+**Receipts** (`/reports/receipt?kind=SALE|REQUISITION|PURCHASE|ADJUSTMENT
+&day=&by=[&department=][&po=]`, loaded by `lib/receipts/actions.ts`
+`getReceipt()`): one model for every type — a receipt is the group of
+movements one person posted on one business day (per department, except
+purchases). Dark-green header (hotel, type, reference, headline party,
+grand total, detail tiles), perforated tear line, itemised table with unit
+price/cost, value, flags and notes, totals block; printable (print CSS
+hides the app chrome) and downloadable as a matching A4 PDF
+(`/reports/receipt/pdf`, `lib/pdf/ReceiptDocument.tsx`). Purchases show
+amount paid; everything else shows value at cost. The old
+`/sales/history/receipt` and `/requisitions/history/receipt` URLs (and
+their `export-pdf`) redirect here.
 
 ## Phase 1 scope decisions (asked and answered before building)
 

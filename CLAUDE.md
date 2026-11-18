@@ -2099,3 +2099,77 @@ Builds no longer touch Google Fonts at all. Verified: `npm run build` clean,
 and under `next start` the page loads the local woff2 (200), the font
 registers as loaded (weights 100–900), and zero requests go to
 `fonts.googleapis.com`/`fonts.gstatic.com`.
+
+**Purchase amounts, purchase orders, adjustments, reports, receipts
+(new features, no phase number).** Five asks in one: an amount on every
+purchase line; purchase orders raised by the storekeeper and approved by
+an admin, downloadable as a PDF in the hotel's own layout (the owner
+supplied their existing PO PDF); one Reports section for every transaction
+with a detailed receipt for each; admin stock adjustments (e.g. expired
+stock) with reasons that hit the ledger; and redesigned, downloadable
+receipts. Four decisions were asked and answered first — all recorded in
+SPEC.md's new "Purchase amounts, purchase orders, stock adjustments,
+Reports" section (amount = line total paid, stock valuation unchanged;
+PO approval unlocks the PDF and goods are received later via Purchases;
+adjustments both ways; one Reports section replacing three sidebar items).
+
+Migrations `20261118090000_adjustment_enum.sql` (enum value alone — same
+reason as OPENING) and `20261118090100_purchase_orders_adjustments.sql`,
+applied to the live project through the Supabase Management API (this
+session had no direct Postgres access; the API's `database/query` endpoint
+runs the file, and the two versions were inserted into
+`supabase_migrations.schema_migrations` by hand so `db push` stays in step).
+Types regenerated from the API's `types/typescript` endpoint. Adds:
+`purchase_orders`/`purchase_order_lines` (read-only RLS for ADMIN/AUDITOR/
+STOREKEEPER, writes via the admin client), `save_purchase_order()`,
+`post_stock_adjustment()`, `movements.amount`/`purchase_order_id`/
+`adjustment_category`, an `ADJUSTMENT` branch in
+`movement_department_shape`, `post_purchase_batch` re-created with amount
+per line and an optional PO (old 5-arg overload dropped so calls can't be
+ambiguous), `post_movement_reversal` now copying amount/category/supplier/
+invoice onto the reversal (so a reversed purchase nets its amount out),
+and four columns appended to `movements_detail` (amount, purchase_order_id,
+adjustment_category, unit_cost).
+
+App code: `lib/movements/labels.ts` (one label map for every movement type
++ adjustment categories); `lib/purchase-orders/` (actions + `format.ts`,
+since a "use server" file may only export async functions);
+`lib/adjustments/actions.ts`; `lib/receipts/actions.ts` (the one receipt
+loader, role-scoped like each history screen); `lib/reports/actions.ts`
+(overview + purchase grouping, plain aggregation in app code). Screens:
+`/purchases` (rebuilt — amount per line, editable batch lines, `?po=`
+receive mode), `/purchase-orders` (+ `new`, `[id]`, `[id]/edit`,
+`[id]/pdf`), `/adjustments`, `/reports` (+ `purchases`, `adjustments`,
+`purchase-orders`, `receipt`, `receipt/pdf`). Sidebar: Purchase orders
+(with a pending-approval badge for admins, from `app/(app)/layout.tsx`),
+Adjustments, and a Reports group; Movements/Sales history/Requisition
+history moved under Reports (`NavItem.matches` keeps Reports highlighted
+on those URLs, and `isShadowedByChild` now considers `matches` so
+Requisitions doesn't also light up on `/requisitions/history`). The
+movements CSV export gained `amount_paid` and `adjustment_reason` columns.
+PDFs: `lib/pdf/PurchaseOrderDocument.tsx` (the owner's template — navy
+rule, orange hotel name, red headings, zebra rows, pink total — its own
+palette in `theme.ts`), `lib/pdf/ReceiptDocument.tsx` rewritten in dark
+green; `DejaVuSans-Bold.ttf` added (same DejaVu release/licence) for real
+bold; `public/logo-mark-white.png` is the logo inverted with sharp, since
+react-pdf has no CSS invert.
+
+Verified: (1) a single PL/pgSQL `DO` block against the live database that
+exercised everything and then raised an exception on purpose so the whole
+transaction rolled back (nothing persisted — confirmed 0 purchase orders
+afterwards): add 5 / remove 2 moved a real product's closing 0→5→3, an
+over-removal was refused with the expected message, reversing the removal
+restored 5, editing a PO replaced its lines, receiving an unapproved PO
+was refused, receiving an approved one marked it RECEIVED with the amount
+stored, and the purchase's reversal carried the same amount. (2) The
+purchase-order PDF rendered with the owner's 45 sample lines (via `tsx`
+from a throwaway script) matched their template, subtotal ₦1,630,400.00,
+headings repeating on page 2; the receipt PDF rendered likewise.
+(3) A temporary, uncommitted preview route rendering the real components
+with mocked data (`ReceiptView`, PO detail/list/form, Adjustments form +
+list, Purchases receive mode, Reports overview) at 1440px and 390px: no
+overflow, no console errors other than a duplicate-key warning caused by
+the mock's identical links, fixed anyway. Not verified signed in against
+real data — creating a throwaway live account is still blocked here.
+`tsc`, `eslint .`, `npm run build` clean.
+

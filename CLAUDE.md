@@ -2082,3 +2082,20 @@ spinner → results → pick → stepper → add → posting spinner → success
 the pill; a hovered row reads light green. `tsc`, `eslint .` and
 `npm run build` clean.
 
+
+**Production build failure: Google Fonts (fix, no phase number).** The
+production deploy of the Sales-entry/spinner merge failed on Vercel while
+the identical code had built fine as a preview minutes earlier. The build
+log (read via the Vercel API) showed Turbopack's `next/font/google` loader
+failing with "next/font/google queries have exactly one entry": Google
+Fonts had served its CSS with `fonts.gstatic.com/l/font?kit=…&skey=…` URLs,
+a variant the loader can't parse — so whether a build passed depended on
+Google's response at build time, not on the code. Fixed by self-hosting
+Inter: `app/fonts/InterVariable-latin.woff2` (the same latin subset Google
+served, from `@fontsource-variable/inter`, SIL OFL — `app/fonts/
+Inter-LICENSE.txt` alongside) loaded with `next/font/local` in
+`app/layout.tsx`, same `--font-inter` variable, so nothing else changed.
+Builds no longer touch Google Fonts at all. Verified: `npm run build` clean,
+and under `next start` the page loads the local woff2 (200), the font
+registers as loaded (weights 100–900), and zero requests go to
+`fonts.googleapis.com`/`fonts.gstatic.com`.

@@ -2239,3 +2239,15 @@ and blank reason all refused, nothing persisted. A temporary mocked preview
 dialog at 1440/390px with no overflow or console errors. `tsc`, `eslint .`
 and `npm run build` are clean.
 
+
+**Neutral quantity wording (follow-up, no phase number).** Not every
+product is counted in bottles (goat meat, rice, diesel…), so the word
+"bottles" is gone from every screen, receipt and PDF. Labels now read
+"Quantity" / "Qty", and a number with a noun reads "N units" — Sales entry,
+Purchases, Requisitions, Adjustments, Movements detail, the Reports
+overview/Purchases/Adjustments pages, `ReceiptView` and
+`lib/pdf/ReceiptDocument.tsx`, plus the matching validation messages in
+`lib/adjustments/actions.ts`. The `totalBottles` variables are renamed to
+`totalQty`. Wording only: no data, schema or calculation changed.
+`grep -ri bottle app components lib` comes back empty apart from the
+generated database types. `tsc`, `eslint .` and `npm run build` are clean.

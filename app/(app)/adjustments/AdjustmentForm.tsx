@@ -64,7 +64,7 @@ export function AdjustmentForm({ departments, initialBusinessDay }: { department
 
   async function submit() {
     if (!picked) return setError("Choose a product.");
-    if (!validQty) return setError("Enter how many bottles to " + (direction === "add" ? "add." : "remove."));
+    if (!validQty) return setError("Enter how many to " + (direction === "add" ? "add." : "remove."));
     if (tooMany) return setError(`Only ${picked.closingQty} in stock — you can't remove ${n}.`);
     if (!category) return setError("Choose a reason.");
     if (!note.trim()) return setError("Add a short note explaining the adjustment.");
@@ -218,7 +218,7 @@ export function AdjustmentForm({ departments, initialBusinessDay }: { department
 
               <div className="mt-5 flex flex-wrap items-end gap-5">
                 <div>
-                  <span className="block text-[11.5px] text-n600 mb-1.5">Bottles to {direction}</span>
+                  <span className="block text-[11.5px] text-n600 mb-1.5">Quantity to {direction}</span>
                   <div className="inline-flex items-center gap-2 rounded-full bg-n50 p-1.5">
                     <StepButton label="One fewer" onClick={() => step(-1)}>
                       <Minus size={16} strokeWidth={2} />
@@ -273,7 +273,7 @@ export function AdjustmentForm({ departments, initialBusinessDay }: { department
                 <Input
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  placeholder={direction === "remove" ? "e.g. 6 bottles past expiry date 10 Nov, binned" : "e.g. carton found behind shelf during count"}
+                  placeholder={direction === "remove" ? "e.g. 6 past expiry date 10 Nov, binned" : "e.g. carton found behind shelf during count"}
                 />
               </label>
             </div>

@@ -58,7 +58,7 @@ export function RequisitionBatchForm({
   const [lines, setLines] = useState<BatchLine[]>([]);
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
-  const [posted, setPosted] = useState<{ toDepartmentName: string; businessDay: string; lineCount: number; totalBottles: number } | null>(
+  const [posted, setPosted] = useState<{ toDepartmentName: string; businessDay: string; lineCount: number; totalQty: number } | null>(
     null
   );
 
@@ -97,7 +97,7 @@ export function RequisitionBatchForm({
 
     const n = Number(qty);
     if (!Number.isInteger(n) || n <= 0) {
-      setAddError("Enter a positive whole number of bottles.");
+      setAddError("Enter a positive whole number.");
       return;
     }
 
@@ -108,7 +108,7 @@ export function RequisitionBatchForm({
     if (over && !overrideReason.trim()) {
       setInsufficientStock(true);
       setAddError(
-        `Central store only holds ${available} bottles of this product as at ${businessDay} — ${alreadyInBatch + n} requested.`
+        `Central store only holds ${available} of this product as at ${businessDay} — ${alreadyInBatch + n} requested.`
       );
       return;
     }
@@ -161,7 +161,7 @@ export function RequisitionBatchForm({
         toDepartmentName: destinations.find((d) => d.id === toDepartmentId)?.name ?? "",
         businessDay,
         lineCount: lines.length,
-        totalBottles: lines.reduce((sum, l) => sum + l.quantity, 0),
+        totalQty: lines.reduce((sum, l) => sum + l.quantity, 0),
       });
       setLines([]);
     } catch (e) {
@@ -184,7 +184,7 @@ export function RequisitionBatchForm({
         <div className="p-6 text-sm leading-relaxed">
           <p className="mb-4">
             Recorded <b className="font-medium">{posted.lineCount}</b> line{posted.lineCount === 1 ? "" : "s"} totalling{" "}
-            <b className="font-medium tabular-nums">{posted.totalBottles}</b> bottles moved to{" "}
+            <b className="font-medium tabular-nums">{posted.totalQty}</b> units moved to{" "}
             <b className="font-medium">{posted.toDepartmentName}</b> for business day{" "}
             <b className="font-medium tabular-nums">{posted.businessDay}</b>.
           </p>
@@ -196,7 +196,7 @@ export function RequisitionBatchForm({
     );
   }
 
-  const totalBottles = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const totalQty = lines.reduce((sum, l) => sum + l.quantity, 0);
   const overrideCount = lines.filter((l) => l.isOverride).length;
   const destinationStocksProducts = destinations.find((d) => d.id === toDepartmentId)?.stocksProducts ?? true;
 
@@ -295,11 +295,11 @@ export function RequisitionBatchForm({
             {picked && picked.assignedToDestination ? (
               <>
                 <div className="text-xs text-n600 mb-3">
-                  Central store holds <b className="text-ink font-medium tabular-nums">{picked.availableQty ?? 0}</b> bottles of this
+                  Central store holds <b className="text-ink font-medium tabular-nums">{picked.availableQty ?? 0}</b> of this
                   product as at {businessDay}.
                 </div>
                 <div className="flex flex-wrap items-end gap-3">
-                  <Field label="Bottles">
+                  <Field label="Quantity">
                     <Input
                       type="number"
                       inputMode="numeric"
@@ -343,7 +343,7 @@ export function RequisitionBatchForm({
 
       <Card
         title="Batch"
-        extra={`${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalBottles} bottles${
+        extra={`${lines.length} line${lines.length === 1 ? "" : "s"} · ${totalQty} units${
           overrideCount > 0 ? ` · ${overrideCount} overridden` : ""
         }`}
       >

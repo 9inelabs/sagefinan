@@ -101,13 +101,13 @@ export function ReceiptView({
               <p className="text-[12px] text-on-dark-2 mt-1">Business day {formatWeekdayDate(receipt.businessDay)}</p>
             </div>
             <div className="text-right">
-              <p className="text-[11.5px] text-on-dark-mut">{prices ? receipt.valueLabel : "Bottles"}</p>
+              <p className="text-[11.5px] text-on-dark-mut">{prices ? receipt.valueLabel : "Quantity"}</p>
               <p className="text-[28px] min-[700px]:text-[34px] font-normal tracking-[-0.035em] tabular-nums leading-none mt-1">
                 {prices ? money(receipt.totals.amount) : signedQty(receipt.totals.quantity)}
               </p>
               <p className="text-[11.5px] text-on-dark-2 mt-1.5 tabular-nums">
                 {receipt.totals.items} item{receipt.totals.items === 1 ? "" : "s"}
-                {prices && stockedCount > 0 ? ` · ${signedQty(receipt.totals.quantity)} bottles` : ""}
+                {prices && stockedCount > 0 ? ` · ${signedQty(receipt.totals.quantity)} units` : ""}
                 {unstockedCount > 0 ? ` · ${unstockedCount} not stocked` : ""}
               </p>
             </div>
@@ -194,7 +194,7 @@ export function ReceiptView({
               <dd className="tabular-nums">{receipt.totals.items}</dd>
             </div>
             <div className="flex justify-between py-1">
-              <dt className="text-n600">{isPurchase ? "Bottles into stock" : "Total quantity"}</dt>
+              <dt className="text-n600">{isPurchase ? "Quantity into stock" : "Total quantity"}</dt>
               <dd className="tabular-nums">{signedQty(receipt.totals.quantity)}</dd>
             </div>
             {prices ? (

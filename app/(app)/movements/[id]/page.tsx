@@ -53,7 +53,7 @@ export default async function MovementDetailPage({ params }: { params: Promise<{
             </Row>
             <Row label="Recorded at">{new Date(movement.createdAt).toLocaleString("en-GB")}</Row>
             <Row label="Quantity">
-              <span className="tabular-nums font-medium">{movement.quantity} bottles</span>
+              <span className="tabular-nums font-medium">{movement.quantity} units</span>
             </Row>
             <Row label="From">{movement.fromDepartmentName ?? "—"}</Row>
             <Row label="To">{movement.toDepartmentName ?? "—"}</Row>

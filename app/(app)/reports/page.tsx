@@ -41,7 +41,7 @@ export default async function ReportsOverviewPage({ searchParams }: { searchPara
       label: "Sales",
       icon: Receipt,
       href: `/sales/history?${q}`,
-      value: `${o.sales.quantity} bottles`,
+      value: `${o.sales.quantity} units`,
       lines: [`${formatNaira(o.sales.value)} at cost`, `${o.sales.transactions} lines`],
       hero: true,
     },
@@ -50,27 +50,27 @@ export default async function ReportsOverviewPage({ searchParams }: { searchPara
       icon: ShoppingBag,
       href: `/reports/purchases?${q}`,
       value: signed(o.purchases.amountPaid),
-      lines: [`${o.purchases.quantity} bottles into stock`, `${o.purchases.unstockedItems} item${o.purchases.unstockedItems === 1 ? "" : "s"} not stocked`],
+      lines: [`${o.purchases.quantity} units into stock`, `${o.purchases.unstockedItems} item${o.purchases.unstockedItems === 1 ? "" : "s"} not stocked`],
     },
     {
       label: "Requisitions",
       icon: ArrowLeftRight,
       href: `/requisitions/history?${q}`,
-      value: `${o.requisitions.quantity} bottles`,
+      value: `${o.requisitions.quantity} units`,
       lines: [`${o.requisitions.transactions} lines`],
     },
     {
       label: "Stock removed",
       icon: PackageMinus,
       href: `/reports/adjustments?${q}`,
-      value: `${o.adjustmentsRemoved.quantity} bottles`,
+      value: `${o.adjustmentsRemoved.quantity} units`,
       lines: [`${formatNaira(o.adjustmentsRemoved.value)} at cost`, `${o.adjustmentsRemoved.transactions} adjustments`],
     },
     {
       label: "Stock added",
       icon: PackagePlus,
       href: `/reports/adjustments?${q}`,
-      value: `${o.adjustmentsAdded.quantity} bottles`,
+      value: `${o.adjustmentsAdded.quantity} units`,
       lines: [`${formatNaira(o.adjustmentsAdded.value)} at cost`, `${o.adjustmentsAdded.transactions} adjustments`],
     },
     {
@@ -84,7 +84,7 @@ export default async function ReportsOverviewPage({ searchParams }: { searchPara
       label: "Opening balances",
       icon: TrendingUp,
       href: `/movements?type=OPENING&${q}`,
-      value: `${o.openings.quantity} bottles`,
+      value: `${o.openings.quantity} units`,
       lines: [`${formatNaira(o.openings.value)} at cost`, `${o.openings.transactions} entries`],
     },
   ];
@@ -144,11 +144,11 @@ export default async function ReportsOverviewPage({ searchParams }: { searchPara
                     </span>
                     <span className="text-right tabular-nums">
                       {r.kind === "REQUISITION" ? (
-                        <b className="block text-[12.5px] font-medium">{r.quantity} bottles</b>
+                        <b className="block text-[12.5px] font-medium">{r.quantity} units</b>
                       ) : (
                         <>
                           <b className="block text-[12.5px] font-medium">{signed(r.value)}</b>
-                          <span className="block text-[11px] text-n600">{r.quantity} bottles</span>
+                          <span className="block text-[11px] text-n600">{r.quantity} units</span>
                         </>
                       )}
                     </span>

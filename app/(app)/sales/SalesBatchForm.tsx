@@ -61,7 +61,7 @@ export function SalesBatchForm({
 
   const [posting, setPosting] = useState(false);
   const [postError, setPostError] = useState<string | null>(null);
-  const [posted, setPosted] = useState<{ departmentName: string; businessDay: string; lineCount: number; totalBottles: number } | null>(
+  const [posted, setPosted] = useState<{ departmentName: string; businessDay: string; lineCount: number; totalQty: number } | null>(
     null
   );
 
@@ -157,7 +157,7 @@ export function SalesBatchForm({
 
     const n = Number(qty);
     if (qty.trim() === "" || !Number.isInteger(n) || n < 0) {
-      setAddError("Enter zero or a positive whole number of bottles.");
+      setAddError("Enter zero or a positive whole number.");
       return;
     }
 
@@ -222,7 +222,7 @@ export function SalesBatchForm({
         departmentName,
         businessDay,
         lineCount: lines.length,
-        totalBottles: lines.reduce((sum, l) => sum + l.quantity, 0),
+        totalQty: lines.reduce((sum, l) => sum + l.quantity, 0),
       });
       setLines([]);
     } catch (e) {
@@ -251,7 +251,7 @@ export function SalesBatchForm({
         </p>
         <div className="mt-6 inline-grid grid-cols-2 divide-x divide-white/10 rounded-[16px] bg-white/[0.06] ring-1 ring-inset ring-white/10 animate-rise [animation-delay:240ms]">
           <HeroStat label="Lines" value={posted.lineCount} />
-          <HeroStat label="Bottles sold" value={posted.totalBottles} />
+          <HeroStat label="Quantity sold" value={posted.totalQty} />
         </div>
         <div className="mt-7 animate-rise [animation-delay:300ms]">
           <button
@@ -269,7 +269,7 @@ export function SalesBatchForm({
 
   const touchedIds = new Set(lines.map((l) => l.productId));
   const untouched = contextProducts.filter((p) => !touchedIds.has(p.id));
-  const totalBottles = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const totalQty = lines.reduce((sum, l) => sum + l.quantity, 0);
   const pickedInBatch = picked ? lines.some((l) => l.productId === picked.id) : false;
   const canEnterQty = !!picked && picked.assignedToDepartment && !pickedInBatch && (!picked.existingSale || correctionMode);
   const available = picked ? picked.openingQty + picked.receivedQty : 0;
@@ -344,7 +344,7 @@ export function SalesBatchForm({
           <div className="mt-5 grid grid-cols-3 divide-x divide-white/10 rounded-[16px] bg-white/[0.04] ring-1 ring-inset ring-white/[0.08]">
             <HeroStat label="Products" value={departmentId ? (draftLoaded ? contextProducts.length : null) : "—"} />
             <HeroStat label="In batch" value={lines.length} />
-            <HeroStat label="Bottles" value={totalBottles} />
+            <HeroStat label="Quantity" value={totalQty} />
           </div>
         </section>
 
@@ -353,7 +353,7 @@ export function SalesBatchForm({
           <div className="flex items-end justify-between gap-3 mb-4">
             <div>
               <h2 className="text-[15px] font-medium tracking-[-0.01em]">Add a sale</h2>
-              <p className="text-[11.5px] text-n600 mt-0.5">Find a product, enter bottles sold, add it to the batch.</p>
+              <p className="text-[11.5px] text-n600 mt-0.5">Find a product, enter the quantity sold, add it to the batch.</p>
             </div>
           </div>
 
@@ -432,7 +432,7 @@ export function SalesBatchForm({
                   {picked.assignedToDepartment && !pickedInBatch && picked.existingSale && !correctionMode ? (
                     <div className="mt-4 rounded-[12px] bg-amber-soft p-4 animate-rise">
                       <p className="text-[12.5px] text-amber">
-                        <b className="font-medium tabular-nums">{picked.existingSale.quantity}</b> bottles are already posted for this product
+                        <b className="font-medium tabular-nums">{picked.existingSale.quantity}</b> already posted for this product
                         on {formatWeekdayDate(businessDay)}.
                       </p>
                       <div className="flex gap-2 mt-3">
@@ -468,7 +468,7 @@ export function SalesBatchForm({
 
                       <div className="mt-5 flex flex-col min-[600px]:flex-row min-[600px]:items-end gap-4">
                         <div>
-                          <span className="block text-[11.5px] text-n600 mb-1.5">Bottles sold</span>
+                          <span className="block text-[11.5px] text-n600 mb-1.5">Quantity sold</span>
                           <div className="inline-flex items-center gap-2 rounded-full bg-n50 p-1.5">
                             <StepButton label="One fewer" onClick={() => stepQty(-1)}>
                               <Minus size={16} strokeWidth={2} />
@@ -479,7 +479,7 @@ export function SalesBatchForm({
                               min={0}
                               value={qty}
                               placeholder="0"
-                              aria-label="Bottles sold"
+                              aria-label="Quantity sold"
                               onChange={(e) => {
                                 setQty(e.target.value);
                                 setAddError(null);
@@ -621,8 +621,8 @@ export function SalesBatchForm({
           ) : null}
 
           <div className="flex items-end justify-between mb-4">
-            <span className="text-[11.5px] text-on-dark-mut">Total bottles sold</span>
-            <span className="text-[28px] font-medium tracking-[-0.03em] tabular-nums leading-none">{totalBottles}</span>
+            <span className="text-[11.5px] text-on-dark-mut">Total quantity sold</span>
+            <span className="text-[28px] font-medium tracking-[-0.03em] tabular-nums leading-none">{totalQty}</span>
           </div>
 
           {postError ? <p className="text-[12px] text-red-on-dark mb-3 animate-pop">{postError}</p> : null}

@@ -81,7 +81,7 @@ export async function postStockAdjustment(input: {
 
   if (!input.departmentId) throw new Error("Choose a department.");
   if (!input.businessDay) throw new Error("Choose the business day.");
-  if (!Number.isInteger(input.quantity) || input.quantity <= 0) throw new Error("Enter a whole number of bottles greater than zero.");
+  if (!Number.isInteger(input.quantity) || input.quantity <= 0) throw new Error("Enter a whole number greater than zero.");
   const category = ADJUSTMENT_CATEGORIES.find((c) => c.value === input.category);
   if (!category) throw new Error("Choose a reason for this adjustment.");
   if (category.direction !== "both" && category.direction !== input.direction) {

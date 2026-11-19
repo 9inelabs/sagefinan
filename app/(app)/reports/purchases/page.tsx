@@ -47,7 +47,7 @@ export default async function PurchasesReportPage({ searchParams }: { searchPara
 
       <div className="grid grid-cols-2 min-[900px]:grid-cols-3 gap-3 mb-3">
         <Stat variant="hero" label="Amount paid" value={formatNaira(totalPaid)} footer={`${groups.length} receipt${groups.length === 1 ? "" : "s"}`} />
-        <Stat label="Bottles into stock" value={String(totalQty)} footer={`${groups.reduce((s, g) => s + g.unstockedItems, 0)} items bought but not stocked`} />
+        <Stat label="Quantity into stock" value={String(totalQty)} footer={`${groups.reduce((s, g) => s + g.unstockedItems, 0)} items bought but not stocked`} />
         <Stat label="Average per receipt" value={groups.length ? formatNaira(totalPaid / groups.length) : formatNaira(0)} />
       </div>
 
@@ -64,7 +64,7 @@ export default async function PurchasesReportPage({ searchParams }: { searchPara
                     <th className={TH}>Supplier</th>
                     <th className={TH}>Invoice</th>
                     <th className={`${TH} text-right`}>Items</th>
-                    <th className={`${TH} text-right`}>Bottles into stock</th>
+                    <th className={`${TH} text-right`}>Qty into stock</th>
                     <th className={`${TH} text-right`}>Not stocked</th>
                     <th className={`${TH} text-right`}>Amount paid</th>
                     <th className={TH}>Entered by</th>
@@ -113,7 +113,7 @@ export default async function PurchasesReportPage({ searchParams }: { searchPara
                     <b className="font-medium text-[12.5px] tabular-nums">{formatNaira(g.amountPaid)}</b>
                   </div>
                   <p className="text-[11px] text-n600 mt-0.5">
-                    {g.businessDay} · {g.items} item{g.items === 1 ? "" : "s"} · {g.quantity} bottles
+                    {g.businessDay} · {g.items} item{g.items === 1 ? "" : "s"} · {g.quantity} units
                     {g.unstockedItems ? ` · ${g.unstockedItems} not stocked` : ""}
                   </p>
                 </ReceiptLink>

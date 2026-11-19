@@ -100,11 +100,11 @@ export function ReceiptDocument({ receipt }: { receipt: ReceiptData }) {
               <Text style={styles.sub}>Business day {day(receipt.businessDay)}</Text>
             </View>
             <View>
-              <Text style={[styles.label, { textAlign: "right" }]}>{prices ? receipt.valueLabel : "Bottles"}</Text>
+              <Text style={[styles.label, { textAlign: "right" }]}>{prices ? receipt.valueLabel : "Quantity"}</Text>
               <Text style={styles.total}>{prices ? money(receipt.totals.amount) : qty(receipt.totals.quantity)}</Text>
               <Text style={[styles.sub, { textAlign: "right" }]}>
                 {receipt.totals.items} item{receipt.totals.items === 1 ? "" : "s"}
-                {prices ? ` · ${qty(receipt.totals.quantity)} bottles` : ""}
+                {prices ? ` · ${qty(receipt.totals.quantity)} units` : ""}
                 {unstockedCount > 0 ? ` · ${unstockedCount} not stocked` : ""}
               </Text>
             </View>
@@ -150,7 +150,7 @@ export function ReceiptDocument({ receipt }: { receipt: ReceiptData }) {
                 <Text>{receipt.totals.items}</Text>
               </View>
               <View style={styles.totalsRow}>
-                <Text style={{ color: C.n600 }}>{isPurchase ? "Bottles into stock" : "Total quantity"}</Text>
+                <Text style={{ color: C.n600 }}>{isPurchase ? "Quantity into stock" : "Total quantity"}</Text>
                 <Text>{qty(receipt.totals.quantity)}</Text>
               </View>
               {prices ? (

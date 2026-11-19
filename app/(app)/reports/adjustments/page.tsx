@@ -58,8 +58,8 @@ export default async function AdjustmentsReportPage({
           value={`${rows.reduce((s, r) => s + r.value, 0) < 0 ? "−" : ""}${formatNaira(rows.reduce((s, r) => s + r.value, 0))}`}
           footer={`${rows.length} adjustment${rows.length === 1 ? "" : "s"}`}
         />
-        <Stat label="Bottles removed" value={String(-removed.reduce((s, r) => s + r.delta, 0))} colorClassName="text-red" footer={formatNaira(removed.reduce((s, r) => s + r.value, 0))} />
-        <Stat label="Bottles added" value={String(added.reduce((s, r) => s + r.delta, 0))} colorClassName="text-green" footer={formatNaira(added.reduce((s, r) => s + r.value, 0))} />
+        <Stat label="Units removed" value={String(-removed.reduce((s, r) => s + r.delta, 0))} colorClassName="text-red" footer={formatNaira(removed.reduce((s, r) => s + r.value, 0))} />
+        <Stat label="Units added" value={String(added.reduce((s, r) => s + r.delta, 0))} colorClassName="text-green" footer={formatNaira(added.reduce((s, r) => s + r.value, 0))} />
         <Stat label="Departments affected" value={String(new Set(rows.map((r) => r.departmentId)).size)} />
       </div>
       <AdjustmentList rows={rows} title="Adjustments" extra={`${rows.length} in this period`} />

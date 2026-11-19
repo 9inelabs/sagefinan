@@ -27,7 +27,7 @@ import { formatNaira } from "@/lib/format";
 import { formatWeekdayDate } from "@/lib/dates";
 
 // Two kinds of line (CLAUDE.md: "Unstocked purchase items…"):
-// - stock: a product the central store stocks → whole-bottle quantity, goes
+// - stock: a product the central store stocks → whole-number quantity, goes
 //   into the central store ledger;
 // - unstocked: anything else bought (goat meat, diesel…) → free-text
 //   quantity ("20kg") and amount, recorded on the purchase receipt only —
@@ -128,7 +128,7 @@ export function PurchaseBatchForm({
     businessDay: string;
     stockLines: number;
     unstockedLines: number;
-    totalBottles: number;
+    totalQty: number;
     totalAmount: number;
   } | null>(null);
 
@@ -181,7 +181,7 @@ export function PurchaseBatchForm({
     } else if (picked) {
       const n = Number(qty);
       if (!Number.isInteger(n) || n <= 0) {
-        setAddError("Enter a positive whole number of bottles.");
+        setAddError("Enter a positive whole number.");
         return;
       }
       setLines((prev) => {
@@ -241,7 +241,7 @@ export function PurchaseBatchForm({
       if (l.kind === "stock") {
         const q = Number(l.quantity);
         if (!Number.isInteger(q) || q <= 0)
-          return `${l.name}: enter the bottles received`;
+          return `${l.name}: enter the quantity received`;
       } else if (!l.description.trim()) {
         return "An item is missing its description";
       }
@@ -255,7 +255,7 @@ export function PurchaseBatchForm({
   const unstockedLines = lines.filter(
     (l): l is UnstockedLine => l.kind === "unstocked",
   );
-  const totalBottles = stockLines.reduce(
+  const totalQty = stockLines.reduce(
     (sum, l) =>
       sum + (Number.isInteger(Number(l.quantity)) ? Number(l.quantity) : 0),
     0,
@@ -297,7 +297,7 @@ export function PurchaseBatchForm({
         businessDay,
         stockLines: stockLines.length,
         unstockedLines: unstockedLines.length,
-        totalBottles,
+        totalQty,
         totalAmount,
       });
       setLines([]);
@@ -337,7 +337,7 @@ export function PurchaseBatchForm({
         <div className="mt-6 inline-grid grid-cols-3 divide-x divide-white/10 rounded-[16px] bg-white/[0.06] ring-1 ring-inset ring-white/10 text-left">
           <HeroStat
             label="Into stock"
-            value={`${posted.totalBottles} bottles`}
+            value={`${posted.totalQty} units`}
           />
           <HeroStat
             label="Not stocked"
@@ -393,7 +393,7 @@ export function PurchaseBatchForm({
               </p>
             </div>
             <p className="text-[12px] text-on-dark-2 max-w-[440px]">
-              The order&apos;s items are in the batch. Enter the bottles
+              The order&apos;s items are in the batch. Enter the quantity
               actually received for stock items and check every amount. Posting
               marks the order received.
             </p>
@@ -526,7 +526,7 @@ export function PurchaseBatchForm({
                 }}
               />
               <div className="mt-3 grid grid-cols-1 min-[600px]:grid-cols-[140px_200px_auto] gap-3 items-end">
-                <LabeledField label="Bottles received">
+                <LabeledField label="Quantity received">
                   <Input
                     type="number"
                     inputMode="numeric"
@@ -553,7 +553,7 @@ export function PurchaseBatchForm({
               Number(qty) > 0 &&
               Number.isFinite(parseAmount(amount)) ? (
                 <p className="text-[11.5px] text-n600 -mt-1">
-                  ≈ {formatNaira(parseAmount(amount) / Number(qty))} per bottle
+                  ≈ {formatNaira(parseAmount(amount) / Number(qty))} per unit
                 </p>
               ) : null}
             </div>
@@ -691,7 +691,7 @@ export function PurchaseBatchForm({
                 <div className="mt-2 grid grid-cols-[96px_1fr] gap-2">
                   {l.kind === "stock" ? (
                     <DarkInput
-                      label="Bottles"
+                      label="Qty"
                       inputMode="numeric"
                       value={l.quantity}
                       onChange={(v) => updateLine(l.key, { quantity: v })}
@@ -723,7 +723,7 @@ export function PurchaseBatchForm({
               Into the central store
             </span>
             <span className="text-[13px] tabular-nums">
-              {totalBottles} bottles
+              {totalQty} units
             </span>
           </div>
           <div className="flex items-end justify-between mb-1">

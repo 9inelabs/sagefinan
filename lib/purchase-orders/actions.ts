@@ -45,6 +45,9 @@ export type PurchaseOrderDetail = PurchaseOrderSummary & {
   rejectedAt: string | null;
   rejectionReason: string | null;
   receivedAt: string | null;
+  // Set when an admin edited the order while it was approved (it stayed approved).
+  amendedByName: string | null;
+  amendedAt: string | null;
   lines: PurchaseOrderLine[];
   // Where the goods-received purchase lives, once received.
   receipt: { businessDay: string; createdBy: string } | null;
@@ -54,10 +57,11 @@ const READ_ROLES = ["ADMIN", "AUDITOR", "STOREKEEPER"] as const;
 
 const PO_SELECT = `
   id, po_number, order_date, supplier_name, notes, status, created_at, created_by,
-  approved_at, rejected_at, rejection_reason, received_at,
+  approved_at, rejected_at, rejection_reason, received_at, amended_at,
   creator:profiles!purchase_orders_created_by_fkey(full_name),
   approver:profiles!purchase_orders_approved_by_fkey(full_name),
   rejecter:profiles!purchase_orders_rejected_by_fkey(full_name),
+  amender:profiles!purchase_orders_amended_by_fkey(full_name),
   purchase_order_lines(line_no, description, quantity_text, amount, product_id, products(code, name))
 `;
 
@@ -74,9 +78,11 @@ type PoRow = {
   rejected_at: string | null;
   rejection_reason: string | null;
   received_at: string | null;
+  amended_at: string | null;
   creator: { full_name: string } | null;
   approver: { full_name: string } | null;
   rejecter: { full_name: string } | null;
+  amender: { full_name: string } | null;
   purchase_order_lines: {
     line_no: number;
     description: string;
@@ -164,6 +170,8 @@ export async function getPurchaseOrder(id: string): Promise<PurchaseOrderDetail 
     rejectedAt: row.rejected_at,
     rejectionReason: row.rejection_reason,
     receivedAt: row.received_at,
+    amendedByName: row.amender?.full_name ?? null,
+    amendedAt: row.amended_at,
     lines: toLines(row),
     receipt,
   };

@@ -22,7 +22,9 @@ export default async function PurchaseOrderPage({ params }: { params: Promise<{ 
 
   const meta = PO_STATUS_META[po.status];
   const canDownload = po.status === "APPROVED" || po.status === "RECEIVED";
-  const canEdit = (po.status === "PENDING" || po.status === "REJECTED") && profile.role !== "AUDITOR";
+  // Everything but a received order can be edited (an approved one too — see
+  // save_purchase_order for how approval is kept or reset).
+  const canEdit = po.status !== "RECEIVED" && profile.role !== "AUDITOR";
   const canReceive = po.status === "APPROVED" && (profile.role === "ADMIN" || profile.role === "STOREKEEPER");
   const linked = po.lines.filter((l) => l.productId).length;
 
@@ -153,6 +155,14 @@ export default async function PurchaseOrderPage({ params }: { params: Promise<{ 
               ) : null}
               {po.approvedAt ? (
                 <TimelineItem icon={<CheckCircle2 size={13} strokeWidth={2} />} title="Approved" detail={`${po.approvedByName ?? "—"} · ${formatDateTime(po.approvedAt)}`} />
+              ) : null}
+              {po.amendedAt && po.status !== "PENDING" && po.status !== "REJECTED" ? (
+                <TimelineItem
+                  icon={<Pencil size={13} strokeWidth={2} />}
+                  title="Edited after approval"
+                  detail={`${po.amendedByName ?? "—"} · ${formatDateTime(po.amendedAt)}`}
+                  tone="amber"
+                />
               ) : null}
               {po.receivedAt ? (
                 <TimelineItem

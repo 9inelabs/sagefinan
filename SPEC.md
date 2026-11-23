@@ -1023,6 +1023,17 @@ amount paid; everything else shows value at cost. The old
 `/sales/history/receipt` and `/requisitions/history/receipt` URLs (and
 their `export-pdf`) redirect here.
 
+### Editing approved purchase orders (follow-up)
+
+An approved order can still be edited (items added, quantities or prices
+changed) until its goods are received. An ADMIN's edit keeps it APPROVED
+(every line must stay priced) and is stamped `amended_by`/`amended_at`,
+shown as "Edited after approval" on its timeline. A STOREKEEPER's edit
+sends it back to PENDING for an admin to approve again. A RECEIVED order is
+locked: its goods are already recorded as a purchase. The PDF and "Receive
+goods" always use the current version. `save_purchase_order()` enforces all
+of this.
+
 ### Unstocked purchase items, PO pricing, receipt drawer (follow-up)
 
 - **Purchases can include items that aren't stock.** Typing in the

@@ -2251,3 +2251,36 @@ overview/Purchases/Adjustments pages, `ReceiptView` and
 `totalQty`. Wording only: no data, schema or calculation changed.
 `grep -ri bottle app components lib` comes back empty apart from the
 generated database types. `tsc`, `eslint .` and `npm run build` are clean.
+
+**Edit approved purchase orders (follow-up, no phase number).** Approved POs
+were locked; they can now be edited until received (SPEC.md, "Editing
+approved purchase orders"). Migration
+`20261123090000_edit_approved_purchase_orders.sql` (applied through the
+Management API and recorded by hand, like the previous ones) adds
+`purchase_orders.amended_by`/`amended_at` and redefines
+`save_purchase_order()`:
+- An ADMIN editing an APPROVED order keeps it approved, stamps the
+  amendment, and raises (rolling back the whole save) if any line is left
+  unpriced.
+- Any other editor of an APPROVED order resets it to PENDING and clears the
+  approval.
+- RECEIVED is refused.
+
+App side: the PO detail page's `canEdit` is now "not RECEIVED and not
+AUDITOR"; the APPROVED actions panel gained "Edit order"; the timeline shows
+"Edited after approval". The edit page passes a new `keepsApproval` prop to
+`PurchaseOrderForm` (button reads "Save changes", prices required). A
+storekeeper editing an approved order sees that saving sends it back for
+approval.
+
+Verified with a rolled-back `DO` block on the live database:
+- An admin adding a line to an approved order kept it APPROVED, the
+  amendment was stamped, and the total updated.
+- An admin save with a blank price was refused, with the lines left
+  untouched.
+- A storekeeper's edit reset the order to PENDING with the approval cleared.
+- Editing a RECEIVED order was refused.
+- Nothing persisted.
+
+Screens were not screenshotted (wording and button changes only).
+`tsc`, `eslint .` and `npm run build` are clean.

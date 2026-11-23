@@ -571,6 +571,8 @@ export type Database = {
       }
       purchase_orders: {
         Row: {
+          amended_at: string | null
+          amended_by: string | null
           approved_at: string | null
           approved_by: string | null
           created_at: string
@@ -588,6 +590,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          amended_at?: string | null
+          amended_by?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -605,6 +609,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          amended_at?: string | null
+          amended_by?: string | null
           approved_at?: string | null
           approved_by?: string | null
           created_at?: string
@@ -622,6 +628,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_orders_amended_by_fkey"
+            columns: ["amended_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_orders_approved_by_fkey"
             columns: ["approved_by"]

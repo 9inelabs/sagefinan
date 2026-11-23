@@ -111,6 +111,20 @@ export function PurchaseOrderActions({
               </Link>
             </>
           ) : null}
+          {role !== "AUDITOR" ? (
+            <>
+              <Link
+                href={`/purchase-orders/${id}/edit`}
+                className={`${big} mt-2 bg-white/[0.06] ring-1 ring-inset ring-white/10 text-on-dark hover:bg-white/10`}
+              >
+                <Pencil size={15} strokeWidth={1.9} />
+                Edit order
+              </Link>
+              <p className="text-[11px] text-on-dark-mut mt-2">
+                {isAdmin ? "Add items or change quantities and prices — it stays approved." : "Changes go back to an admin for approval."}
+              </p>
+            </>
+          ) : null}
         </>
       ) : status === "RECEIVED" ? (
         <>

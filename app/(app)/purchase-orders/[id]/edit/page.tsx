@@ -14,18 +14,27 @@ export default async function EditPurchaseOrderPage({ params }: { params: Promis
   const { id } = await params;
   const po = await getPurchaseOrder(id);
   if (!po) notFound();
-  if (po.status !== "PENDING" && po.status !== "REJECTED") redirect(`/purchase-orders/${id}`);
+  if (po.status === "RECEIVED") redirect(`/purchase-orders/${id}`);
+
+  const reviewing = profile.role === "ADMIN" && po.status === "PENDING";
+  // An admin editing an approved order keeps it approved; a storekeeper's edit
+  // sends it back for approval (save_purchase_order enforces both).
+  const keepsApproval = profile.role === "ADMIN" && po.status === "APPROVED";
 
   return (
     <PageShell
-      title={`${profile.role === "ADMIN" && po.status === "PENDING" ? "Review" : "Edit"} ${formatPoNumber(po.poNumber)}`}
+      title={`${reviewing ? "Review" : "Edit"} ${formatPoNumber(po.poNumber)}`}
       subtitle={
-        profile.role === "ADMIN" && po.status === "PENDING"
+        reviewing
           ? "Add missing prices or quantities and make any changes, then approve"
-          : "Saving sends it back for approval"
+          : keepsApproval
+            ? "Add items or change quantities and prices — the order stays approved"
+            : po.status === "APPROVED"
+              ? "This order is approved — saving changes sends it back to an admin for approval"
+              : "Saving sends it back for approval"
       }
     >
-      <PurchaseOrderForm initial={po} today={todayIso()} approver={profile.role === "ADMIN" && po.status === "PENDING"} />
+      <PurchaseOrderForm initial={po} today={todayIso()} approver={reviewing} keepsApproval={keepsApproval} />
     </PageShell>
   );
 }

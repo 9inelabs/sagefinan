@@ -39,7 +39,19 @@ function parseAmount(v: string) {
 // action: the approver can fill in missing prices/quantities and change any
 // line, then approve in one step. Approval needs every line priced; the
 // storekeeper may submit with prices or quantities still blank.
-export function PurchaseOrderForm({ initial, today, approver = false }: { initial: PurchaseOrderDetail | null; today: string; approver?: boolean }) {
+// `keepsApproval` (an ADMIN editing an APPROVED order) saves without
+// changing its status, so every line must stay priced.
+export function PurchaseOrderForm({
+  initial,
+  today,
+  approver = false,
+  keepsApproval = false,
+}: {
+  initial: PurchaseOrderDetail | null;
+  today: string;
+  approver?: boolean;
+  keepsApproval?: boolean;
+}) {
   const router = useRouter();
   const [orderDate, setOrderDate] = useState(initial?.orderDate ?? today);
   const [supplierName, setSupplierName] = useState(initial?.supplierName ?? "");
@@ -86,8 +98,10 @@ export function PurchaseOrderForm({ initial, today, approver = false }: { initia
       if (l.amount.trim()) {
         const a = parseAmount(l.amount);
         if (!Number.isFinite(a) || a < 0) return setError(`Item ${i + 1} (${l.description}): the price must be a number.`);
-      } else if (andApprove) {
-        return setError(`Item ${i + 1} (${l.description}) needs a price before the order can be approved.`);
+      } else if (andApprove || keepsApproval) {
+        return setError(
+          `Item ${i + 1} (${l.description}) needs a price ${keepsApproval ? "— an approved order needs every price" : "before the order can be approved"}.`
+        );
       }
     }
     if (filled.length === 0) return setError("Add at least one item.");
@@ -247,7 +261,9 @@ export function PurchaseOrderForm({ initial, today, approver = false }: { initia
       </div>
 
       <aside className="surface-dark rounded-premium p-5 min-[1100px]:sticky min-[1100px]:top-4 animate-rise [animation-delay:120ms]">
-        <p className="text-[11.5px] text-on-dark-mut">{initial ? "Editing purchase order" : "New purchase order"}</p>
+        <p className="text-[11.5px] text-on-dark-mut">
+          {!initial ? "New purchase order" : initial.status === "APPROVED" ? "Editing an approved order" : "Editing purchase order"}
+        </p>
         <p className="mt-1 text-[13px] text-on-dark-2">
           {filled.length} item{filled.length === 1 ? "" : "s"} · {filled.filter((l) => l.productId).length} linked to stock
         </p>
@@ -257,13 +273,18 @@ export function PurchaseOrderForm({ initial, today, approver = false }: { initia
         </div>
         {unpriced > 0 ? (
           <p className="mt-2 text-[11.5px] text-amber-soft">
-            {unpriced} item{unpriced === 1 ? "" : "s"} without a price{approver ? " — add them to approve" : " — the approver can add them"}
+            {unpriced} item{unpriced === 1 ? "" : "s"} without a price
+            {approver ? " — add them to approve" : keepsApproval ? " — add them to save" : " — the approver can add them"}
           </p>
         ) : null}
         <p className="mt-4 text-[11.5px] text-on-dark-mut leading-relaxed">
           {approver
             ? "Fill in any missing prices or quantities and change anything you need, then approve. The storekeeper sees the approved version."
-            : "Prices and quantities can be left blank — the admin can fill them in before approving. Once approved the order can be downloaded as a PDF and received into stock when the goods arrive."}
+            : keepsApproval
+              ? "The order stays approved. The PDF and the goods to receive update to this version, and the timeline records that it was edited after approval."
+              : initial?.status === "APPROVED"
+                ? "This order is already approved. Saving your changes sends it back to an admin, who approves it again before it can be received."
+                : "Prices and quantities can be left blank — the admin can fill them in before approving. Once approved the order can be downloaded as a PDF and received into stock when the goods arrive."}
         </p>
         {error ? <p className="mt-3 text-[12px] text-red-on-dark animate-pop">{error}</p> : null}
         {approver ? (
@@ -288,7 +309,15 @@ export function PurchaseOrderForm({ initial, today, approver = false }: { initia
           }`}
         >
           {saving === "save" ? <Spinner size={16} /> : <Send size={15} strokeWidth={2} />}
-          {saving === "save" ? "Saving…" : approver ? "Save without approving" : initial ? "Save & resubmit for approval" : "Submit for approval"}
+          {saving === "save"
+            ? "Saving…"
+            : approver
+              ? "Save without approving"
+              : keepsApproval
+                ? "Save changes"
+                : initial
+                  ? "Save & resubmit for approval"
+                  : "Submit for approval"}
         </button>
         <Link
           href={initial ? `/purchase-orders/${initial.id}` : "/purchase-orders"}
